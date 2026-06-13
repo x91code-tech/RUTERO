@@ -3,8 +3,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardHeader } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { demoClients, demoRoutes, demoUsers } from "@/lib/demo-data";
-import { buildGoogleMapsClientUrl, buildGoogleMapsRouteUrl, buildWazeClientUrl, hasClientLocation, optimizeVisitOrder } from "@/lib/geo";
+import { demoClientLocations, demoClients, demoRoutes, demoUsers } from "@/lib/demo-data";
+import { buildGoogleMapsClientUrl, buildGoogleMapsRouteUrl, buildWazeClientUrl, getClientNavigationPoint, optimizeVisitOrder } from "@/lib/geo";
 
 export default function RoutesPage() {
   const statuses = ["Pendiente", "Visitado", "Cobrado", "Venta realizada", "No encontrado"];
@@ -15,8 +15,13 @@ export default function RoutesPage() {
         <div className="grid gap-4">
           {demoRoutes.map((route) => {
             const seller = demoUsers.find((user) => user.id === route.sellerId);
-            const clients = demoClients.filter((client) => route.clientIds.includes(client.id));
-            const clientsWithLocation = clients.filter(hasClientLocation);
+            const clients = demoClients
+              .filter((client) => route.clientIds.includes(client.id))
+              .map((client) => ({
+                ...client,
+                locations: demoClientLocations.filter((location) => location.clientId === client.id)
+              }));
+            const clientsWithLocation = clients.map(getClientNavigationPoint).filter((client) => client !== null);
             const orderedClients = optimizeVisitOrder(clientsWithLocation);
             return (
               <Card key={route.id}>

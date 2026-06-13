@@ -1,5 +1,6 @@
-import { PrismaClient, Role, PaymentMethod, ClientStatus, CashboxStatus } from "@prisma/client";
+import { PrismaClient, Role, PaymentMethod, ClientStatus, CashboxStatus, ClientLocationType, ClientDocumentStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { getClientDocumentRequirements } from "../src/lib/countries";
 
 const prisma = new PrismaClient();
 
@@ -61,6 +62,40 @@ async function main() {
     });
 
     await prisma.routeClient.create({ data: { routeId: routeCentro.id, clientId: client.id, visitOrder: index + 1 } });
+    await prisma.clientLocation.createMany({
+      data: [
+        {
+          clientId: client.id,
+          label: "Ubicación tienda",
+          type: ClientLocationType.STORE,
+          address: client.address,
+          latitude: client.latitude ?? 10.5,
+          longitude: client.longitude ?? -66.91,
+          isPrimary: true
+        },
+        {
+          clientId: client.id,
+          label: "Ubicación administrativa",
+          type: ClientLocationType.BILLING,
+          address: `${client.address} · oficina o punto de facturación`,
+          latitude: Number(client.latitude ?? 10.5) + 0.0015,
+          longitude: Number(client.longitude ?? -66.91) - 0.0015,
+          isPrimary: false
+        }
+      ]
+    });
+    await prisma.clientDocument.createMany({
+      data: getClientDocumentRequirements("VE").map((requirement, requirementIndex) => ({
+        clientId: client.id,
+        countryCode: "VE",
+        documentType: requirement.type,
+        label: requirement.label,
+        required: requirement.required,
+        status: requirementIndex === 0 ? ClientDocumentStatus.UPLOADED : ClientDocumentStatus.PENDING,
+        fileUrl: requirementIndex === 0 ? `/demo-documents/${client.id}-${requirement.type.toLowerCase()}.pdf` : null,
+        notes: requirement.description
+      }))
+    });
   }
 
   const product = await prisma.product.create({

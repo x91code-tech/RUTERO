@@ -1,14 +1,22 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
+import { ClientDocumentsCard } from "@/components/clients/client-documents-card";
 import { ClientLocationCard } from "@/components/clients/client-location-card";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { demoClients, demoCollections, demoCompany, demoRoutes, demoSales } from "@/lib/demo-data";
+import { demoClientDocuments, demoClientLocations, demoClients, demoCollections, demoCompany, demoRoutes, demoSales } from "@/lib/demo-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
 export default async function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const client = demoClients.find((item) => item.id === id);
+  const baseClient = demoClients.find((item) => item.id === id);
+  const client = baseClient
+    ? {
+        ...baseClient,
+        locations: demoClientLocations.filter((location) => location.clientId === baseClient.id),
+        documents: demoClientDocuments.filter((document) => document.clientId === baseClient.id)
+      }
+    : null;
   if (!client) notFound();
   const route = demoRoutes.find((item) => item.id === client.routeId);
   const sales = demoSales.filter((sale) => sale.clientId === client.id);
@@ -30,6 +38,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
             </div>
           </Card>
           <ClientLocationCard client={client} />
+          <ClientDocumentsCard documents={client.documents ?? []} />
         </div>
         <Card>
           <CardHeader title="Historial" description="Ventas y recaudos relacionados con este cliente." />

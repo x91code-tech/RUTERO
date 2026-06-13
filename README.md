@@ -84,6 +84,8 @@ El seed crea estos usuarios en PostgreSQL con contraseñas hasheadas. El login y
 - Usuarios, permisos y configuración
 - Prisma schema completo con auditoría y multiempresa
 - Configuración de país, moneda, formato regional y zona horaria por empresa
+- Documentos de cliente según país
+- Dos ubicaciones GPS por cliente, incluyendo ubicación tienda
 - Seed de ejemplo
 - Manifest PWA, service worker y pantalla sin conexión
 

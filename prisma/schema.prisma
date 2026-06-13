@@ -50,6 +50,20 @@ enum InventoryMovementType {
   OUT
 }
 
+enum ClientLocationType {
+  STORE
+  WAREHOUSE
+  BILLING
+  OTHER
+}
+
+enum ClientDocumentStatus {
+  PENDING
+  UPLOADED
+  APPROVED
+  REJECTED
+}
+
 model Company {
   id            String             @id @default(cuid())
   name          String
@@ -127,11 +141,49 @@ model Client {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   routeClients   RouteClient[]
+  locations      ClientLocation[]
+  documents      ClientDocument[]
   sales          Sale[]
   collections    Collection[]
 
   @@index([companyId, status])
   @@index([sellerId])
+}
+
+model ClientLocation {
+  id        String             @id @default(cuid())
+  clientId  String
+  client    Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  label     String
+  type      ClientLocationType @default(OTHER)
+  address   String
+  latitude  Decimal            @db.Decimal(10, 7)
+  longitude Decimal            @db.Decimal(10, 7)
+  isPrimary Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([clientId, type])
+}
+
+model ClientDocument {
+  id           String               @id @default(cuid())
+  clientId     String
+  client       Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  countryCode  String
+  documentType String
+  label        String
+  required     Boolean              @default(false)
+  status       ClientDocumentStatus @default(PENDING)
+  fileUrl      String?
+  notes        String?
+  uploadedAt   DateTime?
+  reviewedAt   DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([clientId, status])
+  @@unique([clientId, documentType])
 }
 
 model Route {

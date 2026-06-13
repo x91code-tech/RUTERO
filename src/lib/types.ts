@@ -3,6 +3,8 @@ export type PaymentMethod = "CASH" | "TRANSFER" | "PIX" | "CREDIT" | "MIXED";
 export type ClientStatus = "ACTIVE" | "PENDING" | "DELINQUENT" | "INACTIVE";
 export type VisitStatus = "PENDING" | "VISITED" | "NOT_FOUND" | "COLLECTED" | "SALE_DONE";
 export type CashboxStatus = "OPEN" | "CLOSED" | "BALANCED" | "UNBALANCED" | "REQUIRES_REVIEW";
+export type ClientLocationType = "STORE" | "WAREHOUSE" | "BILLING" | "OTHER";
+export type ClientDocumentStatus = "PENDING" | "UPLOADED" | "APPROVED" | "REJECTED";
 
 export type Company = {
   id: string;
@@ -39,6 +41,31 @@ export type Client = {
   pendingBalance: number;
   status: ClientStatus;
   notes: string;
+  locations?: ClientLocation[];
+  documents?: ClientDocument[];
+};
+
+export type ClientLocation = {
+  id: string;
+  clientId: string;
+  label: string;
+  type: ClientLocationType;
+  address: string;
+  latitude: number;
+  longitude: number;
+  isPrimary: boolean;
+};
+
+export type ClientDocument = {
+  id: string;
+  clientId: string;
+  countryCode: string;
+  documentType: string;
+  label: string;
+  required: boolean;
+  status: ClientDocumentStatus;
+  fileUrl?: string;
+  notes?: string;
 };
 
 export type Route = {

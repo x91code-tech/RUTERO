@@ -1,4 +1,5 @@
-import type { Cashbox, Client, Collection, Company, Expense, Notification, Product, Route, Sale, User } from "@/lib/types";
+import { getClientDocumentRequirements } from "@/lib/countries";
+import type { Cashbox, Client, ClientDocument, ClientLocation, Collection, Company, Expense, Notification, Product, Route, Sale, User } from "@/lib/types";
 
 export const demoCompany: Company = {
   id: "company_rutero_demo",
@@ -120,6 +121,43 @@ export const demoClients: Client[] = [
     notes: "Solicita factura detallada."
   }
 ];
+
+export const demoClientLocations: ClientLocation[] = demoClients.flatMap((client) => [
+  {
+    id: `${client.id}_store`,
+    clientId: client.id,
+    label: "Ubicación tienda",
+    type: "STORE",
+    address: client.address,
+    latitude: client.latitude ?? 10.5,
+    longitude: client.longitude ?? -66.91,
+    isPrimary: true
+  },
+  {
+    id: `${client.id}_billing`,
+    clientId: client.id,
+    label: "Ubicación administrativa",
+    type: "BILLING",
+    address: `${client.address} · oficina o punto de facturación`,
+    latitude: (client.latitude ?? 10.5) + 0.0015,
+    longitude: (client.longitude ?? -66.91) - 0.0015,
+    isPrimary: false
+  }
+]);
+
+export const demoClientDocuments: ClientDocument[] = demoClients.flatMap((client) =>
+  getClientDocumentRequirements(demoCompany.countryCode).map((requirement, index) => ({
+    id: `${client.id}_${requirement.type.toLowerCase()}`,
+    clientId: client.id,
+    countryCode: demoCompany.countryCode,
+    documentType: requirement.type,
+    label: requirement.label,
+    required: requirement.required,
+    status: index === 0 ? "UPLOADED" : requirement.required ? "PENDING" : "PENDING",
+    fileUrl: index === 0 ? `/demo-documents/${client.id}-${requirement.type.toLowerCase()}.pdf` : undefined,
+    notes: requirement.description
+  }))
+);
 
 export const today = "2026-06-12";
 

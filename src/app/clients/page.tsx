@@ -2,9 +2,8 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { demoClients, demoCompany, demoRoutes, demoUsers } from "@/lib/demo-data";
+import { demoClientDocuments, demoClientLocations, demoClients, demoCompany, demoRoutes, demoUsers } from "@/lib/demo-data";
 import { formatCurrency } from "@/lib/formatters";
-import { hasClientLocation } from "@/lib/geo";
 
 const statusLabels = {
   ACTIVE: "Activo",
@@ -22,6 +21,9 @@ export default function ClientsPage() {
           {demoClients.map((client) => {
             const route = demoRoutes.find((item) => item.id === client.routeId);
             const seller = demoUsers.find((item) => item.id === client.sellerId);
+            const hasStoreLocation = demoClientLocations.some((location) => location.clientId === client.id && location.type === "STORE");
+            const requiredDocuments = demoClientDocuments.filter((document) => document.clientId === client.id && document.required);
+            const uploadedRequiredDocuments = requiredDocuments.filter((document) => document.status === "UPLOADED" || document.status === "APPROVED");
             return (
               <Link key={client.id} href={`/clients/${client.id}`} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-brand-500/50">
                 <div className="flex items-start justify-between gap-3">
@@ -36,7 +38,8 @@ export default function ClientsPage() {
                   <span className="text-zinc-400">Ruta</span><span className="text-right">{route?.name}</span>
                   <span className="text-zinc-400">Vendedor</span><span className="text-right">{seller?.name}</span>
                   <span className="text-zinc-400">Saldo</span><span className="text-right font-bold">{formatCurrency(client.pendingBalance, demoCompany)}</span>
-                  <span className="text-zinc-400">GPS</span><span className="text-right">{hasClientLocation(client) ? "Guardado" : "Pendiente"}</span>
+                  <span className="text-zinc-400">GPS tienda</span><span className="text-right">{hasStoreLocation ? "Guardado" : "Pendiente"}</span>
+                  <span className="text-zinc-400">Documentos</span><span className="text-right">{uploadedRequiredDocuments.length}/{requiredDocuments.length}</span>
                 </div>
               </Link>
             );

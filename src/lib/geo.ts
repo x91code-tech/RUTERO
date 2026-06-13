@@ -1,4 +1,4 @@
-import type { Client } from "@/lib/types";
+import type { Client, ClientLocation } from "@/lib/types";
 
 export type Coordinates = {
   latitude: number;
@@ -9,6 +9,24 @@ export type ClientWithLocation = Client & Required<Pick<Client, "latitude" | "lo
 
 export function hasClientLocation(client: Client): client is ClientWithLocation {
   return typeof client.latitude === "number" && typeof client.longitude === "number";
+}
+
+export function getStoreLocation(client: Client): ClientLocation | null {
+  return client.locations?.find((location) => location.type === "STORE") ?? client.locations?.find((location) => location.isPrimary) ?? null;
+}
+
+export function getClientNavigationPoint(client: Client): ClientWithLocation | null {
+  const storeLocation = getStoreLocation(client);
+  if (storeLocation) {
+    return {
+      ...client,
+      address: storeLocation.address,
+      latitude: storeLocation.latitude,
+      longitude: storeLocation.longitude
+    };
+  }
+
+  return hasClientLocation(client) ? client : null;
 }
 
 export function calculateDistanceKm(from: Coordinates, to: Coordinates) {

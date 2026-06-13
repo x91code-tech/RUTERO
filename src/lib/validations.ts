@@ -33,8 +33,22 @@ export const cashboxCloseSchema = z.object({
 
 export const clientLocationSchema = z.object({
   clientId: z.string().min(1, "Cliente requerido"),
+  type: z.enum(["STORE", "WAREHOUSE", "BILLING", "OTHER"]).default("STORE"),
+  label: z.string().min(2, "Indica una etiqueta"),
+  address: z.string().min(2, "Indica la dirección"),
   latitude: z.coerce.number().min(-90, "Latitud inválida").max(90, "Latitud inválida"),
-  longitude: z.coerce.number().min(-180, "Longitud inválida").max(180, "Longitud inválida")
+  longitude: z.coerce.number().min(-180, "Longitud inválida").max(180, "Longitud inválida"),
+  isPrimary: z.coerce.boolean().default(false)
+});
+
+export const clientDocumentSchema = z.object({
+  clientId: z.string().min(1, "Cliente requerido"),
+  countryCode: z.string().min(2, "País requerido"),
+  documentType: z.string().min(2, "Tipo de documento requerido"),
+  label: z.string().min(2, "Etiqueta requerida"),
+  required: z.coerce.boolean().default(false),
+  fileUrl: z.string().url("Archivo inválido").optional(),
+  notes: z.string().optional()
 });
 
 export const loginSchema = z.object({
