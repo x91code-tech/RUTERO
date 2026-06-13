@@ -7,12 +7,9 @@ export const metadata: Metadata = {
   description: "Control de rutas, ventas, recaudos y caja diaria para equipos en calle.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [
-      { url: "/brand/rutero-isotipo.png", type: "image/png" },
-      { url: "/icon.svg", type: "image/svg+xml" }
-    ],
-    shortcut: "/brand/rutero-isotipo.png",
-    apple: "/brand/rutero-isotipo.png"
+    icon: [{ url: "/brand/rutero-logo.png", type: "image/png" }],
+    shortcut: "/brand/rutero-logo.png",
+    apple: "/brand/rutero-logo.png"
   }
 };
 
