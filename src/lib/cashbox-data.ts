@@ -3,6 +3,15 @@ import { getSessionUser } from "@/lib/session";
 import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
 import type { Cashbox, Collection, Company, Expense, Loan, Sale } from "@/lib/types";
 
+export type CashboxMovementRow = {
+  id: string;
+  type: "Prestamo" | "Venta" | "Recaudo" | "Gasto";
+  description: string;
+  paymentMethod: string;
+  date: string;
+  amount: number;
+};
+
 function startOfLocalDay(date = new Date()) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -41,7 +50,41 @@ export async function getCashboxPageData() {
       loans: demoLoans,
       sales: demoSales,
       collections: demoCollections,
-      expenses: demoExpenses
+      expenses: demoExpenses,
+      movements: [
+        ...demoLoans.map((loan) => ({
+          id: loan.id,
+          type: "Prestamo" as const,
+          description: "Prestamo entregado",
+          paymentMethod: "CASH_LOCAL",
+          date: loan.startDate,
+          amount: -loan.principalAmount
+        })),
+        ...demoSales.map((sale) => ({
+          id: sale.id,
+          type: "Venta" as const,
+          description: sale.product,
+          paymentMethod: sale.paymentMethod,
+          date: sale.date,
+          amount: sale.amount
+        })),
+        ...demoCollections.map((collection) => ({
+          id: collection.id,
+          type: "Recaudo" as const,
+          description: "Pago de cliente",
+          paymentMethod: collection.paymentMethod,
+          date: collection.date,
+          amount: collection.amount
+        })),
+        ...demoExpenses.map((expense) => ({
+          id: expense.id,
+          type: "Gasto" as const,
+          description: expense.comment || expense.type,
+          paymentMethod: expense.paymentMethod,
+          date: expense.date,
+          amount: -expense.amount
+        }))
+      ] satisfies CashboxMovementRow[]
     };
   }
 
@@ -57,9 +100,9 @@ export async function getCashboxPageData() {
         }
       }
     }),
-    prisma.loan.findMany({ where: { companyId: user.companyId, sellerId: user.id, createdAt: { gte: todayStart, lt: todayEnd } } }),
-    prisma.sale.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
-    prisma.collection.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
+    prisma.loan.findMany({ where: { companyId: user.companyId, sellerId: user.id, createdAt: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
+    prisma.sale.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
+    prisma.collection.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
     prisma.expense.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } })
   ]);
 
@@ -128,6 +171,40 @@ export async function getCashboxPageData() {
       paymentMethod: expense.paymentMethod,
       date: expense.date.toISOString(),
       comment: expense.comment ?? ""
-    })) satisfies Expense[]
+    })) satisfies Expense[],
+    movements: [
+      ...loans.map((loan) => ({
+        id: loan.id,
+        type: "Prestamo" as const,
+        description: loan.client.name,
+        paymentMethod: "CASH_LOCAL",
+        date: loan.createdAt.toISOString(),
+        amount: -Number(loan.principalAmount)
+      })),
+      ...sales.map((sale) => ({
+        id: sale.id,
+        type: "Venta" as const,
+        description: `${sale.client.name} - ${sale.concept}`,
+        paymentMethod: sale.paymentMethod,
+        date: sale.date.toISOString(),
+        amount: Number(sale.amount)
+      })),
+      ...collections.map((collection) => ({
+        id: collection.id,
+        type: "Recaudo" as const,
+        description: collection.client.name,
+        paymentMethod: collection.paymentMethod,
+        date: collection.date.toISOString(),
+        amount: Number(collection.amount)
+      })),
+      ...expenses.map((expense) => ({
+        id: expense.id,
+        type: "Gasto" as const,
+        description: expense.comment ? `${expense.type} - ${expense.comment}` : expense.type,
+        paymentMethod: expense.paymentMethod,
+        date: expense.date.toISOString(),
+        amount: -Number(expense.amount)
+      }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) satisfies CashboxMovementRow[]
   };
 }
