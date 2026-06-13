@@ -1,4 +1,4 @@
-import { Banknote, CheckCircle2, Clock3, MapPin, Search, WalletCards } from "lucide-react";
+import { Banknote, CheckCircle2, Clock3, Landmark, MapPin, Search, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MetricCard } from "@/components/cards/metric-card";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -23,11 +23,12 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
         <MetricCard label="Saldo activo" value={formatCurrency(totals.activeBalance, company)} />
       </div>
 
-      <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto]">
+      <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
         <form className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <Input name="q" defaultValue={q ?? ""} placeholder="Buscar por nombre, documento, telefono o direccion" className="pl-10" />
         </form>
+        <LinkButton href="/loans" variant="secondary"><Landmark className="h-4 w-4" /> Nueva venta</LinkButton>
         <LinkButton href="/collections" variant="secondary"><WalletCards className="h-4 w-4" /> Recaudo manual</LinkButton>
         <LinkButton href="/expenses" variant="secondary"><Banknote className="h-4 w-4" /> Gasto</LinkButton>
       </div>

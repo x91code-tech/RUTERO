@@ -30,6 +30,7 @@ export const collectionSchema = z.object({
 export const loanSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
   principalAmount: moneySchema,
+  interestRatePercent: z.coerce.number().min(0, "El interes no puede ser negativo").max(100, "El interes maximo permitido es 100").default(20),
   termDays: z.coerce.number().int().min(1, "Debe ser al menos 1 dÃ­a").max(365, "El plazo mÃ¡ximo es 365 dÃ­as"),
   startDate: z.string().optional(),
   notes: z.string().optional()

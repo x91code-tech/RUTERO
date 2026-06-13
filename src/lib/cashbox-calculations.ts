@@ -1,4 +1,4 @@
-import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
+import type { Cashbox, Collection, Expense, Loan, Sale } from "@/lib/types";
 import { getPaymentMethodCategory } from "@/lib/payment-methods";
 
 export type DailySummary = {
@@ -8,6 +8,7 @@ export type DailySummary = {
   cashSales: number;
   cashCollections: number;
   cashExpenses: number;
+  loanDisbursementsTotal: number;
   transferTotal: number;
   pixTotal: number;
   digitalTotal: number;
@@ -18,8 +19,8 @@ export type DailySummary = {
   statusMessage: string;
 };
 
-export function calculateExpectedCash(initialCash: number, cashSales: number, cashCollections: number, cashExpenses: number) {
-  return initialCash + cashSales + cashCollections - cashExpenses;
+export function calculateExpectedCash(initialCash: number, cashSales: number, cashCollections: number, cashExpenses: number, loanDisbursementsTotal = 0) {
+  return initialCash + cashSales + cashCollections - cashExpenses - loanDisbursementsTotal;
 }
 
 export function calculateCashDifference(reportedCash: number, expectedCash: number) {
@@ -37,13 +38,16 @@ export function calculateDailySummary(input: {
   sales: Sale[];
   collections: Collection[];
   expenses: Expense[];
+  loans?: Loan[];
   countryCode?: string;
 }): DailySummary {
   const { cashbox, sales, collections, expenses } = input;
+  const loans = input.loans ?? [];
   const countryCode = input.countryCode ?? "VE";
   const salesTotal = sum(sales.map((sale) => sale.amount));
   const collectionsTotal = sum(collections.map((collection) => collection.amount));
   const expensesTotal = sum(expenses.map((expense) => expense.amount));
+  const loanDisbursementsTotal = sum(loans.map((loan) => loan.principalAmount));
   const isCashMethod = (method: string) => getPaymentMethodCategory(method, countryCode) === "cash" || method === "CASH";
   const isTransferLikeMethod = (method: string) => ["bank", "card"].includes(getPaymentMethodCategory(method, countryCode)) || method === "TRANSFER";
   const isWalletMethod = (method: string) => getPaymentMethodCategory(method, countryCode) === "wallet" || method === "PIX";
@@ -58,7 +62,7 @@ export function calculateDailySummary(input: {
     ...sales.filter((sale) => isWalletMethod(sale.paymentMethod)).map((sale) => sale.amount),
     ...collections.filter((collection) => isWalletMethod(collection.paymentMethod)).map((collection) => collection.amount)
   ]);
-  const expectedCash = calculateExpectedCash(cashbox.initialCash, cashSales, cashCollections, cashExpenses);
+  const expectedCash = calculateExpectedCash(cashbox.initialCash, cashSales, cashCollections, cashExpenses, loanDisbursementsTotal);
   const difference = calculateCashDifference(cashbox.reportedCash, expectedCash);
 
   return {
@@ -68,11 +72,12 @@ export function calculateDailySummary(input: {
     cashSales,
     cashCollections,
     cashExpenses,
+    loanDisbursementsTotal,
     transferTotal,
     pixTotal,
     digitalTotal: transferTotal + pixTotal,
-    grossMovement: salesTotal + collectionsTotal,
-    netMovement: salesTotal + collectionsTotal - expensesTotal,
+    grossMovement: salesTotal + collectionsTotal + loanDisbursementsTotal,
+    netMovement: salesTotal + collectionsTotal - expensesTotal - loanDisbursementsTotal,
     expectedCash,
     difference,
     statusMessage: getCashboxStatusMessage(difference)

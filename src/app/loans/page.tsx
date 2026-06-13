@@ -1,6 +1,6 @@
 import { Landmark } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
-import { LoanForm } from "@/components/forms/movement-form";
+import { LoanForm } from "@/components/forms/loan-form";
 import { MetricCard } from "@/components/cards/metric-card";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -15,7 +15,7 @@ export default async function LoansPage() {
   const projectedInterest = loans.reduce((total, loan) => total + loan.interestAmount, 0);
 
   return (
-    <AppShell title="Prestamos" subtitle="Prestamos al 20% con pago diario y saldo automatico por cliente.">
+    <AppShell title="Ventas / prestamos" subtitle="Registra el dinero entregado, calcula interes, cuotas y saldo automatico.">
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard label="Saldo activo" value={formatCurrency(activeBalance, company)} icon={<Landmark />} />
         <MetricCard label="Cobro diario esperado" value={formatCurrency(dailyExpected, company)} />
@@ -24,7 +24,7 @@ export default async function LoansPage() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
-          <CardHeader title="Crear prestamo" description="El sistema suma 20% y divide el total entre los dias de pago." />
+          <CardHeader title="Nueva venta / prestamo" description="Capital entregado + interes = total a cobrar en cuotas diarias." />
           <LoanForm clients={clients} company={company} />
         </Card>
         <Card>

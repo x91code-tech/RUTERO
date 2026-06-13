@@ -10,8 +10,6 @@ import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
 import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema } from "@/lib/validations";
 import { createNotification } from "@/server/services/notification-service";
 
-const LOAN_INTEREST_RATE = 0.2;
-
 function addDays(date: Date, days: number) {
   const nextDate = new Date(date);
   nextDate.setDate(nextDate.getDate() + days);
@@ -178,6 +176,8 @@ export async function createCollectionAction(formData: FormData) {
 
   revalidatePath("/collections");
   revalidatePath("/loans");
+  revalidatePath("/seller");
+  revalidatePath("/cashbox");
   revalidatePath("/clients");
   revalidatePath(`/clients/${client.id}`);
   revalidatePath("/cashbox");
@@ -201,7 +201,9 @@ export async function createLoanAction(formData: FormData) {
   const startDate = payload.startDate ? new Date(payload.startDate) : new Date();
   const dueDate = addDays(startDate, payload.termDays - 1);
   const principalAmount = payload.principalAmount;
-  const interestAmount = Number((principalAmount * LOAN_INTEREST_RATE).toFixed(2));
+  const interestRate = payload.interestRatePercent / 100;
+  const sellerId = user.role === "SELLER" ? user.id : client.sellerId;
+  const interestAmount = Number((principalAmount * interestRate).toFixed(2));
   const totalAmount = Number((principalAmount + interestAmount).toFixed(2));
   const dailyPayment = Number((totalAmount / payload.termDays).toFixed(2));
 
@@ -209,10 +211,10 @@ export async function createLoanAction(formData: FormData) {
     const loan = await tx.loan.create({
       data: {
         companyId: user.companyId,
-        sellerId: user.id,
+        sellerId,
         clientId: client.id,
         principalAmount,
-        interestRate: LOAN_INTEREST_RATE,
+        interestRate,
         interestAmount,
         totalAmount,
         dailyPayment,
@@ -242,7 +244,7 @@ export async function createLoanAction(formData: FormData) {
         entityId: loan.id,
         newValue: {
           ...payload,
-          interestRate: LOAN_INTEREST_RATE,
+          interestRate,
           interestAmount,
           totalAmount,
           dailyPayment
@@ -305,10 +307,11 @@ export async function closeCashboxAction(formData: FormData) {
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
-  const [sales, collections, expenses] = await Promise.all([
+  const [sales, collections, expenses, loans] = await Promise.all([
     prisma.sale.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
     prisma.collection.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
-    prisma.expense.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } })
+    prisma.expense.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
+    prisma.loan.findMany({ where: { companyId: user.companyId, sellerId: user.id, createdAt: { gte: todayStart, lt: todayEnd } } })
   ]);
   const cashboxInput: Cashbox = {
     id: "cashbox_close",
@@ -357,7 +360,25 @@ export async function closeCashboxAction(formData: FormData) {
       paymentMethod: expense.paymentMethod,
       date: expense.date.toISOString(),
       comment: expense.comment ?? ""
-    })) satisfies Expense[]
+    })) satisfies Expense[],
+    loans: loans.map((loan) => ({
+      id: loan.id,
+      companyId: loan.companyId,
+      clientId: loan.clientId,
+      sellerId: loan.sellerId,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      interestAmount: Number(loan.interestAmount),
+      totalAmount: Number(loan.totalAmount),
+      dailyPayment: Number(loan.dailyPayment),
+      paidAmount: Number(loan.paidAmount),
+      balance: Number(loan.balance),
+      termDays: loan.termDays,
+      startDate: loan.startDate.toISOString(),
+      dueDate: loan.dueDate.toISOString(),
+      status: loan.status,
+      notes: loan.notes ?? undefined
+    }))
   });
 
   const status = summary.difference === 0 ? "BALANCED" : "UNBALANCED";

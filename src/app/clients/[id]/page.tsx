@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ClientDocumentsCard } from "@/components/clients/client-documents-card";
 import { ClientLocationCard } from "@/components/clients/client-location-card";
 import { ClientVerificationForm } from "@/components/forms/client-verification-form";
+import { LoanForm } from "@/components/forms/loan-form";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getClientProfileData } from "@/lib/clients-data";
@@ -12,7 +13,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
   const { id } = await params;
   const data = await getClientProfileData(id);
   if (!data) notFound();
-  const { client, collections, company, route, sales } = data;
+  const { client, collections, company, loans, route, sales } = data;
 
   return (
     <AppShell title={client.name} subtitle="Perfil de cliente con historial comercial y cobranza.">
@@ -30,9 +31,37 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
             </div>
           </Card>
           <ClientVerificationForm client={client} />
+          <Card>
+            <CardHeader title="Nueva venta / prestamo" description="Registra el capital entregado y calcula cuotas diarias." />
+            {client.status === "ACTIVE" ? (
+              <LoanForm clients={[client]} company={company} defaultClientId={client.id} />
+            ) : (
+              <p className="rounded-xl bg-amber-500/15 p-4 text-sm text-amber-100">Este cliente debe estar activo/verificado antes de recibir prestamos.</p>
+            )}
+          </Card>
           <ClientLocationCard client={client} />
           <ClientDocumentsCard documents={client.documents ?? []} />
         </div>
+        <Card>
+          <CardHeader title="Prestamos activos" description="Capital entregado, cuota diaria y saldo deudor." />
+          <div className="space-y-3">
+            {loans.map((loan) => (
+              <div key={loan.id} className="rounded-xl bg-white/[0.04] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold">Total {formatCurrency(loan.totalAmount, company)}</p>
+                  <StatusBadge tone={loan.status === "PAID" ? "green" : loan.status === "OVERDUE" ? "red" : "orange"}>{loan.status}</StatusBadge>
+                </div>
+                <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+                  <p><span className="text-zinc-400">Entregado</span><br /><strong>{formatCurrency(loan.principalAmount, company)}</strong></p>
+                  <p><span className="text-zinc-400">Cuota diaria</span><br /><strong>{formatCurrency(loan.dailyPayment, company)}</strong></p>
+                  <p><span className="text-zinc-400">Saldo</span><br /><strong>{formatCurrency(loan.balance, company)}</strong></p>
+                </div>
+              </div>
+            ))}
+            {loans.length === 0 ? <p className="rounded-xl bg-white/[0.04] p-4 text-sm text-zinc-400">Este cliente todavia no tiene prestamos.</p> : null}
+          </div>
+        </Card>
+
         <Card>
           <CardHeader title="Historial" description="Ventas y recaudos relacionados con este cliente." />
           <div className="space-y-3">

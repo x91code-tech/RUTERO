@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
-import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoSales } from "@/lib/demo-data";
-import type { Cashbox, Collection, Company, Expense, Sale } from "@/lib/types";
+import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
+import type { Cashbox, Collection, Company, Expense, Loan, Sale } from "@/lib/types";
 
 function startOfLocalDay(date = new Date()) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -38,6 +38,7 @@ export async function getCashboxPageData() {
     return {
       company: demoCompany,
       cashbox: demoCashbox,
+      loans: demoLoans,
       sales: demoSales,
       collections: demoCollections,
       expenses: demoExpenses
@@ -46,7 +47,7 @@ export async function getCashboxPageData() {
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
-  const [company, cashbox, sales, collections, expenses] = await Promise.all([
+  const [company, cashbox, loans, sales, collections, expenses] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
     prisma.cashbox.findUnique({
       where: {
@@ -56,6 +57,7 @@ export async function getCashboxPageData() {
         }
       }
     }),
+    prisma.loan.findMany({ where: { companyId: user.companyId, sellerId: user.id, createdAt: { gte: todayStart, lt: todayEnd } } }),
     prisma.sale.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
     prisma.collection.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
     prisma.expense.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } })
@@ -75,6 +77,24 @@ export async function getCashboxPageData() {
       status: cashbox?.status ?? "OPEN",
       observations: cashbox?.observations ?? ""
     } satisfies Cashbox,
+    loans: loans.map((loan) => ({
+      id: loan.id,
+      companyId: loan.companyId,
+      clientId: loan.clientId,
+      sellerId: loan.sellerId,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      interestAmount: Number(loan.interestAmount),
+      totalAmount: Number(loan.totalAmount),
+      dailyPayment: Number(loan.dailyPayment),
+      paidAmount: Number(loan.paidAmount),
+      balance: Number(loan.balance),
+      termDays: loan.termDays,
+      startDate: loan.startDate.toISOString(),
+      dueDate: loan.dueDate.toISOString(),
+      status: loan.status,
+      notes: loan.notes ?? undefined
+    })) satisfies Loan[],
     sales: sales.map((sale) => ({
       id: sale.id,
       companyId: sale.companyId,

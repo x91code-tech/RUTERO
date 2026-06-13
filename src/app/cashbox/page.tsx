@@ -9,14 +9,14 @@ import { formatCurrency } from "@/lib/formatters";
 import { closeCashboxAction } from "@/server/actions/financial-actions";
 
 export default async function CashboxPage() {
-  const { cashbox, collections, company, expenses, sales } = await getCashboxPageData();
-  const summary = calculateDailySummary({ cashbox, sales, collections, expenses, countryCode: company.countryCode });
+  const { cashbox, collections, company, expenses, loans, sales } = await getCashboxPageData();
+  const summary = calculateDailySummary({ cashbox, sales, collections, expenses, loans, countryCode: company.countryCode });
 
   return (
     <AppShell title="Caja diaria" subtitle="Movimientos automaticos, cierre y diferencias del dia.">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Caja inicial" value={formatCurrency(cashbox.initialCash, company)} />
-        <MetricCard label="Ventas efectivo" value={formatCurrency(summary.cashSales, company)} />
+        <MetricCard label="Prestamos entregados" value={formatCurrency(summary.loanDisbursementsTotal, company)} tone="orange" />
         <MetricCard label="Recaudos efectivo" value={formatCurrency(summary.cashCollections, company)} />
         <MetricCard label="Gastos efectivo" value={formatCurrency(summary.cashExpenses, company)} tone="orange" />
         <MetricCard label="Caja esperada" value={formatCurrency(summary.expectedCash, company)} />
@@ -45,7 +45,8 @@ export default async function CashboxPage() {
               ["Transferencias y tarjetas", summary.transferTotal],
               ["Movimiento bruto", summary.grossMovement],
               ["Movimiento neto", summary.netMovement],
-              ["Ventas", summary.salesTotal],
+              ["Ventas contado", summary.salesTotal],
+              ["Prestamos entregados", summary.loanDisbursementsTotal],
               ["Recaudos", summary.collectionsTotal],
               ["Gastos", summary.expensesTotal],
               ["Digital total", summary.digitalTotal]
