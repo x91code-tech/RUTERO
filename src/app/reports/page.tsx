@@ -7,16 +7,17 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
-import { getReportsPageData } from "@/lib/reports-data";
+import { getReportsPageData, type ReportFilters } from "@/lib/reports-data";
 import { generateWhatsAppReport } from "@/lib/reports";
 
-export default async function ReportsPage() {
-  const data = await getReportsPageData();
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<ReportFilters> }) {
+  const filterInput = await searchParams;
+  const data = await getReportsPageData(filterInput);
   if (!data) redirect("/login");
 
-  const { cashbox, clients, collections, company, currentUser, expenses, loans, routes, sales, users } = data;
+  const { cashbox, clients, collections, company, currentUser, expenses, filters, loans, routes, sales, users } = data;
   const seller = users.find((user) => user.id === cashbox.sellerId) ?? currentUser;
-  const today = new Date().toISOString().slice(0, 10);
+  const dateLabel = filters.from === filters.to ? undefined : `${formatInputDateLabel(filters.from)} - ${formatInputDateLabel(filters.to)}`;
   const visitedClients = new Set([
     ...collections.map((collection) => collection.clientId),
     ...loans.map((loan) => loan.clientId),
@@ -39,6 +40,7 @@ export default async function ReportsPage() {
     expenses,
     loans,
     visitedClients,
+    dateLabel,
     currencyConfig: company
   });
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(report)}`;
@@ -72,13 +74,14 @@ export default async function ReportsPage() {
             <CardHeader title="Filtros administrativos" />
             <form className="grid gap-4 sm:grid-cols-2">
               <Field label="Fecha inicial">
-                <Input type="date" defaultValue={today} />
+                <Input type="date" name="from" defaultValue={filters.from} />
               </Field>
               <Field label="Fecha final">
-                <Input type="date" defaultValue={today} />
+                <Input type="date" name="to" defaultValue={filters.to} />
               </Field>
               <Field label="Vendedor">
-                <Select defaultValue={seller.id}>
+                <Select name="sellerId" defaultValue={filters.sellerId ?? "all"}>
+                  {currentUser.role !== "SELLER" ? <option value="all">Todos los vendedores</option> : null}
                   {usersForSelect.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name}
@@ -87,33 +90,31 @@ export default async function ReportsPage() {
                 </Select>
               </Field>
               <Field label="Ruta">
-                <Select defaultValue={routes[0]?.id ?? ""}>
+                <Select name="routeId" defaultValue={filters.routeId ?? "all"}>
+                  <option value="all">Todas las rutas</option>
                   {routes.length > 0 ? (
                     routes.map((route) => (
                       <option key={route.id} value={route.id}>
                         {route.name}
                       </option>
                     ))
-                  ) : (
-                    <option value="">Sin rutas</option>
-                  )}
+                  ) : null}
                 </Select>
               </Field>
               <Field label="Cliente">
-                <Select defaultValue={clients[0]?.id ?? ""}>
+                <Select name="clientId" defaultValue={filters.clientId ?? "all"}>
+                  <option value="all">Todos los clientes</option>
                   {clients.length > 0 ? (
                     clients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.name}
                       </option>
                     ))
-                  ) : (
-                    <option value="">Sin clientes</option>
-                  )}
+                  ) : null}
                 </Select>
               </Field>
               <Field label="Metodo de pago">
-                <Select defaultValue="all">
+                <Select name="paymentMethod" defaultValue={filters.paymentMethod ?? "all"}>
                   <option value="all">Todos</option>
                   {paymentMethods.map((method) => (
                     <option key={method.code} value={method.code}>
@@ -122,6 +123,12 @@ export default async function ReportsPage() {
                   ))}
                 </Select>
               </Field>
+              <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+                <Button type="submit">Aplicar filtros</Button>
+                <LinkButton href="/reports" variant="secondary">
+                  Limpiar filtros
+                </LinkButton>
+              </div>
             </form>
           </Card>
 
@@ -142,6 +149,11 @@ export default async function ReportsPage() {
       </div>
     </AppShell>
   );
+}
+
+function formatInputDateLabel(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 function SummaryItem({ label, value }: { label: string; value: string }) {

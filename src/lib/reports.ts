@@ -12,6 +12,7 @@ export function generateWhatsAppReport(input: {
   expenses: Expense[];
   loans?: Loan[];
   visitedClients: number;
+  dateLabel?: string;
   currencyConfig?: Partial<CurrencyConfig>;
 }) {
   const { seller, cashbox, summary, sales, collections, expenses, visitedClients } = input;
@@ -20,7 +21,7 @@ export function generateWhatsAppReport(input: {
 
   return [
     `Cierre de ruta - ${seller.name}`,
-    formatSpanishDate(cashbox.date),
+    input.dateLabel ?? formatSpanishDate(cashbox.date),
     "",
     `Caja inicial: ${money(cashbox.initialCash)}`,
     `Ventas: ${money(summary.salesTotal)}`,
