@@ -12,9 +12,9 @@ export default function LoginPage() {
           <span className="font-bold">RUTERO</span>
         </Link>
         <h1 className="text-2xl font-black">Iniciar sesión</h1>
-        <p className="mt-2 text-sm text-zinc-400">Demo admin: admin@orangestore.com · Admin123456</p>
+        <p className="mt-2 text-sm text-zinc-400">Demo admin: admin@rutero.app · Admin123456</p>
         <form className="mt-6 grid gap-4">
-          <Field label="Correo"><Input type="email" defaultValue="admin@orangestore.com" /></Field>
+          <Field label="Correo"><Input type="email" defaultValue="admin@rutero.app" /></Field>
           <Field label="Contraseña"><Input type="password" defaultValue="Admin123456" /></Field>
           <LinkButton href="/dashboard"><LogIn className="h-4 w-4" /> Entrar al dashboard</LinkButton>
         </form>

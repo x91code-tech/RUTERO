@@ -48,7 +48,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <p className="text-sm text-zinc-400">Hoy</p>
-                <h2 className="text-xl font-bold">Orange Store Demo</h2>
+                <h2 className="text-xl font-bold">RUTERO Demo</h2>
               </div>
               <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300">En ruta</span>
             </div>

@@ -5,11 +5,11 @@ const prisma = new PrismaClient();
 
 async function main() {
   const company = await prisma.company.upsert({
-    where: { id: "company_orange_store" },
+    where: { id: "company_rutero_demo" },
     update: {},
     create: {
-      id: "company_orange_store",
-      name: "Orange Store Demo",
+      id: "company_rutero_demo",
+      name: "RUTERO Demo",
       rif: "J-00000000-0",
       countryCode: "VE",
       currencyCode: "VES",
@@ -23,15 +23,15 @@ async function main() {
   const sellerPassword = await bcrypt.hash("Vendedor123456", 10);
 
   const admin = await prisma.user.upsert({
-    where: { email: "admin@orangestore.com" },
+    where: { email: "admin@rutero.app" },
     update: {},
-    create: { companyId: company.id, name: "Admin Orange Store", email: "admin@orangestore.com", passwordHash: adminPassword, role: Role.ADMIN }
+    create: { companyId: company.id, name: "Admin RUTERO", email: "admin@rutero.app", passwordHash: adminPassword, role: Role.ADMIN }
   });
 
   const seller = await prisma.user.upsert({
-    where: { email: "vendedor@orangestore.com" },
+    where: { email: "vendedor@rutero.app" },
     update: {},
-    create: { companyId: company.id, name: "Vendedor Demo", email: "vendedor@orangestore.com", passwordHash: sellerPassword, role: Role.SELLER }
+    create: { companyId: company.id, name: "Vendedor Demo", email: "vendedor@rutero.app", passwordHash: sellerPassword, role: Role.SELLER }
   });
 
   const routeCentro = await prisma.route.create({ data: { companyId: company.id, sellerId: seller.id, name: "Ruta Centro", zone: "Centro" } });

@@ -1,8 +1,8 @@
 import type { Cashbox, Client, Collection, Company, Expense, Notification, Product, Route, Sale, User } from "@/lib/types";
 
 export const demoCompany: Company = {
-  id: "company_orange_store",
-  name: "Orange Store Demo",
+  id: "company_rutero_demo",
+  name: "RUTERO Demo",
   rif: "J-00000000-0",
   plan: "PRO",
   countryCode: "VE",
@@ -15,15 +15,15 @@ export const demoUsers: User[] = [
   {
     id: "user_admin",
     companyId: demoCompany.id,
-    name: "Admin Orange Store",
-    email: "admin@orangestore.com",
+    name: "Admin RUTERO",
+    email: "admin@rutero.app",
     role: "ADMIN"
   },
   {
     id: "user_seller",
     companyId: demoCompany.id,
     name: "Vendedor Demo",
-    email: "vendedor@orangestore.com",
+    email: "vendedor@rutero.app",
     role: "SELLER",
     routeIds: ["route_centro"]
   },
@@ -31,7 +31,7 @@ export const demoUsers: User[] = [
     id: "user_supervisor",
     companyId: demoCompany.id,
     name: "Supervisora Norte",
-    email: "supervisor@orangestore.com",
+    email: "supervisor@rutero.app",
     role: "SUPERVISOR",
     routeIds: ["route_norte", "route_sur"]
   }

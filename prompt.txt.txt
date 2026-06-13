@@ -542,15 +542,15 @@ Genera el proyecto completo con:
 
 DATOS DEMO:
 Crear una empresa demo:
-Nombre: Orange Store Demo
+Nombre: RUTERO Demo
 
 Usuarios:
 Admin:
-email: admin@orangestore.com
+email: admin@rutero.app
 password: Admin123456
 
 Vendedor:
-email: vendedor@orangestore.com
+email: vendedor@rutero.app
 password: Vendedor123456
 
 Clientes demo:

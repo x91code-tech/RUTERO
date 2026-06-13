@@ -39,16 +39,16 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 ## Datos demo
 
-Empresa: `Orange Store Demo`
+Empresa: `RUTERO Demo`
 
 Admin:
 
-- Email: `admin@orangestore.com`
+- Email: `admin@rutero.app`
 - Password: `Admin123456`
 
 Vendedor:
 
-- Email: `vendedor@orangestore.com`
+- Email: `vendedor@rutero.app`
 - Password: `Vendedor123456`
 
 Clientes demo: Carlos Pérez, María González, José Ramírez, Ana Torres y Luis Fernández.
