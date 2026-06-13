@@ -16,13 +16,14 @@ export async function getFinancialPageData() {
     };
   }
 
+  const sellerScope = user.role === "SELLER" ? { sellerId: user.id } : {};
   const [company, clients, loans, sales, collections, expenses] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
-    prisma.client.findMany({ where: { companyId: user.companyId }, orderBy: { name: "asc" } }),
-    prisma.loan.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 50 }),
-    prisma.sale.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 25 }),
-    prisma.collection.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 25 }),
-    prisma.expense.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 25 })
+    prisma.client.findMany({ where: { companyId: user.companyId, ...sellerScope }, orderBy: { name: "asc" } }),
+    prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope }, orderBy: { createdAt: "desc" }, take: 50 }),
+    prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope }, orderBy: { createdAt: "desc" }, take: 25 }),
+    prisma.collection.findMany({ where: { companyId: user.companyId, ...sellerScope }, orderBy: { createdAt: "desc" }, take: 25 }),
+    prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope }, orderBy: { createdAt: "desc" }, take: 25 })
   ]);
 
   return {

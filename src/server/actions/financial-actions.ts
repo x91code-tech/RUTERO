@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { PaymentMethod } from "@prisma/client";
+import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
+import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
 import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema } from "@/lib/validations";
 
 const LOAN_INTEREST_RATE = 0.2;
@@ -15,6 +17,14 @@ function addDays(date: Date, days: number) {
   return nextDate;
 }
 
+function startOfLocalDay(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function endOfLocalDay(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+}
+
 export async function createSaleAction(formData: FormData) {
   const payload = saleSchema.parse(Object.fromEntries(formData));
   const user = await getSessionUser();
@@ -23,7 +33,8 @@ export async function createSaleAction(formData: FormData) {
   const client = await prisma.client.findFirstOrThrow({
     where: {
       id: payload.clientId,
-      companyId: user.companyId
+      companyId: user.companyId,
+      ...(user.role === "SELLER" ? { sellerId: user.id } : {})
     }
   });
   const date = payload.date ? new Date(payload.date) : new Date();
@@ -80,7 +91,8 @@ export async function createCollectionAction(formData: FormData) {
   const client = await prisma.client.findFirstOrThrow({
     where: {
       id: payload.clientId,
-      companyId: user.companyId
+      companyId: user.companyId,
+      ...(user.role === "SELLER" ? { sellerId: user.id } : {})
     }
   });
   const previousBalance = Number(client.pendingBalance);
@@ -94,6 +106,7 @@ export async function createCollectionAction(formData: FormData) {
             id: payload.loanId,
             clientId: client.id,
             companyId: user.companyId,
+            ...(user.role === "SELLER" ? { sellerId: user.id } : {}),
             status: "ACTIVE"
           }
         })
@@ -165,9 +178,12 @@ export async function createLoanAction(formData: FormData) {
   const client = await prisma.client.findFirstOrThrow({
     where: {
       id: payload.clientId,
-      companyId: user.companyId
+      companyId: user.companyId,
+      ...(user.role === "SELLER" ? { sellerId: user.id } : {})
     }
   });
+
+  if (client.status !== "ACTIVE") redirect(`/clients/${client.id}?error=client_not_verified`);
 
   const startDate = payload.startDate ? new Date(payload.startDate) : new Date();
   const dueDate = addDays(startDate, payload.termDays - 1);
@@ -264,6 +280,112 @@ export async function createExpenseAction(formData: FormData) {
 
 export async function closeCashboxAction(formData: FormData) {
   const payload = cashboxCloseSchema.parse(Object.fromEntries(formData));
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+
+  const todayStart = startOfLocalDay();
+  const todayEnd = endOfLocalDay();
+  const [sales, collections, expenses] = await Promise.all([
+    prisma.sale.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
+    prisma.collection.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
+    prisma.expense.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } })
+  ]);
+  const cashboxInput: Cashbox = {
+    id: "cashbox_close",
+    companyId: user.companyId,
+    sellerId: user.id,
+    date: todayStart.toISOString(),
+    initialCash: payload.initialCash,
+    reportedCash: payload.reportedCash,
+    reportedTransfer: payload.reportedTransfer,
+    reportedPix: payload.reportedPix,
+    status: "OPEN",
+    observations: payload.observations ?? ""
+  };
+  const summary = calculateDailySummary({
+    cashbox: cashboxInput,
+    sales: sales.map((sale) => ({
+      id: sale.id,
+      companyId: sale.companyId,
+      clientId: sale.clientId,
+      sellerId: sale.sellerId,
+      product: sale.concept,
+      amount: Number(sale.amount),
+      paymentMethod: sale.paymentMethod,
+      date: sale.date.toISOString(),
+      observation: sale.observation ?? undefined
+    })) satisfies Sale[],
+    collections: collections.map((collection) => ({
+      id: collection.id,
+      companyId: collection.companyId,
+      clientId: collection.clientId,
+      loanId: collection.loanId ?? undefined,
+      sellerId: collection.sellerId,
+      amount: Number(collection.amount),
+      previousBalance: Number(collection.previousBalance),
+      newBalance: Number(collection.newBalance),
+      paymentMethod: collection.paymentMethod,
+      date: collection.date.toISOString(),
+      observation: collection.observation ?? undefined
+    })) satisfies Collection[],
+    expenses: expenses.map((expense) => ({
+      id: expense.id,
+      companyId: expense.companyId,
+      sellerId: expense.sellerId,
+      type: expense.type as Expense["type"],
+      amount: Number(expense.amount),
+      paymentMethod: expense.paymentMethod,
+      date: expense.date.toISOString(),
+      comment: expense.comment ?? ""
+    })) satisfies Expense[]
+  });
+
+  const status = summary.difference === 0 ? "BALANCED" : "UNBALANCED";
+  const cashbox = await prisma.cashbox.upsert({
+    where: {
+      sellerId_date: {
+        sellerId: user.id,
+        date: todayStart
+      }
+    },
+    update: {
+      initialCash: payload.initialCash,
+      reportedCash: payload.reportedCash,
+      reportedTransfer: payload.reportedTransfer,
+      reportedPix: payload.reportedPix,
+      expectedCash: summary.expectedCash,
+      difference: summary.difference,
+      status,
+      observations: payload.observations,
+      closedAt: new Date()
+    },
+    create: {
+      companyId: user.companyId,
+      sellerId: user.id,
+      date: todayStart,
+      initialCash: payload.initialCash,
+      reportedCash: payload.reportedCash,
+      reportedTransfer: payload.reportedTransfer,
+      reportedPix: payload.reportedPix,
+      expectedCash: summary.expectedCash,
+      difference: summary.difference,
+      status,
+      observations: payload.observations,
+      closedAt: new Date()
+    }
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      companyId: user.companyId,
+      userId: user.id,
+      action: "CASHBOX_CLOSED",
+      entity: "Cashbox",
+      entityId: cashbox.id,
+      newValue: { ...payload, expectedCash: summary.expectedCash, difference: summary.difference, status }
+    }
+  });
+
   revalidatePath("/cashbox");
-  void payload;
+  revalidatePath("/dashboard");
 }

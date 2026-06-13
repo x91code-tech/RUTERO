@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { getPaymentMethodCodes } from "@/lib/payment-methods";
 
+const newPasswordSchema = z.string()
+  .min(8, "La contrasena debe tener minimo 8 caracteres")
+  .regex(/[A-Za-z]/, "La contrasena debe incluir letras")
+  .regex(/\d/, "La contrasena debe incluir numeros");
+
 export const moneySchema = z.coerce.number().positive("El monto debe ser mayor a cero");
 const paymentMethodSchema = z.string().refine((value) => getPaymentMethodCodes().includes(value), "Método de pago inválido");
 
@@ -39,6 +44,7 @@ export const expenseSchema = z.object({
 });
 
 export const cashboxCloseSchema = z.object({
+  initialCash: z.coerce.number().nonnegative(),
   reportedCash: z.coerce.number().nonnegative(),
   reportedTransfer: z.coerce.number().nonnegative(),
   reportedPix: z.coerce.number().nonnegative(),
@@ -77,7 +83,7 @@ export const registerCompanySchema = z.object({
   currencyCode: z.string().min(3, "Selecciona la moneda"),
   adminName: z.string().min(2, "Indica el nombre del administrador"),
   email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
-  password: z.string().min(8, "La contraseña debe tener mínimo 8 caracteres")
+  password: newPasswordSchema
 });
 
 export const createClientSchema = z.object({
@@ -99,7 +105,13 @@ export const createUserSchema = z.object({
   name: z.string().min(2, "Indica el nombre"),
   email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
   role: z.enum(["ADMIN", "SUPERVISOR", "SELLER"]),
-  password: z.string().min(8, "La contraseña debe tener mínimo 8 caracteres")
+  password: newPasswordSchema
+});
+
+export const companySettingsSchema = z.object({
+  name: z.string().min(2, "Indica el nombre de la empresa"),
+  rif: z.string().optional(),
+  countryCode: z.string().min(2, "Selecciona el pais")
 });
 
 export const createRouteSchema = z.object({

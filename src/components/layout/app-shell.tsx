@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { Bell, Boxes, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
 import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { demoNotifications } from "@/lib/demo-data";
+import { canRoleAccessPath, getDefaultPathForRole } from "@/lib/permissions";
+import { getSessionUser } from "@/lib/session";
 import { logoutAction } from "@/server/actions/auth-actions";
 
 const navigation = [
@@ -16,17 +20,28 @@ const navigation = [
   { href: "/cashbox", label: "Caja diaria", icon: Shield },
   { href: "/reports", label: "Reportes", icon: Map },
   { href: "/inventory", label: "Inventario", icon: Boxes },
-  { href: "/settings", label: "Configuración", icon: Settings }
+  { href: "/settings", label: "Configuracion", icon: Settings }
 ];
 
-export function AppShell({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle: string }) {
+export async function AppShell({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle: string }) {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+
+  const headerStore = await headers();
+  const homeHref = getDefaultPathForRole(user.role);
+  const currentPath = headerStore.get("x-rutero-pathname") ?? homeHref;
+  if (!canRoleAccessPath(user.role, currentPath)) redirect(homeHref);
+
+  const allowedNavigation = navigation.filter((item) => canRoleAccessPath(user.role, item.href));
+
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">
       <aside className="hidden border-r border-white/10 bg-carbon-950/80 p-5 lg:block">
-        <RuteroLogo href="/dashboard" size="sm" className="mb-8" aria-label="Ir al dashboard" />
+        <RuteroLogo href={homeHref} size="sm" className="mb-8" aria-label="Ir al inicio" />
         <nav className="grid gap-1">
-          {navigation.map((item) => {
+          {allowedNavigation.map((item) => {
             const Icon = item.icon;
+
             return (
               <Link key={item.href} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-300 hover:bg-white/[0.07] hover:text-white" href={item.href}>
                 <Icon className="h-4 w-4" />
@@ -39,26 +54,30 @@ export function AppShell({ children, title, subtitle }: { children: React.ReactN
       <div>
         <header className="sticky top-0 z-20 border-b border-white/10 bg-carbon-950/80 px-5 py-4 backdrop-blur lg:px-8">
           <div className="flex items-center justify-between gap-4">
-            <RuteroLogo href="/dashboard" size="sm" showText={false} className="lg:hidden" aria-label="Ir al dashboard" />
-            <div>
-              <h1 className="text-2xl font-black tracking-normal">{title}</h1>
-              <p className="text-sm text-zinc-400">{subtitle}</p>
+            <RuteroLogo href={homeHref} size="sm" showText={false} className="lg:hidden" aria-label="Ir al inicio" />
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-black tracking-normal">{title}</h1>
+              <p className="truncate text-sm text-zinc-400">{subtitle}</p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="hidden rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300 sm:block">En línea</div>
+              <div className="hidden text-right text-sm md:block">
+                <p className="font-semibold text-white">{user.name}</p>
+                <p className="text-xs text-zinc-500">{user.role}</p>
+              </div>
+              <div className="hidden rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300 sm:block">En linea</div>
               <button className="relative grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06]" aria-label="Ver alertas">
                 <Bell className="h-5 w-5" />
                 <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-500 text-xs font-black text-carbon-950">{demoNotifications.length}</span>
               </button>
               <form action={logoutAction}>
-                <button className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]" aria-label="Cerrar sesión">
+                <button className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]" aria-label="Cerrar sesion">
                   <LogOut className="h-5 w-5" />
                 </button>
               </form>
             </div>
           </div>
           <nav className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
-            {navigation.slice(0, 8).map((item) => (
+            {allowedNavigation.slice(0, 8).map((item) => (
               <Link key={item.href} className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-300" href={item.href}>
                 {item.label}
               </Link>

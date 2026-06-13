@@ -14,7 +14,17 @@ export async function createClientAction(formData: FormData) {
 
   const payload = createClientSchema.parse(Object.fromEntries(formData));
   const company = await prisma.company.findUniqueOrThrow({ where: { id: user.companyId } });
-  const sellerId = payload.sellerId || user.id;
+  const sellerId = user.role === "SELLER" ? user.id : payload.sellerId || user.id;
+
+  if (payload.routeId) {
+    await prisma.route.findFirstOrThrow({
+      where: {
+        id: payload.routeId,
+        companyId: user.companyId,
+        ...(user.role === "SELLER" ? { sellerId: user.id } : {})
+      }
+    });
+  }
 
   const duplicatedClient = await prisma.client.findFirst({
     where: {

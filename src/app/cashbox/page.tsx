@@ -4,42 +4,45 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
-import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoSales } from "@/lib/demo-data";
+import { getCashboxPageData } from "@/lib/cashbox-data";
 import { formatCurrency } from "@/lib/formatters";
+import { closeCashboxAction } from "@/server/actions/financial-actions";
 
-export default function CashboxPage() {
-  const summary = calculateDailySummary({ cashbox: demoCashbox, sales: demoSales, collections: demoCollections, expenses: demoExpenses });
+export default async function CashboxPage() {
+  const { cashbox, collections, company, expenses, sales } = await getCashboxPageData();
+  const summary = calculateDailySummary({ cashbox, sales, collections, expenses, countryCode: company.countryCode });
 
   return (
-    <AppShell title="Caja diaria" subtitle="Apertura, movimientos automáticos, cierre y diferencias del día.">
+    <AppShell title="Caja diaria" subtitle="Movimientos automaticos, cierre y diferencias del dia.">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Caja inicial" value={formatCurrency(demoCashbox.initialCash, demoCompany)} />
-        <MetricCard label="Ventas en efectivo" value={formatCurrency(summary.cashSales, demoCompany)} />
-        <MetricCard label="Recaudos en efectivo" value={formatCurrency(summary.cashCollections, demoCompany)} />
-        <MetricCard label="Gastos en efectivo" value={formatCurrency(summary.cashExpenses, demoCompany)} tone="orange" />
-        <MetricCard label="Caja esperada" value={formatCurrency(summary.expectedCash, demoCompany)} />
-        <MetricCard label="Caja reportada" value={formatCurrency(demoCashbox.reportedCash, demoCompany)} />
-        <MetricCard label="Diferencia" value={formatCurrency(summary.difference, demoCompany)} tone={summary.difference === 0 ? "green" : "red"} />
-        <MetricCard label="Total general del día" value={formatCurrency(summary.grossMovement, demoCompany)} />
+        <MetricCard label="Caja inicial" value={formatCurrency(cashbox.initialCash, company)} />
+        <MetricCard label="Ventas efectivo" value={formatCurrency(summary.cashSales, company)} />
+        <MetricCard label="Recaudos efectivo" value={formatCurrency(summary.cashCollections, company)} />
+        <MetricCard label="Gastos efectivo" value={formatCurrency(summary.cashExpenses, company)} tone="orange" />
+        <MetricCard label="Caja esperada" value={formatCurrency(summary.expectedCash, company)} />
+        <MetricCard label="Caja reportada" value={formatCurrency(cashbox.reportedCash, company)} />
+        <MetricCard label="Diferencia" value={formatCurrency(summary.difference, company)} tone={summary.difference === 0 ? "green" : "red"} />
+        <MetricCard label="Total del dia" value={formatCurrency(summary.grossMovement, company)} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
-          <CardHeader title="Cerrar caja" description="El vendedor no puede editar una caja cerrada; admin corrige con auditoría." />
-          <form className="grid gap-4">
-            <Field label="Efectivo reportado"><Input type="number" defaultValue={demoCashbox.reportedCash} /></Field>
-            <Field label="Transferencia reportada"><Input type="number" defaultValue={demoCashbox.reportedTransfer} /></Field>
-            <Field label="Pix reportado"><Input type="number" defaultValue={demoCashbox.reportedPix} /></Field>
-            <Field label="Observaciones"><Textarea defaultValue={demoCashbox.observations} /></Field>
-            <Button type="button">Cerrar caja</Button>
+          <CardHeader title="Cerrar caja" description="Guarda el reporte del usuario actual y deja auditoria." />
+          <form action={closeCashboxAction} className="grid gap-4">
+            <Field label="Caja inicial"><Input name="initialCash" type="number" defaultValue={cashbox.initialCash} min="0" step="0.01" /></Field>
+            <Field label="Efectivo reportado"><Input name="reportedCash" type="number" defaultValue={cashbox.reportedCash || summary.expectedCash} min="0" step="0.01" /></Field>
+            <Field label="Transferencia reportada"><Input name="reportedTransfer" type="number" defaultValue={cashbox.reportedTransfer || summary.transferTotal} min="0" step="0.01" /></Field>
+            <Field label="Digital reportado"><Input name="reportedPix" type="number" defaultValue={cashbox.reportedPix || summary.pixTotal} min="0" step="0.01" /></Field>
+            <Field label="Observaciones"><Textarea name="observations" defaultValue={cashbox.observations} placeholder="Notas del cierre de caja" /></Field>
+            <Button type="submit">Cerrar caja</Button>
           </form>
         </Card>
         <Card>
           <CardHeader title="Resumen calculado" description={summary.statusMessage} />
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              ["Total por Pix", summary.pixTotal],
-              ["Total por transferencia", summary.transferTotal],
+              ["Digital / wallets", summary.pixTotal],
+              ["Transferencias y tarjetas", summary.transferTotal],
               ["Movimiento bruto", summary.grossMovement],
               ["Movimiento neto", summary.netMovement],
               ["Ventas", summary.salesTotal],
@@ -49,7 +52,7 @@ export default function CashboxPage() {
             ].map(([label, value]) => (
               <div key={label} className="rounded-xl bg-white/[0.04] p-4">
                 <p className="text-sm text-zinc-400">{label}</p>
-                <p className="mt-2 text-xl font-black">{formatCurrency(Number(value), demoCompany)}</p>
+                <p className="mt-2 text-xl font-black">{formatCurrency(Number(value), company)}</p>
               </div>
             ))}
           </div>

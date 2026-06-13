@@ -1,5 +1,39 @@
 import type { Cashbox, Role, User } from "@/lib/types";
 
+const roleAccess: Record<Role, string[]> = {
+  SUPER_ADMIN: ["*"],
+  ADMIN: ["/dashboard", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/reports", "/inventory", "/settings", "/seller", "/sales"],
+  SUPERVISOR: ["/dashboard", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/reports", "/seller", "/sales"],
+  SELLER: ["/seller", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/sales"]
+};
+
+export function canRoleAccessPath(role: Role, path: string) {
+  const allowedPaths = roleAccess[role] ?? [];
+  if (allowedPaths.includes("*")) return true;
+  return allowedPaths.some((allowedPath) => path === allowedPath || path.startsWith(`${allowedPath}/`));
+}
+
+export function getDefaultPathForRole(role: Role) {
+  if (role === "SELLER") return "/seller";
+  return "/dashboard";
+}
+
+export function canManageUsers(role: Role) {
+  return role === "ADMIN" || role === "SUPER_ADMIN";
+}
+
+export function canManageCompany(role: Role) {
+  return role === "ADMIN" || role === "SUPER_ADMIN";
+}
+
+export function canApproveClients(role: Role) {
+  return role === "ADMIN" || role === "SUPER_ADMIN" || role === "SUPERVISOR";
+}
+
+export function canCreateLoans(role: Role) {
+  return role === "ADMIN" || role === "SUPER_ADMIN" || role === "SUPERVISOR" || role === "SELLER";
+}
+
 export function canUserAccessCompany(user: User, companyId: string) {
   if (user.role === "SUPER_ADMIN") return true;
   return user.companyId === companyId;

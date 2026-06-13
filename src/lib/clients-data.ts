@@ -27,13 +27,15 @@ export async function getClientsPageData() {
     };
   }
 
+  const clientWhere = { companyId: user.companyId, ...(user.role === "SELLER" ? { sellerId: user.id } : {}) };
+  const routeWhere = { companyId: user.companyId, ...(user.role === "SELLER" ? { sellerId: user.id } : {}) };
   const [company, clients, routes, users, locations, documents] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
-    prisma.client.findMany({ where: { companyId: user.companyId }, include: { routeClients: true }, orderBy: { createdAt: "desc" } }),
-    prisma.route.findMany({ where: { companyId: user.companyId }, include: { routeClients: true }, orderBy: { name: "asc" } }),
-    prisma.user.findMany({ where: { companyId: user.companyId, active: true }, orderBy: { name: "asc" } }),
-    prisma.clientLocation.findMany({ where: { client: { companyId: user.companyId } } }),
-    prisma.clientDocument.findMany({ where: { client: { companyId: user.companyId } } })
+    prisma.client.findMany({ where: clientWhere, include: { routeClients: true }, orderBy: { createdAt: "desc" } }),
+    prisma.route.findMany({ where: routeWhere, include: { routeClients: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { companyId: user.companyId, active: true, ...(user.role === "SELLER" ? { id: user.id } : {}) }, orderBy: { name: "asc" } }),
+    prisma.clientLocation.findMany({ where: { client: clientWhere } }),
+    prisma.clientDocument.findMany({ where: { client: clientWhere } })
   ]);
 
   return {
@@ -108,7 +110,7 @@ export async function getClientProfileData(id: string) {
   }
 
   const client = await prisma.client.findFirst({
-    where: { id, companyId: user.companyId },
+    where: { id, companyId: user.companyId, ...(user.role === "SELLER" ? { sellerId: user.id } : {}) },
     include: {
       locations: true,
       documents: true,

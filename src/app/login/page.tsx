@@ -1,29 +1,43 @@
-import { LogIn } from "lucide-react";
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
+import { LoginForm } from "@/components/auth/login-form";
 import { RuteroLogo } from "@/components/brand/rutero-logo";
-import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/input";
-import { loginAction } from "@/server/actions/auth-actions";
 
-const errorMessages: Record<string, string> = {
-  invalid: "Revisa el correo y la contraseña.",
-  credentials: "Correo o contraseña incorrectos."
-};
-
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
+  const { error, next } = await searchParams;
 
   return (
-    <main className="grid min-h-screen place-items-center px-5">
-      <section className="surface w-full max-w-md rounded-2xl p-6">
-        <RuteroLogo href="/" size="sm" className="mb-8" />
-        <h1 className="text-2xl font-black">Iniciar sesión</h1>
-        <p className="mt-2 text-sm text-zinc-400">Demo admin: admin@rutero.app · Admin123456</p>
-        {error ? <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{errorMessages[error] ?? "No se pudo iniciar sesión."}</p> : null}
-        <form action={loginAction} className="mt-6 grid gap-4">
-          <Field label="Correo"><Input name="email" type="email" defaultValue="admin@rutero.app" /></Field>
-          <Field label="Contraseña"><Input name="password" type="password" defaultValue="Admin123456" /></Field>
-          <Button type="submit"><LogIn className="h-4 w-4" /> Entrar al dashboard</Button>
-        </form>
+    <main className="grid min-h-screen bg-carbon-950 px-5 py-8 lg:grid-cols-[1fr_28rem] lg:px-8">
+      <section className="hidden min-h-[calc(100vh-4rem)] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-8 lg:flex">
+        <RuteroLogo href="/" size="md" />
+        <div>
+          <p className="max-w-2xl text-5xl font-black leading-tight text-white">Control diario de prestamos, rutas y caja en calle.</p>
+          <p className="mt-5 max-w-xl text-zinc-400">
+            RUTERO organiza clientes, cuotas diarias, cobros, vendedores, ubicaciones y saldos por empresa.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="rounded-xl bg-carbon-900/80 p-4"><p className="text-zinc-500">Prestamos</p><p className="mt-1 font-bold text-white">20% y cuota diaria</p></div>
+          <div className="rounded-xl bg-carbon-900/80 p-4"><p className="text-zinc-500">Rutas</p><p className="mt-1 font-bold text-white">Cobro por vendedor</p></div>
+          <div className="rounded-xl bg-carbon-900/80 p-4"><p className="text-zinc-500">Caja</p><p className="mt-1 font-bold text-white">Cierre operativo</p></div>
+        </div>
+      </section>
+
+      <section className="mx-auto flex w-full max-w-md flex-col justify-center lg:pl-8">
+        <div className="surface rounded-2xl p-6">
+          <RuteroLogo href="/" size="sm" className="mb-8 lg:hidden" />
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500 text-carbon-950">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <h1 className="text-2xl font-black">Iniciar sesion</h1>
+          <p className="mt-2 text-sm text-zinc-400">Entra con el usuario de tu empresa para ver tu dashboard, ruta o caja diaria.</p>
+          {error ? <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{decodeURIComponent(error)}</p> : null}
+          <LoginForm nextPath={next} />
+          <div className="mt-6 flex items-center justify-between text-sm text-zinc-400">
+            <Link href="/register" className="font-semibold text-brand-400 hover:text-brand-300">Crear empresa</Link>
+            <span>Demo: admin@rutero.app</span>
+          </div>
+        </div>
       </section>
     </main>
   );
