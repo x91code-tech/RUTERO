@@ -1,5 +1,25 @@
 export type Role = "SUPER_ADMIN" | "ADMIN" | "SUPERVISOR" | "SELLER";
-export type PaymentMethod = "CASH" | "TRANSFER" | "PIX" | "CREDIT" | "MIXED";
+export type PaymentMethod =
+  | "CASH"
+  | "TRANSFER"
+  | "PIX"
+  | "CREDIT"
+  | "MIXED"
+  | "CASH_LOCAL"
+  | "CASH_USD"
+  | "PAGO_MOVIL"
+  | "BANK_TRANSFER"
+  | "CARD"
+  | "PSE"
+  | "NEQUI"
+  | "DAVIPLATA"
+  | "SPEI"
+  | "OXXO"
+  | "ACH"
+  | "YAPPY"
+  | "YAPE"
+  | "PLIN"
+  | "MERCADO_PAGO";
 export type ClientStatus = "ACTIVE" | "PENDING" | "DELINQUENT" | "INACTIVE";
 export type VisitStatus = "PENDING" | "VISITED" | "NOT_FOUND" | "COLLECTED" | "SALE_DONE";
 export type CashboxStatus = "OPEN" | "CLOSED" | "BALANCED" | "UNBALANCED" | "REQUIRES_REVIEW";

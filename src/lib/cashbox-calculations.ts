@@ -1,4 +1,5 @@
 import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
+import { getPaymentMethodCategory } from "@/lib/payment-methods";
 
 export type DailySummary = {
   salesTotal: number;
@@ -36,21 +37,26 @@ export function calculateDailySummary(input: {
   sales: Sale[];
   collections: Collection[];
   expenses: Expense[];
+  countryCode?: string;
 }): DailySummary {
   const { cashbox, sales, collections, expenses } = input;
+  const countryCode = input.countryCode ?? "VE";
   const salesTotal = sum(sales.map((sale) => sale.amount));
   const collectionsTotal = sum(collections.map((collection) => collection.amount));
   const expensesTotal = sum(expenses.map((expense) => expense.amount));
-  const cashSales = sum(sales.filter((sale) => sale.paymentMethod === "CASH").map((sale) => sale.amount));
-  const cashCollections = sum(collections.filter((collection) => collection.paymentMethod === "CASH").map((collection) => collection.amount));
-  const cashExpenses = sum(expenses.filter((expense) => expense.paymentMethod === "CASH").map((expense) => expense.amount));
+  const isCashMethod = (method: string) => getPaymentMethodCategory(method, countryCode) === "cash" || method === "CASH";
+  const isTransferLikeMethod = (method: string) => ["bank", "card"].includes(getPaymentMethodCategory(method, countryCode)) || method === "TRANSFER";
+  const isWalletMethod = (method: string) => getPaymentMethodCategory(method, countryCode) === "wallet" || method === "PIX";
+  const cashSales = sum(sales.filter((sale) => isCashMethod(sale.paymentMethod)).map((sale) => sale.amount));
+  const cashCollections = sum(collections.filter((collection) => isCashMethod(collection.paymentMethod)).map((collection) => collection.amount));
+  const cashExpenses = sum(expenses.filter((expense) => isCashMethod(expense.paymentMethod)).map((expense) => expense.amount));
   const transferTotal = sum([
-    ...sales.filter((sale) => sale.paymentMethod === "TRANSFER").map((sale) => sale.amount),
-    ...collections.filter((collection) => collection.paymentMethod === "TRANSFER").map((collection) => collection.amount)
+    ...sales.filter((sale) => isTransferLikeMethod(sale.paymentMethod)).map((sale) => sale.amount),
+    ...collections.filter((collection) => isTransferLikeMethod(collection.paymentMethod)).map((collection) => collection.amount)
   ]);
   const pixTotal = sum([
-    ...sales.filter((sale) => sale.paymentMethod === "PIX").map((sale) => sale.amount),
-    ...collections.filter((collection) => collection.paymentMethod === "PIX").map((collection) => collection.amount)
+    ...sales.filter((sale) => isWalletMethod(sale.paymentMethod)).map((sale) => sale.amount),
+    ...collections.filter((collection) => isWalletMethod(collection.paymentMethod)).map((collection) => collection.amount)
   ]);
   const expectedCash = calculateExpectedCash(cashbox.initialCash, cashSales, cashCollections, cashExpenses);
   const difference = calculateCashDifference(cashbox.reportedCash, expectedCash);

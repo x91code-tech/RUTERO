@@ -1,25 +1,31 @@
 import { ExternalLink, MapPinned, Navigation } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { RouteForm } from "@/components/forms/route-form";
 import { Card, CardHeader } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { demoClientLocations, demoClients, demoRoutes, demoUsers } from "@/lib/demo-data";
+import { getClientsPageData } from "@/lib/clients-data";
 import { buildGoogleMapsClientUrl, buildGoogleMapsRouteUrl, buildWazeClientUrl, getClientNavigationPoint, optimizeVisitOrder } from "@/lib/geo";
 
-export default function RoutesPage() {
+export default async function RoutesPage() {
+  const { clients: allClients, locations, routes, users } = await getClientsPageData();
   const statuses = ["Pendiente", "Visitado", "Cobrado", "Venta realizada", "No encontrado"];
 
   return (
     <AppShell title="Rutas del día" subtitle="Orden de visita, estado de clientes y resumen operativo.">
       <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
         <div className="grid gap-4">
-          {demoRoutes.map((route) => {
-            const seller = demoUsers.find((user) => user.id === route.sellerId);
-            const clients = demoClients
+          <Card>
+            <CardHeader title="Crear ruta" description="Crea rutas por zona y asígnalas a vendedores o supervisores." />
+            <RouteForm users={users} />
+          </Card>
+          {routes.map((route) => {
+            const seller = users.find((user) => user.id === route.sellerId);
+            const clients = allClients
               .filter((client) => route.clientIds.includes(client.id))
               .map((client) => ({
                 ...client,
-                locations: demoClientLocations.filter((location) => location.clientId === client.id)
+                locations: locations.filter((location) => location.clientId === client.id)
               }));
             const clientsWithLocation = clients.map(getClientNavigationPoint).filter((client) => client !== null);
             const orderedClients = optimizeVisitOrder(clientsWithLocation);

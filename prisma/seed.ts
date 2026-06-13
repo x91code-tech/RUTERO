@@ -150,7 +150,7 @@ async function main() {
         date: new Date("2026-06-12")
       }
     },
-    update: { amount: 840, paymentMethod: PaymentMethod.CASH, productId: product.id },
+    update: { amount: 840, paymentMethod: PaymentMethod.CASH_USD, productId: product.id },
     create: {
       companyId: company.id,
       sellerId: seller.id,
@@ -158,7 +158,7 @@ async function main() {
       productId: product.id,
       concept: "Pedido mixto",
       amount: 840,
-      paymentMethod: PaymentMethod.CASH,
+      paymentMethod: PaymentMethod.CASH_USD,
       date: new Date("2026-06-12")
     }
   });
@@ -173,7 +173,7 @@ async function main() {
         amount: 400
       }
     },
-    update: { previousBalance: 640, newBalance: 240, paymentMethod: PaymentMethod.CASH },
+    update: { previousBalance: 640, newBalance: 240, paymentMethod: PaymentMethod.CASH_USD },
     create: {
       companyId: company.id,
       sellerId: seller.id,
@@ -181,7 +181,7 @@ async function main() {
       amount: 400,
       previousBalance: 640,
       newBalance: 240,
-      paymentMethod: PaymentMethod.CASH,
+      paymentMethod: PaymentMethod.CASH_USD,
       date: new Date("2026-06-12")
     }
   });
@@ -196,13 +196,13 @@ async function main() {
         amount: 80
       }
     },
-    update: { paymentMethod: PaymentMethod.CASH, comment: "Recarga para Ruta Centro" },
+    update: { paymentMethod: PaymentMethod.CASH_USD, comment: "Recarga para Ruta Centro" },
     create: {
       companyId: company.id,
       sellerId: seller.id,
       type: "Gasolina",
       amount: 80,
-      paymentMethod: PaymentMethod.CASH,
+      paymentMethod: PaymentMethod.CASH_USD,
       date: new Date("2026-06-12"),
       comment: "Recarga para Ruta Centro"
     }

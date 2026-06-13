@@ -1,26 +1,31 @@
 import { z } from "zod";
+import { getPaymentMethodCodes } from "@/lib/payment-methods";
 
 export const moneySchema = z.coerce.number().positive("El monto debe ser mayor a cero");
+const paymentMethodSchema = z.string().refine((value) => getPaymentMethodCodes().includes(value), "Método de pago inválido");
 
 export const saleSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
   product: z.string().min(2, "Indica el producto o concepto"),
   amount: moneySchema,
-  paymentMethod: z.enum(["CASH", "TRANSFER", "PIX", "CREDIT", "MIXED"]),
+  paymentMethod: paymentMethodSchema,
+  date: z.string().optional(),
   observation: z.string().optional()
 });
 
 export const collectionSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
   amount: moneySchema,
-  paymentMethod: z.enum(["CASH", "TRANSFER", "PIX", "CREDIT", "MIXED"]),
+  paymentMethod: paymentMethodSchema,
+  date: z.string().optional(),
   observation: z.string().optional()
 });
 
 export const expenseSchema = z.object({
   type: z.enum(["Gasolina", "Comida", "Transporte", "Material", "Otro"]),
   amount: moneySchema,
-  paymentMethod: z.enum(["CASH", "TRANSFER", "PIX", "CREDIT", "MIXED"]),
+  paymentMethod: paymentMethodSchema,
+  date: z.string().optional(),
   comment: z.string().min(2, "Agrega un comentario")
 });
 
@@ -64,4 +69,38 @@ export const registerCompanySchema = z.object({
   adminName: z.string().min(2, "Indica el nombre del administrador"),
   email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
   password: z.string().min(8, "La contraseña debe tener mínimo 8 caracteres")
+});
+
+export const createClientSchema = z.object({
+  name: z.string().min(2, "Indica el nombre del cliente"),
+  phone: z.string().min(7, "Indica un teléfono válido"),
+  address: z.string().min(4, "Indica la dirección principal"),
+  document: z.string().min(4, "Indica cédula, RIF o documento"),
+  routeId: z.string().optional(),
+  sellerId: z.string().optional(),
+  notes: z.string().optional(),
+  storeLatitude: z.coerce.number().min(-90).max(90).optional(),
+  storeLongitude: z.coerce.number().min(-180).max(180).optional(),
+  secondaryAddress: z.string().optional(),
+  secondaryLatitude: z.coerce.number().min(-90).max(90).optional(),
+  secondaryLongitude: z.coerce.number().min(-180).max(180).optional()
+});
+
+export const createUserSchema = z.object({
+  name: z.string().min(2, "Indica el nombre"),
+  email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
+  role: z.enum(["ADMIN", "SUPERVISOR", "SELLER"]),
+  password: z.string().min(8, "La contraseña debe tener mínimo 8 caracteres")
+});
+
+export const createRouteSchema = z.object({
+  name: z.string().min(2, "Indica el nombre de la ruta"),
+  zone: z.string().min(2, "Indica la zona"),
+  sellerId: z.string().optional()
+});
+
+export const verifyClientSchema = z.object({
+  clientId: z.string().min(1),
+  decision: z.enum(["APPROVE", "REJECT"]),
+  notes: z.string().optional()
 });

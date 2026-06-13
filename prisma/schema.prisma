@@ -20,6 +20,21 @@ enum PaymentMethod {
   PIX
   CREDIT
   MIXED
+  CASH_LOCAL
+  CASH_USD
+  PAGO_MOVIL
+  BANK_TRANSFER
+  CARD
+  PSE
+  NEQUI
+  DAVIPLATA
+  SPEI
+  OXXO
+  ACH
+  YAPPY
+  YAPE
+  PLIN
+  MERCADO_PAGO
 }
 
 enum ClientStatus {

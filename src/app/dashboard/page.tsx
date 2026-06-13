@@ -67,7 +67,7 @@ export default function DashboardPage() {
                     <tr key={sale.id}>
                       <td className="py-3"><StatusBadge tone="green">Venta</StatusBadge></td>
                       <td>{client?.name}</td>
-                      <td>{paymentMethodLabel(sale.paymentMethod)}</td>
+                      <td>{paymentMethodLabel(sale.paymentMethod, demoCompany.countryCode)}</td>
                       <td className="text-right font-semibold">{formatCurrency(sale.amount, demoCompany)}</td>
                     </tr>
                   );
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                     <tr key={collection.id}>
                       <td className="py-3"><StatusBadge tone="blue">Recaudo</StatusBadge></td>
                       <td>{client?.name}</td>
-                      <td>{paymentMethodLabel(collection.paymentMethod)}</td>
+                      <td>{paymentMethodLabel(collection.paymentMethod, demoCompany.countryCode)}</td>
                       <td className="text-right font-semibold">{formatCurrency(collection.amount, demoCompany)}</td>
                     </tr>
                   );

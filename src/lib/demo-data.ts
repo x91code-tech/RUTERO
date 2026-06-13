@@ -162,21 +162,21 @@ export const demoClientDocuments: ClientDocument[] = demoClients.flatMap((client
 export const today = "2026-06-12";
 
 export const demoSales: Sale[] = [
-  { id: "sale_1", companyId: demoCompany.id, clientId: "client_carlos", sellerId: "user_seller", product: "Pedido mixto", amount: 840, paymentMethod: "CASH", date: today, observation: "Entrega completa" },
-  { id: "sale_2", companyId: demoCompany.id, clientId: "client_maria", sellerId: "user_seller", product: "Caja de accesorios", amount: 1200, paymentMethod: "TRANSFER", date: today },
-  { id: "sale_3", companyId: demoCompany.id, clientId: "client_luis", sellerId: "user_seller", product: "Reposición de vitrina", amount: 800, paymentMethod: "PIX", date: today }
+  { id: "sale_1", companyId: demoCompany.id, clientId: "client_carlos", sellerId: "user_seller", product: "Pedido mixto", amount: 840, paymentMethod: "CASH_USD", date: today, observation: "Entrega completa" },
+  { id: "sale_2", companyId: demoCompany.id, clientId: "client_maria", sellerId: "user_seller", product: "Caja de accesorios", amount: 1200, paymentMethod: "PAGO_MOVIL", date: today },
+  { id: "sale_3", companyId: demoCompany.id, clientId: "client_luis", sellerId: "user_seller", product: "Reposición de vitrina", amount: 800, paymentMethod: "BANK_TRANSFER", date: today }
 ];
 
 export const demoCollections: Collection[] = [
-  { id: "collection_1", companyId: demoCompany.id, clientId: "client_carlos", sellerId: "user_seller", amount: 400, previousBalance: 640, newBalance: 240, paymentMethod: "CASH", date: today },
-  { id: "collection_2", companyId: demoCompany.id, clientId: "client_ana", sellerId: "user_supervisor", amount: 320, previousBalance: 440, newBalance: 120, paymentMethod: "TRANSFER", date: today },
-  { id: "collection_3", companyId: demoCompany.id, clientId: "client_jose", sellerId: "user_supervisor", amount: 1200, previousBalance: 1810, newBalance: 610, paymentMethod: "PIX", date: today }
+  { id: "collection_1", companyId: demoCompany.id, clientId: "client_carlos", sellerId: "user_seller", amount: 400, previousBalance: 640, newBalance: 240, paymentMethod: "CASH_USD", date: today },
+  { id: "collection_2", companyId: demoCompany.id, clientId: "client_ana", sellerId: "user_supervisor", amount: 320, previousBalance: 440, newBalance: 120, paymentMethod: "PAGO_MOVIL", date: today },
+  { id: "collection_3", companyId: demoCompany.id, clientId: "client_jose", sellerId: "user_supervisor", amount: 1200, previousBalance: 1810, newBalance: 610, paymentMethod: "BANK_TRANSFER", date: today }
 ];
 
 export const demoExpenses: Expense[] = [
-  { id: "expense_1", companyId: demoCompany.id, sellerId: "user_seller", type: "Gasolina", amount: 80, paymentMethod: "CASH", date: today, comment: "Recarga para Ruta Centro" },
-  { id: "expense_2", companyId: demoCompany.id, sellerId: "user_seller", type: "Comida", amount: 25, paymentMethod: "CASH", date: today, comment: "Almuerzo operativo" },
-  { id: "expense_3", companyId: demoCompany.id, sellerId: "user_supervisor", type: "Transporte", amount: 45, paymentMethod: "TRANSFER", date: today, comment: "Moto taxi para visita extra" }
+  { id: "expense_1", companyId: demoCompany.id, sellerId: "user_seller", type: "Gasolina", amount: 80, paymentMethod: "CASH_USD", date: today, comment: "Recarga para Ruta Centro" },
+  { id: "expense_2", companyId: demoCompany.id, sellerId: "user_seller", type: "Comida", amount: 25, paymentMethod: "CASH_USD", date: today, comment: "Almuerzo operativo" },
+  { id: "expense_3", companyId: demoCompany.id, sellerId: "user_supervisor", type: "Transporte", amount: 45, paymentMethod: "PAGO_MOVIL", date: today, comment: "Moto taxi para visita extra" }
 ];
 
 export const demoCashbox: Cashbox = {
