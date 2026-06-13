@@ -1,5 +1,5 @@
 import { getClientDocumentRequirements } from "@/lib/countries";
-import type { Cashbox, Client, ClientDocument, ClientLocation, Collection, Company, Expense, Notification, Product, Route, Sale, User } from "@/lib/types";
+import type { Cashbox, Client, ClientDocument, ClientLocation, Collection, Company, Expense, Loan, Notification, Product, Route, Sale, User } from "@/lib/types";
 
 export const demoCompany: Company = {
   id: "company_rutero_demo",
@@ -167,10 +167,49 @@ export const demoSales: Sale[] = [
   { id: "sale_3", companyId: demoCompany.id, clientId: "client_luis", sellerId: "user_seller", product: "Reposición de vitrina", amount: 800, paymentMethod: "BANK_TRANSFER", date: today }
 ];
 
+export const demoLoans: Loan[] = [
+  {
+    id: "loan_carlos_1",
+    companyId: demoCompany.id,
+    clientId: "client_carlos",
+    sellerId: "user_seller",
+    principalAmount: 200,
+    interestRate: 0.2,
+    interestAmount: 40,
+    totalAmount: 240,
+    dailyPayment: 24,
+    paidAmount: 0,
+    balance: 240,
+    termDays: 10,
+    startDate: today,
+    dueDate: "2026-06-21",
+    status: "ACTIVE",
+    notes: "Prestamo diario al 20%."
+  },
+  {
+    id: "loan_jose_1",
+    companyId: demoCompany.id,
+    clientId: "client_jose",
+    sellerId: "user_supervisor",
+    principalAmount: 1000,
+    interestRate: 0.2,
+    interestAmount: 200,
+    totalAmount: 1200,
+    dailyPayment: 120,
+    paidAmount: 590,
+    balance: 610,
+    termDays: 10,
+    startDate: today,
+    dueDate: "2026-06-21",
+    status: "ACTIVE",
+    notes: "Cliente con abonos parciales."
+  }
+];
+
 export const demoCollections: Collection[] = [
-  { id: "collection_1", companyId: demoCompany.id, clientId: "client_carlos", sellerId: "user_seller", amount: 400, previousBalance: 640, newBalance: 240, paymentMethod: "CASH_USD", date: today },
+  { id: "collection_1", companyId: demoCompany.id, clientId: "client_carlos", loanId: "loan_carlos_1", sellerId: "user_seller", amount: 24, previousBalance: 264, newBalance: 240, paymentMethod: "CASH_USD", date: today },
   { id: "collection_2", companyId: demoCompany.id, clientId: "client_ana", sellerId: "user_supervisor", amount: 320, previousBalance: 440, newBalance: 120, paymentMethod: "PAGO_MOVIL", date: today },
-  { id: "collection_3", companyId: demoCompany.id, clientId: "client_jose", sellerId: "user_supervisor", amount: 1200, previousBalance: 1810, newBalance: 610, paymentMethod: "BANK_TRANSFER", date: today }
+  { id: "collection_3", companyId: demoCompany.id, clientId: "client_jose", loanId: "loan_jose_1", sellerId: "user_supervisor", amount: 120, previousBalance: 730, newBalance: 610, paymentMethod: "BANK_TRANSFER", date: today }
 ];
 
 export const demoExpenses: Expense[] = [

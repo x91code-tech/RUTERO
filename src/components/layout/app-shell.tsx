@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Boxes, ClipboardList, CreditCard, Home, LogOut, Map, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
+import { Bell, Boxes, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
 import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { demoNotifications } from "@/lib/demo-data";
 import { logoutAction } from "@/server/actions/auth-actions";
@@ -9,6 +9,7 @@ const navigation = [
   { href: "/seller", label: "Vendedor", icon: CreditCard },
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/routes", label: "Rutas", icon: Route },
+  { href: "/loans", label: "Prestamos", icon: Landmark },
   { href: "/sales", label: "Ventas", icon: ReceiptText },
   { href: "/collections", label: "Recaudos", icon: WalletCards },
   { href: "/expenses", label: "Gastos", icon: ClipboardList },

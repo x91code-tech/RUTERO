@@ -6,11 +6,12 @@ import {
   demoClients,
   demoCollections,
   demoCompany,
+  demoLoans,
   demoRoutes,
   demoSales,
   demoUsers
 } from "@/lib/demo-data";
-import type { Client, ClientDocument, ClientLocation, Company, Route, User } from "@/lib/types";
+import type { Client, ClientDocument, ClientLocation, Company, Loan, Route, User } from "@/lib/types";
 
 export async function getClientsPageData() {
   const user = await getSessionUser();
@@ -100,6 +101,7 @@ export async function getClientProfileData(id: string) {
         documents: demoClientDocuments.filter((document) => document.clientId === baseClient.id)
       },
       route: demoRoutes.find((route) => route.id === baseClient.routeId) ?? null,
+      loans: demoLoans.filter((loan) => loan.clientId === baseClient.id),
       sales: demoSales.filter((sale) => sale.clientId === baseClient.id),
       collections: demoCollections.filter((collection) => collection.clientId === baseClient.id)
     };
@@ -111,6 +113,7 @@ export async function getClientProfileData(id: string) {
       locations: true,
       documents: true,
       routeClients: { include: { route: true } },
+      loans: { orderBy: { createdAt: "desc" }, take: 20 },
       sales: { orderBy: { createdAt: "desc" }, take: 20 },
       collections: { orderBy: { createdAt: "desc" }, take: 20 },
       company: true
@@ -163,6 +166,24 @@ export async function getClientProfileData(id: string) {
           clientIds: [client.id]
         }
       : null,
+    loans: client.loans.map((loan) => ({
+      id: loan.id,
+      companyId: loan.companyId,
+      clientId: loan.clientId,
+      sellerId: loan.sellerId,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      interestAmount: Number(loan.interestAmount),
+      totalAmount: Number(loan.totalAmount),
+      dailyPayment: Number(loan.dailyPayment),
+      paidAmount: Number(loan.paidAmount),
+      balance: Number(loan.balance),
+      termDays: loan.termDays,
+      startDate: loan.startDate.toISOString(),
+      dueDate: loan.dueDate.toISOString(),
+      status: loan.status,
+      notes: loan.notes ?? undefined
+    })) satisfies Loan[],
     sales: client.sales.map((sale) => ({
       id: sale.id,
       companyId: sale.companyId,
@@ -178,6 +199,7 @@ export async function getClientProfileData(id: string) {
       id: collection.id,
       companyId: collection.companyId,
       clientId: collection.clientId,
+      loanId: collection.loanId ?? undefined,
       sellerId: collection.sellerId,
       amount: Number(collection.amount),
       previousBalance: Number(collection.previousBalance),

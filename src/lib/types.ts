@@ -23,6 +23,7 @@ export type PaymentMethod =
 export type ClientStatus = "ACTIVE" | "PENDING" | "DELINQUENT" | "INACTIVE";
 export type VisitStatus = "PENDING" | "VISITED" | "NOT_FOUND" | "COLLECTED" | "SALE_DONE";
 export type CashboxStatus = "OPEN" | "CLOSED" | "BALANCED" | "UNBALANCED" | "REQUIRES_REVIEW";
+export type LoanStatus = "ACTIVE" | "PAID" | "OVERDUE" | "CANCELLED";
 export type ClientLocationType = "STORE" | "WAREHOUSE" | "BILLING" | "OTHER";
 export type ClientDocumentStatus = "PENDING" | "UPLOADED" | "APPROVED" | "REJECTED";
 
@@ -113,6 +114,7 @@ export type Collection = {
   id: string;
   companyId: string;
   clientId: string;
+  loanId?: string;
   sellerId: string;
   amount: number;
   previousBalance: number;
@@ -120,6 +122,25 @@ export type Collection = {
   paymentMethod: PaymentMethod;
   date: string;
   observation?: string;
+};
+
+export type Loan = {
+  id: string;
+  companyId: string;
+  clientId: string;
+  sellerId: string;
+  principalAmount: number;
+  interestRate: number;
+  interestAmount: number;
+  totalAmount: number;
+  dailyPayment: number;
+  paidAmount: number;
+  balance: number;
+  termDays: number;
+  startDate: string;
+  dueDate: string;
+  status: LoanStatus;
+  notes?: string;
 };
 
 export type Expense = {

@@ -5,7 +5,15 @@ import { redirect } from "next/navigation";
 import type { PaymentMethod } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
-import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema } from "@/lib/validations";
+import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema } from "@/lib/validations";
+
+const LOAN_INTEREST_RATE = 0.2;
+
+function addDays(date: Date, days: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
 
 export async function createSaleAction(formData: FormData) {
   const payload = saleSchema.parse(Object.fromEntries(formData));
@@ -80,11 +88,23 @@ export async function createCollectionAction(formData: FormData) {
   const date = payload.date ? new Date(payload.date) : new Date();
 
   await prisma.$transaction(async (tx) => {
+    const activeLoan = payload.loanId
+      ? await tx.loan.findFirstOrThrow({
+          where: {
+            id: payload.loanId,
+            clientId: client.id,
+            companyId: user.companyId,
+            status: "ACTIVE"
+          }
+        })
+      : null;
+
     const createdCollection = await tx.collection.create({
       data: {
         companyId: user.companyId,
         sellerId: user.id,
         clientId: client.id,
+        loanId: activeLoan?.id,
         amount: payload.amount,
         previousBalance,
         newBalance,
@@ -93,6 +113,20 @@ export async function createCollectionAction(formData: FormData) {
         observation: payload.observation
       }
     });
+
+    if (activeLoan) {
+      const loanBalance = Math.max(Number(activeLoan.balance) - payload.amount, 0);
+      const paidAmount = Number(activeLoan.paidAmount) + payload.amount;
+
+      await tx.loan.update({
+        where: { id: activeLoan.id },
+        data: {
+          paidAmount,
+          balance: loanBalance,
+          status: loanBalance <= 0 ? "PAID" : "ACTIVE"
+        }
+      });
+    }
 
     await tx.client.update({
       where: { id: client.id },
@@ -117,9 +151,82 @@ export async function createCollectionAction(formData: FormData) {
   });
 
   revalidatePath("/collections");
+  revalidatePath("/loans");
   revalidatePath("/clients");
   revalidatePath(`/clients/${client.id}`);
   revalidatePath("/cashbox");
+}
+
+export async function createLoanAction(formData: FormData) {
+  const payload = loanSchema.parse(Object.fromEntries(formData));
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+
+  const client = await prisma.client.findFirstOrThrow({
+    where: {
+      id: payload.clientId,
+      companyId: user.companyId
+    }
+  });
+
+  const startDate = payload.startDate ? new Date(payload.startDate) : new Date();
+  const dueDate = addDays(startDate, payload.termDays - 1);
+  const principalAmount = payload.principalAmount;
+  const interestAmount = Number((principalAmount * LOAN_INTEREST_RATE).toFixed(2));
+  const totalAmount = Number((principalAmount + interestAmount).toFixed(2));
+  const dailyPayment = Number((totalAmount / payload.termDays).toFixed(2));
+
+  await prisma.$transaction(async (tx) => {
+    const loan = await tx.loan.create({
+      data: {
+        companyId: user.companyId,
+        sellerId: user.id,
+        clientId: client.id,
+        principalAmount,
+        interestRate: LOAN_INTEREST_RATE,
+        interestAmount,
+        totalAmount,
+        dailyPayment,
+        balance: totalAmount,
+        termDays: payload.termDays,
+        startDate,
+        dueDate,
+        notes: payload.notes
+      }
+    });
+
+    await tx.client.update({
+      where: { id: client.id },
+      data: {
+        pendingBalance: {
+          increment: totalAmount
+        }
+      }
+    });
+
+    await tx.auditLog.create({
+      data: {
+        companyId: user.companyId,
+        userId: user.id,
+        action: "LOAN_CREATED",
+        entity: "Loan",
+        entityId: loan.id,
+        newValue: {
+          ...payload,
+          interestRate: LOAN_INTEREST_RATE,
+          interestAmount,
+          totalAmount,
+          dailyPayment
+        }
+      }
+    });
+  });
+
+  revalidatePath("/loans");
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${client.id}`);
+  revalidatePath("/collections");
+  revalidatePath("/dashboard");
 }
 
 export async function createExpenseAction(formData: FormData) {

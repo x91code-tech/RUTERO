@@ -15,10 +15,19 @@ export const saleSchema = z.object({
 
 export const collectionSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
+  loanId: z.string().optional(),
   amount: moneySchema,
   paymentMethod: paymentMethodSchema,
   date: z.string().optional(),
   observation: z.string().optional()
+});
+
+export const loanSchema = z.object({
+  clientId: z.string().min(1, "Selecciona un cliente"),
+  principalAmount: moneySchema,
+  termDays: z.coerce.number().int().min(1, "Debe ser al menos 1 dÃ­a").max(365, "El plazo mÃ¡ximo es 365 dÃ­as"),
+  startDate: z.string().optional(),
+  notes: z.string().optional()
 });
 
 export const expenseSchema = z.object({

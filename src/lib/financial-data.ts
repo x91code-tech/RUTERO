@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
-import { demoClients, demoCollections, demoCompany, demoExpenses, demoSales } from "@/lib/demo-data";
-import type { Client, Collection, Company, Expense, Sale } from "@/lib/types";
+import { demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
+import type { Client, Collection, Company, Expense, Loan, Sale } from "@/lib/types";
 
 export async function getFinancialPageData() {
   const user = await getSessionUser();
@@ -9,15 +9,17 @@ export async function getFinancialPageData() {
     return {
       company: demoCompany,
       clients: demoClients,
+      loans: demoLoans,
       sales: demoSales,
       collections: demoCollections,
       expenses: demoExpenses
     };
   }
 
-  const [company, clients, sales, collections, expenses] = await Promise.all([
+  const [company, clients, loans, sales, collections, expenses] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
     prisma.client.findMany({ where: { companyId: user.companyId }, orderBy: { name: "asc" } }),
+    prisma.loan.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 50 }),
     prisma.sale.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 25 }),
     prisma.collection.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 25 }),
     prisma.expense.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 25 })
@@ -49,6 +51,24 @@ export async function getFinancialPageData() {
       status: client.status,
       notes: client.notes ?? ""
     })) satisfies Client[],
+    loans: loans.map((loan) => ({
+      id: loan.id,
+      companyId: loan.companyId,
+      clientId: loan.clientId,
+      sellerId: loan.sellerId,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      interestAmount: Number(loan.interestAmount),
+      totalAmount: Number(loan.totalAmount),
+      dailyPayment: Number(loan.dailyPayment),
+      paidAmount: Number(loan.paidAmount),
+      balance: Number(loan.balance),
+      termDays: loan.termDays,
+      startDate: loan.startDate.toISOString(),
+      dueDate: loan.dueDate.toISOString(),
+      status: loan.status,
+      notes: loan.notes ?? undefined
+    })) satisfies Loan[],
     sales: sales.map((sale) => ({
       id: sale.id,
       companyId: sale.companyId,
@@ -64,6 +84,7 @@ export async function getFinancialPageData() {
       id: collection.id,
       companyId: collection.companyId,
       clientId: collection.clientId,
+      loanId: collection.loanId ?? undefined,
       sellerId: collection.sellerId,
       amount: Number(collection.amount),
       previousBalance: Number(collection.previousBalance),
