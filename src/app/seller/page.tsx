@@ -1,17 +1,16 @@
+import Link from "next/link";
 import { Banknote, CheckCircle2, Clock3, Landmark, MapPin, Search, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { LoanPaymentForm } from "@/components/forms/loan-payment-form";
 import { MetricCard } from "@/components/cards/metric-card";
-import { Button, LinkButton } from "@/components/ui/button";
+import { LinkButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
 import { getSellerDailyCollectionData } from "@/lib/seller-data";
 import { formatCurrency, formatShortDate } from "@/lib/formatters";
-import { createCollectionAction } from "@/server/actions/financial-actions";
 
-export default async function SellerPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
-  const { company, items, totals } = await getSellerDailyCollectionData(q ?? "");
-  const defaultPaymentMethod = getPaymentMethodsForCountry(company.countryCode)[0]?.code ?? "CASH";
+export default async function SellerPage({ searchParams }: { searchParams: Promise<{ q?: string; estado?: string }> }) {
+  const { estado, q } = await searchParams;
+  const { company, items, totals } = await getSellerDailyCollectionData(q ?? "", estado ?? "todos");
 
   return (
     <AppShell title="Ruta de cobro" subtitle="Clientes con prestamos activos, pago diario, atraso y saldo deudor.">
@@ -27,16 +26,32 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
         <form className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <Input name="q" defaultValue={q ?? ""} placeholder="Buscar por nombre, documento, telefono o direccion" className="pl-10" />
+          <input type="hidden" name="estado" value={estado ?? "todos"} />
         </form>
         <LinkButton href="/loans" variant="secondary"><Landmark className="h-4 w-4" /> Nueva venta</LinkButton>
         <LinkButton href="/collections" variant="secondary"><WalletCards className="h-4 w-4" /> Recaudo manual</LinkButton>
         <LinkButton href="/expenses" variant="secondary"><Banknote className="h-4 w-4" /> Gasto</LinkButton>
       </div>
 
+      <div className="mt-4 flex gap-2 overflow-x-auto">
+        {[
+          ["todos", "Todos"],
+          ["pendientes", "Pendientes"],
+          ["pagados", "Pagados"],
+          ["atrasados", "Atrasados"]
+        ].map(([value, label]) => {
+          const active = (estado ?? "todos") === value;
+          const href = `/seller?estado=${value}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+          return (
+            <Link key={value} href={href} className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold ${active ? "border-brand-500 bg-brand-500 text-carbon-950" : "border-white/10 text-zinc-300 hover:bg-white/[0.06]"}`}>
+              {label}
+            </Link>
+          );
+        })}
+      </div>
+
       <div className="mt-6 grid gap-4">
         {items.map((item) => {
-          const expectedPayment = Math.min(item.loan.dailyPayment, item.loan.balance);
-          const dueToday = Math.max(expectedPayment - item.paidToday, 0);
           const stateClasses = item.isPaidToday
             ? "border-l-4 border-l-emerald-400"
             : item.lateAmount > 0
@@ -82,16 +97,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
                   Prestado {formatCurrency(item.loan.principalAmount, company)} - total {formatCurrency(item.loan.totalAmount, company)} - ganancia {formatCurrency(item.loan.interestAmount, company)}
                   {item.lateAmount > 0 ? <span className="ml-2 font-bold text-red-300">Atraso {formatCurrency(item.lateAmount, company)}</span> : null}
                 </div>
-                <form action={createCollectionAction}>
-                  <input type="hidden" name="clientId" value={item.client.id} />
-                  <input type="hidden" name="loanId" value={item.loan.id} />
-                  <input type="hidden" name="amount" value={dueToday.toFixed(2)} />
-                  <input type="hidden" name="paymentMethod" value={defaultPaymentMethod} />
-                  <input type="hidden" name="observation" value="Pago diario registrado desde ruta de cobro" />
-                  <Button type="submit" disabled={dueToday <= 0} className="w-full sm:w-auto">
-                    {dueToday > 0 ? `Cobrar ${formatCurrency(dueToday, company)}` : "Cobrado"}
-                  </Button>
-                </form>
+                <LoanPaymentForm clientId={item.client.id} loan={item.loan} company={company} paidToday={item.paidToday} compact />
               </div>
             </article>
           );

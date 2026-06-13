@@ -95,7 +95,6 @@ export async function createCollectionAction(formData: FormData) {
     }
   });
   const previousBalance = Number(client.pendingBalance);
-  const newBalance = Math.max(previousBalance - payload.amount, 0);
   const date = payload.date ? new Date(payload.date) : new Date();
   let paidLoanNotification: { balance: number } | null = null;
 
@@ -111,6 +110,8 @@ export async function createCollectionAction(formData: FormData) {
           }
         })
       : null;
+    const effectiveAmount = activeLoan ? Math.min(payload.amount, Number(activeLoan.balance)) : payload.amount;
+    const newBalance = Math.max(previousBalance - effectiveAmount, 0);
 
     const createdCollection = await tx.collection.create({
       data: {
@@ -118,7 +119,7 @@ export async function createCollectionAction(formData: FormData) {
         sellerId: user.id,
         clientId: client.id,
         loanId: activeLoan?.id,
-        amount: payload.amount,
+        amount: effectiveAmount,
         previousBalance,
         newBalance,
         paymentMethod: payload.paymentMethod as PaymentMethod,
@@ -128,8 +129,8 @@ export async function createCollectionAction(formData: FormData) {
     });
 
     if (activeLoan) {
-      const loanBalance = Math.max(Number(activeLoan.balance) - payload.amount, 0);
-      const paidAmount = Number(activeLoan.paidAmount) + payload.amount;
+      const loanBalance = Math.max(Number(activeLoan.balance) - effectiveAmount, 0);
+      const paidAmount = Number(activeLoan.paidAmount) + effectiveAmount;
 
       await tx.loan.update({
         where: { id: activeLoan.id },
@@ -158,7 +159,7 @@ export async function createCollectionAction(formData: FormData) {
         entity: "Collection",
         entityId: createdCollection.id,
         oldValue: { pendingBalance: previousBalance },
-        newValue: { ...payload, pendingBalance: newBalance }
+        newValue: { ...payload, amount: effectiveAmount, pendingBalance: newBalance }
       }
     });
 

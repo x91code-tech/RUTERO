@@ -4,6 +4,7 @@ import { ClientDocumentsCard } from "@/components/clients/client-documents-card"
 import { ClientLocationCard } from "@/components/clients/client-location-card";
 import { ClientVerificationForm } from "@/components/forms/client-verification-form";
 import { LoanForm } from "@/components/forms/loan-form";
+import { LoanPaymentForm } from "@/components/forms/loan-payment-form";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getClientProfileData } from "@/lib/clients-data";
@@ -14,6 +15,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
   const data = await getClientProfileData(id);
   if (!data) notFound();
   const { client, collections, company, loans, route, sales } = data;
+  const todayKey = new Date().toISOString().slice(0, 10);
 
   return (
     <AppShell title={client.name} subtitle="Perfil de cliente con historial comercial y cobranza.">
@@ -56,6 +58,16 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                   <p><span className="text-zinc-400">Cuota diaria</span><br /><strong>{formatCurrency(loan.dailyPayment, company)}</strong></p>
                   <p><span className="text-zinc-400">Saldo</span><br /><strong>{formatCurrency(loan.balance, company)}</strong></p>
                 </div>
+                {loan.status === "ACTIVE" && loan.balance > 0 ? (
+                  <div className="mt-4">
+                    <LoanPaymentForm
+                      clientId={client.id}
+                      loan={loan}
+                      company={company}
+                      paidToday={collections.filter((collection) => collection.loanId === loan.id && collection.date.startsWith(todayKey)).reduce((total, collection) => total + collection.amount, 0)}
+                    />
+                  </div>
+                ) : null}
               </div>
             ))}
             {loans.length === 0 ? <p className="rounded-xl bg-white/[0.04] p-4 text-sm text-zinc-400">Este cliente todavia no tiene prestamos.</p> : null}

@@ -145,7 +145,7 @@ function toCollection(collection: {
   };
 }
 
-function buildItems(clients: Client[], loans: Loan[], collections: Collection[], search = "") {
+function buildItems(clients: Client[], loans: Loan[], collections: Collection[], search = "", statusFilter = "todos") {
   const normalizedSearch = search.trim().toLowerCase();
 
   return loans
@@ -178,18 +178,24 @@ function buildItems(clients: Client[], loans: Loan[], collections: Collection[],
         .toLowerCase()
         .includes(normalizedSearch);
     })
+    .filter((item) => {
+      if (statusFilter === "pendientes") return !item.isPaidToday;
+      if (statusFilter === "pagados") return item.isPaidToday;
+      if (statusFilter === "atrasados") return item.lateAmount > 0;
+      return true;
+    })
     .sort((a, b) => {
       if (a.isPaidToday !== b.isPaidToday) return a.isPaidToday ? 1 : -1;
       return b.lateAmount - a.lateAmount;
     });
 }
 
-export async function getSellerDailyCollectionData(search = "") {
+export async function getSellerDailyCollectionData(search = "", statusFilter = "todos") {
   const user = await getSessionUser();
 
   if (!user) {
     const collectionsToday = demoCollections.filter((collection) => collection.date === "2026-06-12");
-    const items = buildItems(demoClients, demoLoans, collectionsToday, search);
+    const items = buildItems(demoClients, demoLoans, collectionsToday, search, statusFilter);
 
     return {
       company: demoCompany,
@@ -221,7 +227,7 @@ export async function getSellerDailyCollectionData(search = "") {
       }
     })
   ]);
-  const items = buildItems(clients.map(toClient), loans.map(toLoan), collections.map(toCollection), search);
+  const items = buildItems(clients.map(toClient), loans.map(toLoan), collections.map(toCollection), search, statusFilter);
 
   return {
     company: toCompany(company),
