@@ -147,7 +147,7 @@ export type Expense = {
   id: string;
   companyId: string;
   sellerId: string;
-  type: "Gasolina" | "Comida" | "Transporte" | "Material" | "Otro";
+  type: string;
   amount: number;
   paymentMethod: PaymentMethod;
   date: string;

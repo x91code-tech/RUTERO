@@ -11,6 +11,12 @@ type MovementFormProps = {
   loans?: Loan[];
 };
 
+function todayInputValue() {
+  const today = new Date();
+  const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+}
+
 function getFormData(input?: MovementFormProps) {
   const company = input?.company ?? demoCompany;
   const clients = input?.clients?.length ? input.clients : demoClients;
@@ -34,7 +40,7 @@ export function LoanForm(props: MovementFormProps) {
         <Field label="Monto entregado"><Input name="principalAmount" type="number" defaultValue="100" min="0" step="0.01" /></Field>
         <Field label="Dias de pago"><Input name="termDays" type="number" defaultValue="10" min="1" step="1" /></Field>
       </div>
-      <Field label="Fecha de inicio"><Input name="startDate" type="date" defaultValue="2026-06-12" /></Field>
+      <Field label="Fecha de inicio"><Input name="startDate" type="date" defaultValue={todayInputValue()} /></Field>
       <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
         RUTERO calcula 20% de ganancia. Ejemplo: si prestas 100, el cliente debe pagar 120 dividido entre los dias indicados.
       </div>
@@ -59,7 +65,7 @@ export function SaleForm(props: MovementFormProps) {
           {paymentOptions.map((method) => <option key={method.code} value={method.code}>{method.label}</option>)}
         </Select>
       </Field>
-      <Field label="Fecha"><Input name="date" type="date" defaultValue="2026-06-12" /></Field>
+      <Field label="Fecha"><Input name="date" type="date" defaultValue={todayInputValue()} /></Field>
       <Field label="Observación"><Textarea name="observation" placeholder="Agrega una nota si aplica" /></Field>
       <Button type="submit">Registrar venta</Button>
     </form>
@@ -93,7 +99,7 @@ export function CollectionForm(props: MovementFormProps) {
           {paymentOptions.map((method) => <option key={method.code} value={method.code}>{method.label}</option>)}
         </Select>
       </Field>
-      <Field label="Fecha"><Input name="date" type="date" defaultValue="2026-06-12" /></Field>
+      <Field label="Fecha"><Input name="date" type="date" defaultValue={todayInputValue()} /></Field>
       <Field label="Observación"><Textarea name="observation" placeholder="Ejemplo: abono semanal confirmado" /></Field>
       <Button type="submit">Registrar recaudo</Button>
     </form>
@@ -102,12 +108,31 @@ export function CollectionForm(props: MovementFormProps) {
 
 export function ExpenseForm(props: MovementFormProps) {
   const { paymentOptions } = getFormData(props);
+  const expenseTypes = [
+    "Gasolina",
+    "Transporte",
+    "Alimentacion",
+    "Comision",
+    "Sueldo ayudante",
+    "Sueldo revisor",
+    "Mantenimiento moto",
+    "Oficina",
+    "Arriendo",
+    "Seguro",
+    "Medico",
+    "Papeleria",
+    "Tramites",
+    "Vales",
+    "Recarga celular/cobro",
+    "Varios",
+    "Otro"
+  ];
 
   return (
     <form action={createExpenseAction} className="grid gap-4">
       <Field label="Tipo de gasto">
         <Select name="type" defaultValue="Gasolina">
-          {["Gasolina", "Comida", "Transporte", "Material", "Otro"].map((type) => <option key={type}>{type}</option>)}
+          {expenseTypes.map((type) => <option key={type}>{type}</option>)}
         </Select>
       </Field>
       <Field label="Monto"><Input name="amount" type="number" defaultValue="25" min="0" step="0.01" /></Field>
@@ -116,7 +141,7 @@ export function ExpenseForm(props: MovementFormProps) {
           {paymentOptions.map((method) => <option key={method.code} value={method.code}>{method.label}</option>)}
         </Select>
       </Field>
-      <Field label="Fecha"><Input name="date" type="date" defaultValue="2026-06-12" /></Field>
+      <Field label="Fecha"><Input name="date" type="date" defaultValue={todayInputValue()} /></Field>
       <Field label="Comentario"><Textarea name="comment" defaultValue="Gasto operativo de ruta" /></Field>
       <Button type="submit">Registrar gasto</Button>
     </form>

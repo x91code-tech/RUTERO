@@ -15,16 +15,17 @@ export type DailySummary = {
   grossMovement: number;
   netMovement: number;
   expectedCash: number;
+  reportedTotal: number;
   difference: number;
   statusMessage: string;
 };
 
-export function calculateExpectedCash(initialCash: number, cashSales: number, cashCollections: number, cashExpenses: number, loanDisbursementsTotal = 0) {
-  return initialCash + cashSales + cashCollections - cashExpenses - loanDisbursementsTotal;
+export function calculateExpectedCash(initialCash: number, salesTotal: number, collectionsTotal: number, expensesTotal: number, loanDisbursementsTotal = 0) {
+  return initialCash + salesTotal + collectionsTotal - expensesTotal - loanDisbursementsTotal;
 }
 
-export function calculateCashDifference(reportedCash: number, expectedCash: number) {
-  return reportedCash - expectedCash;
+export function calculateCashDifference(reportedTotal: number, expectedCash: number) {
+  return reportedTotal - expectedCash;
 }
 
 export function getCashboxStatusMessage(difference: number) {
@@ -62,8 +63,9 @@ export function calculateDailySummary(input: {
     ...sales.filter((sale) => isWalletMethod(sale.paymentMethod)).map((sale) => sale.amount),
     ...collections.filter((collection) => isWalletMethod(collection.paymentMethod)).map((collection) => collection.amount)
   ]);
-  const expectedCash = calculateExpectedCash(cashbox.initialCash, cashSales, cashCollections, cashExpenses, loanDisbursementsTotal);
-  const difference = calculateCashDifference(cashbox.reportedCash, expectedCash);
+  const expectedCash = calculateExpectedCash(cashbox.initialCash, salesTotal, collectionsTotal, expensesTotal, loanDisbursementsTotal);
+  const reportedTotal = cashbox.reportedCash + cashbox.reportedTransfer + cashbox.reportedPix;
+  const difference = calculateCashDifference(reportedTotal, expectedCash);
 
   return {
     salesTotal,
@@ -79,6 +81,7 @@ export function calculateDailySummary(input: {
     grossMovement: salesTotal + collectionsTotal + loanDisbursementsTotal,
     netMovement: salesTotal + collectionsTotal - expensesTotal - loanDisbursementsTotal,
     expectedCash,
+    reportedTotal,
     difference,
     statusMessage: getCashboxStatusMessage(difference)
   };

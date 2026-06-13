@@ -20,7 +20,7 @@ export default async function CashboxPage() {
         <MetricCard label="Recaudos efectivo" value={formatCurrency(summary.cashCollections, company)} />
         <MetricCard label="Gastos efectivo" value={formatCurrency(summary.cashExpenses, company)} tone="orange" />
         <MetricCard label="Caja esperada" value={formatCurrency(summary.expectedCash, company)} />
-        <MetricCard label="Caja reportada" value={formatCurrency(cashbox.reportedCash, company)} />
+        <MetricCard label="Total reportado" value={formatCurrency(summary.reportedTotal, company)} />
         <MetricCard label="Diferencia" value={formatCurrency(summary.difference, company)} tone={summary.difference === 0 ? "green" : "red"} />
         <MetricCard label="Total del dia" value={formatCurrency(summary.grossMovement, company)} />
       </div>
@@ -30,7 +30,7 @@ export default async function CashboxPage() {
           <CardHeader title="Cerrar caja" description="Guarda el reporte del usuario actual y deja auditoria." />
           <form action={closeCashboxAction} className="grid gap-4">
             <Field label="Caja inicial"><Input name="initialCash" type="number" defaultValue={cashbox.initialCash} min="0" step="0.01" /></Field>
-            <Field label="Efectivo reportado"><Input name="reportedCash" type="number" defaultValue={cashbox.reportedCash || summary.expectedCash} min="0" step="0.01" /></Field>
+            <Field label="Efectivo reportado"><Input name="reportedCash" type="number" defaultValue={cashbox.reportedCash} min="0" step="0.01" /></Field>
             <Field label="Transferencia reportada"><Input name="reportedTransfer" type="number" defaultValue={cashbox.reportedTransfer || summary.transferTotal} min="0" step="0.01" /></Field>
             <Field label="Digital reportado"><Input name="reportedPix" type="number" defaultValue={cashbox.reportedPix || summary.pixTotal} min="0" step="0.01" /></Field>
             <Field label="Observaciones"><Textarea name="observations" defaultValue={cashbox.observations} placeholder="Notas del cierre de caja" /></Field>
@@ -49,6 +49,7 @@ export default async function CashboxPage() {
               ["Prestamos entregados", summary.loanDisbursementsTotal],
               ["Recaudos", summary.collectionsTotal],
               ["Gastos", summary.expensesTotal],
+              ["Total reportado", summary.reportedTotal],
               ["Digital total", summary.digitalTotal]
             ].map(([label, value]) => (
               <div key={label} className="rounded-xl bg-white/[0.04] p-4">
