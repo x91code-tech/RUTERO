@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { Bell, Boxes, ClipboardList, CreditCard, Home, Map, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
+import { Bell, Boxes, ClipboardList, CreditCard, Home, LogOut, Map, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
 import { demoNotifications } from "@/lib/demo-data";
+import { logoutAction } from "@/server/actions/auth-actions";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -49,6 +50,11 @@ export function AppShell({ children, title, subtitle }: { children: React.ReactN
                 <Bell className="h-5 w-5" />
                 <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-500 text-xs font-black text-carbon-950">{demoNotifications.length}</span>
               </button>
+              <form action={logoutAction}>
+                <button className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]" aria-label="Cerrar sesión">
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </form>
             </div>
           </div>
           <nav className="mt-4 flex gap-2 overflow-x-auto lg:hidden">

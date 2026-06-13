@@ -92,8 +92,21 @@ model User {
   expenses       Expense[]
   cashboxes      Cashbox[]
   auditLogs      AuditLog[]
+  sessions       Session[]
 
   @@index([companyId, role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Client {

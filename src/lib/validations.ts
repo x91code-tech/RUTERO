@@ -36,3 +36,18 @@ export const clientLocationSchema = z.object({
   latitude: z.coerce.number().min(-90, "Latitud inválida").max(90, "Latitud inválida"),
   longitude: z.coerce.number().min(-180, "Longitud inválida").max(180, "Longitud inválida")
 });
+
+export const loginSchema = z.object({
+  email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
+  password: z.string().min(8, "La contraseña debe tener mínimo 8 caracteres")
+});
+
+export const registerCompanySchema = z.object({
+  companyName: z.string().min(2, "Indica el nombre de la empresa"),
+  rif: z.string().optional(),
+  countryCode: z.string().min(2, "Selecciona el país"),
+  currencyCode: z.string().min(3, "Selecciona la moneda"),
+  adminName: z.string().min(2, "Indica el nombre del administrador"),
+  email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
+  password: z.string().min(8, "La contraseña debe tener mínimo 8 caracteres")
+});

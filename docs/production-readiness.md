@@ -7,6 +7,8 @@ RUTERO deja de ser demo cuando los flujos principales dejan de depender de datos
 - UI completa de administración, vendedor, clientes, rutas, caja, reportes e inventario.
 - Prisma schema multiempresa.
 - Seed con usuarios y datos demo.
+- Login y registro de empresa con PostgreSQL, bcrypt y cookies httpOnly.
+- Tabla `Session` para sesiones persistentes.
 - Cálculos reales de caja.
 - Validaciones Zod.
 - Permisos base por rol.
@@ -16,7 +18,6 @@ RUTERO deja de ser demo cuando los flujos principales dejan de depender de datos
 
 ## Falta para producción real
 
-- Autenticación real con sesiones seguras.
 - Conectar formularios a Prisma.
 - Persistir ventas, recaudos, gastos, clientes, ubicaciones y cierres.
 - Auditoría real en cada acción crítica.

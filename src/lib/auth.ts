@@ -1,5 +1,5 @@
-import { demoUsers } from "@/lib/demo-data";
+import { getSessionUser } from "@/lib/session";
 
 export async function getCurrentUser() {
-  return demoUsers.find((user) => user.role === "ADMIN") ?? demoUsers[0];
+  return getSessionUser();
 }

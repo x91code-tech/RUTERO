@@ -29,6 +29,18 @@ npm.cmd install
 npm.cmd run dev
 ```
 
+## Despliegue en VPS
+
+Después de hacer `git pull` en producción:
+
+```bash
+npm install
+npx prisma generate
+npx prisma migrate deploy
+npm run build
+pm2 restart rutero
+```
+
 ## Variables de entorno
 
 ```env
@@ -54,6 +66,8 @@ Vendedor:
 Clientes demo: Carlos Pérez, María González, José Ramírez, Ana Torres y Luis Fernández.
 
 Rutas demo: Ruta Centro, Ruta Norte y Ruta Sur.
+
+El seed crea estos usuarios en PostgreSQL con contraseñas hasheadas. El login y el registro de empresa usan Prisma, cookies httpOnly y la tabla `Session`.
 
 ## Módulos incluidos
 
