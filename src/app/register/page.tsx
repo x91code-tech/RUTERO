@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Building2 } from "lucide-react";
+import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 import { supportedCountries } from "@/lib/countries";
@@ -16,10 +16,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
   return (
     <main className="grid min-h-screen place-items-center px-5">
       <section className="surface w-full max-w-xl rounded-2xl p-6">
-        <Link href="/" className="mb-8 flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 font-black text-carbon-950">R</span>
-          <span className="font-bold">RUTERO</span>
-        </Link>
+        <RuteroLogo href="/" size="sm" className="mb-8" />
         <h1 className="text-2xl font-black">Crear empresa</h1>
         <p className="mt-2 text-sm text-zinc-400">Registra tu empresa y crea el primer usuario administrador.</p>
         {error ? <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{errorMessages[error] ?? "No se pudo crear la empresa."}</p> : null}

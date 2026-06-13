@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Bell, Boxes, ClipboardList, CreditCard, Home, LogOut, Map, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
+import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { demoNotifications } from "@/lib/demo-data";
 import { logoutAction } from "@/server/actions/auth-actions";
 
@@ -21,10 +22,7 @@ export function AppShell({ children, title, subtitle }: { children: React.ReactN
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">
       <aside className="hidden border-r border-white/10 bg-carbon-950/80 p-5 lg:block">
-        <Link href="/" className="mb-8 flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 font-black text-carbon-950">R</span>
-          <span className="font-bold">RUTERO</span>
-        </Link>
+        <RuteroLogo href="/dashboard" size="sm" className="mb-8" aria-label="Ir al dashboard" />
         <nav className="grid gap-1">
           {navigation.map((item) => {
             const Icon = item.icon;
@@ -40,6 +38,7 @@ export function AppShell({ children, title, subtitle }: { children: React.ReactN
       <div>
         <header className="sticky top-0 z-20 border-b border-white/10 bg-carbon-950/80 px-5 py-4 backdrop-blur lg:px-8">
           <div className="flex items-center justify-between gap-4">
+            <RuteroLogo href="/dashboard" size="sm" showText={false} className="lg:hidden" aria-label="Ir al dashboard" />
             <div>
               <h1 className="text-2xl font-black tracking-normal">{title}</h1>
               <p className="text-sm text-zinc-400">{subtitle}</p>

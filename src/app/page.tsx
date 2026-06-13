@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, BarChart3, MapPinned, ShieldCheck } from "lucide-react";
+import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { demoCompany } from "@/lib/demo-data";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -7,10 +8,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen overflow-hidden px-5 py-6 sm:px-8">
       <nav className="mx-auto flex max-w-7xl items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-500 font-black text-carbon-950">R</span>
-          <span className="text-lg font-bold">RUTERO</span>
-        </Link>
+        <RuteroLogo href="/" />
         <div className="flex items-center gap-3">
           <Link className="hidden rounded-lg px-4 py-2 text-sm text-zinc-300 hover:text-white sm:block" href="/login">
             Iniciar sesión
