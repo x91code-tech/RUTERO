@@ -1,7 +1,7 @@
-import type { Cashbox, Collection, Expense, Sale, User } from "@/lib/types";
 import type { DailySummary } from "@/lib/cashbox-calculations";
 import type { CurrencyConfig } from "@/lib/countries";
 import { formatCurrency, formatSpanishDate } from "@/lib/formatters";
+import type { Cashbox, Collection, Expense, Loan, Sale, User } from "@/lib/types";
 
 export function generateWhatsAppReport(input: {
   seller: User;
@@ -10,10 +10,12 @@ export function generateWhatsAppReport(input: {
   sales: Sale[];
   collections: Collection[];
   expenses: Expense[];
+  loans?: Loan[];
   visitedClients: number;
   currencyConfig?: Partial<CurrencyConfig>;
 }) {
   const { seller, cashbox, summary, sales, collections, expenses, visitedClients } = input;
+  const loans = input.loans ?? [];
   const money = (value: number) => formatCurrency(value, input.currencyConfig);
 
   return [
@@ -24,8 +26,10 @@ export function generateWhatsAppReport(input: {
     `Ventas: ${money(summary.salesTotal)}`,
     `Recaudos: ${money(summary.collectionsTotal)}`,
     `Gastos: ${money(summary.expensesTotal)}`,
+    `Prestamos entregados: ${money(summary.loanDisbursementsTotal)}`,
     "",
-    `Efectivo esperado: ${money(summary.expectedCash)}`,
+    `Caja esperada: ${money(summary.expectedCash)}`,
+    `Total reportado: ${money(summary.reportedTotal)}`,
     `Efectivo reportado: ${money(cashbox.reportedCash)}`,
     `Pix: ${money(summary.pixTotal)}`,
     `Transferencia: ${money(summary.transferTotal)}`,
@@ -34,11 +38,12 @@ export function generateWhatsAppReport(input: {
     `Estado: ${summary.statusMessage}`,
     "",
     `Clientes visitados: ${visitedClients}`,
+    `Prestamos creados: ${loans.length}`,
     `Ventas realizadas: ${sales.length}`,
     `Recaudos realizados: ${collections.length}`,
     `Gastos registrados: ${expenses.length}`,
     "",
-    "Observación:",
+    "Observacion:",
     cashbox.observations || "Sin observaciones"
   ].join("\n");
 }
