@@ -1,8 +1,8 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Banknote, CheckCircle2, Clock3, Landmark, MapPin, Search, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { LoanPaymentForm } from "@/components/forms/loan-payment-form";
-import { MetricCard } from "@/components/cards/metric-card";
 import { LinkButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSellerDailyCollectionData } from "@/lib/seller-data";
@@ -14,26 +14,28 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
 
   return (
     <AppShell title="Ruta de cobro" subtitle="Clientes con prestamos activos, pago diario, atraso y saldo deudor.">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="Por cobrar" value={String(totals.pendingClients)} icon={<Clock3 />} tone={totals.pendingClients > 0 ? "orange" : "green"} />
-        <MetricCard label="Ya pagaron" value={String(totals.paidClients)} icon={<CheckCircle2 />} />
-        <MetricCard label="Esperado hoy" value={formatCurrency(totals.expectedToday, company)} />
-        <MetricCard label="Cobrado hoy" value={formatCurrency(totals.collectedToday, company)} />
-        <MetricCard label="Saldo activo" value={formatCurrency(totals.activeBalance, company)} />
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
+        <SummaryTile label="Por cobrar" value={String(totals.pendingClients)} icon={<Clock3 className="h-4 w-4" />} tone={totals.pendingClients > 0 ? "orange" : "green"} />
+        <SummaryTile label="Ya pagaron" value={String(totals.paidClients)} icon={<CheckCircle2 className="h-4 w-4" />} tone="green" />
+        <SummaryTile label="Esperado" value={formatCurrency(totals.expectedToday, company)} />
+        <SummaryTile label="Cobrado" value={formatCurrency(totals.collectedToday, company)} tone="green" />
+        <SummaryTile className="col-span-2 xl:col-span-1" label="Saldo activo" value={formatCurrency(totals.activeBalance, company)} />
       </div>
 
-      <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
+      <div className="mt-4 grid gap-2 lg:grid-cols-[1fr_auto_auto_auto]">
         <form className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-          <Input name="q" defaultValue={q ?? ""} placeholder="Buscar por nombre, documento, telefono o direccion" className="pl-10" />
+          <Input name="q" defaultValue={q ?? ""} placeholder="Buscar cliente" className="pl-9" />
           <input type="hidden" name="estado" value={estado ?? "todos"} />
         </form>
-        <LinkButton href="/loans" variant="secondary"><Landmark className="h-4 w-4" /> Nueva venta</LinkButton>
-        <LinkButton href="/collections" variant="secondary"><WalletCards className="h-4 w-4" /> Recaudo manual</LinkButton>
-        <LinkButton href="/expenses" variant="secondary"><Banknote className="h-4 w-4" /> Gasto</LinkButton>
+        <div className="grid grid-cols-3 gap-2 lg:contents">
+          <LinkButton href="/loans" variant="secondary" className="px-2 text-xs sm:text-sm"><Landmark className="h-4 w-4" /> Prestamo</LinkButton>
+          <LinkButton href="/collections" variant="secondary" className="px-2 text-xs sm:text-sm"><WalletCards className="h-4 w-4" /> Recaudo</LinkButton>
+          <LinkButton href="/expenses" variant="secondary" className="px-2 text-xs sm:text-sm"><Banknote className="h-4 w-4" /> Gasto</LinkButton>
+        </div>
       </div>
 
-      <div className="mt-4 flex gap-2 overflow-x-auto">
+      <div className="mt-3 flex gap-2 overflow-x-auto">
         {[
           ["todos", "Todos"],
           ["pendientes", "Pendientes"],
@@ -43,14 +45,14 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
           const active = (estado ?? "todos") === value;
           const href = `/seller?estado=${value}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
           return (
-            <Link key={value} href={href} className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold ${active ? "border-brand-500 bg-brand-500 text-carbon-950" : "border-white/10 text-zinc-300 hover:bg-white/[0.06]"}`}>
+            <Link key={value} href={href} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${active ? "border-brand-500 bg-brand-500 text-carbon-950" : "border-white/10 text-zinc-300 hover:bg-white/[0.06]"}`}>
               {label}
             </Link>
           );
         })}
       </div>
 
-      <div className="mt-6 grid gap-4">
+      <div className="mt-4 grid gap-3">
         {items.map((item) => {
           const stateClasses = item.isPaidToday
             ? "border-l-4 border-l-emerald-400"
@@ -59,32 +61,33 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
               : "border-l-4 border-l-amber-400";
           const statusText = item.isPaidToday ? "Pagado hoy" : item.lateAmount > 0 ? "Atrasado" : "Pendiente";
           const statusColor = item.isPaidToday ? "text-emerald-300" : item.lateAmount > 0 ? "text-red-300" : "text-amber-300";
+          const statusBorder = item.isPaidToday ? "border-emerald-400 text-emerald-300" : item.lateAmount > 0 ? "border-red-400 text-red-300" : "border-amber-400 text-amber-300";
 
           return (
-            <article key={item.loan.id} className={`rounded-xl border border-white/10 bg-white/[0.04] p-4 shadow-sm ${stateClasses}`}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <article key={item.loan.id} className={`rounded-lg border border-white/10 bg-white/[0.04] p-3 shadow-sm ${stateClasses}`}>
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border text-sm font-black ${item.isPaidToday ? "border-emerald-400 text-emerald-300" : item.lateAmount > 0 ? "border-red-400 text-red-300" : "border-amber-400 text-amber-300"}`}>
+                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-black ${statusBorder}`}>
                       {item.client.name.charAt(0).toUpperCase()}
                     </span>
                     <div className="min-w-0">
-                      <h2 className="truncate text-xl font-black">{item.client.name}</h2>
-                      <p className="truncate text-sm text-zinc-400">{item.client.document} - {item.client.phone}</p>
+                      <h2 className="truncate text-base font-black leading-tight">{item.client.name}</h2>
+                      <p className="truncate text-xs text-zinc-400">{item.client.document || "Sin documento"} - {item.client.phone || "Sin telefono"}</p>
                     </div>
                   </div>
-                  <p className="mt-3 flex items-center gap-2 text-sm text-zinc-400">
-                    <MapPin className="h-4 w-4 shrink-0" />
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400">
+                    <MapPin className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{item.client.address}</span>
                   </p>
                 </div>
 
-                <div className={`rounded-full bg-white/[0.06] px-3 py-1 text-sm font-semibold ${statusColor}`}>
+                <div className={`shrink-0 rounded-full bg-white/[0.06] px-2.5 py-1 text-xs font-semibold ${statusColor}`}>
                   {statusText}
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="mt-3 grid grid-cols-3 gap-2 lg:grid-cols-5">
                 <Info label="Vr. cuota" value={formatCurrency(item.loan.dailyPayment, company)} />
                 <Info label="Cuota No." value={`${item.installmentNumber} / ${item.loan.termDays}`} />
                 <Info label="Pago hoy" value={formatCurrency(item.paidToday, company)} strongClass={item.isPaidToday ? "text-emerald-300" : "text-zinc-100"} />
@@ -92,8 +95,8 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
                 <Info label="Vence" value={formatShortDate(item.loan.dueDate)} />
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                <div className="rounded-lg bg-carbon-900/70 p-3 text-sm text-zinc-300">
+              <div className="mt-3 grid gap-2 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-start">
+                <div className="rounded-lg bg-carbon-900/70 p-2 text-xs leading-5 text-zinc-300">
                   Prestado {formatCurrency(item.loan.principalAmount, company)} - total {formatCurrency(item.loan.totalAmount, company)} - ganancia {formatCurrency(item.loan.interestAmount, company)}
                   {item.lateAmount > 0 ? <span className="ml-2 font-bold text-red-300">Atraso {formatCurrency(item.lateAmount, company)}</span> : null}
                 </div>
@@ -113,11 +116,25 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
   );
 }
 
+function SummaryTile({ className = "", icon, label, tone = "neutral", value }: { className?: string; icon?: ReactNode; label: string; tone?: "neutral" | "green" | "orange"; value: string }) {
+  const toneClass = tone === "green" ? "text-emerald-300" : tone === "orange" ? "text-orange-300" : "text-white";
+
+  return (
+    <div className={`surface rounded-xl p-3 ${className}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-xs font-medium text-zinc-400">{label}</p>
+        {icon ? <span className="text-brand-500">{icon}</span> : null}
+      </div>
+      <p className={`mt-1 truncate text-lg font-black ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
+
 function Info({ label, value, strongClass = "text-zinc-100" }: { label: string; value: string; strongClass?: string }) {
   return (
-    <div className="rounded-lg bg-white/[0.04] p-3">
-      <p className="text-xs font-semibold uppercase text-zinc-500">{label}</p>
-      <p className={`mt-1 text-lg font-black ${strongClass}`}>{value}</p>
+    <div className="rounded-lg bg-white/[0.04] p-2">
+      <p className="truncate text-[0.65rem] font-semibold uppercase leading-3 text-zinc-500">{label}</p>
+      <p className={`mt-1 truncate text-sm font-black sm:text-base ${strongClass}`}>{value}</p>
     </div>
   );
 }

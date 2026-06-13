@@ -16,7 +16,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 export function Button({ className, variant = "primary", ...props }: ButtonProps) {
   return (
     <button
-      className={cn("focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 font-semibold transition", variants[variant], className)}
+      className={cn("focus-ring inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition", variants[variant], className)}
       {...props}
     />
   );
@@ -32,7 +32,7 @@ export function LinkButton({ className, href, variant = "primary", children, ...
   return (
     <Link
       href={href}
-      className={cn("focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 font-semibold transition", variants[variant], className)}
+      className={cn("focus-ring inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition", variants[variant], className)}
       {...props}
     >
       {children}

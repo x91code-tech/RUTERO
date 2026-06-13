@@ -6,6 +6,11 @@
   color-scheme: dark;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -13,6 +18,8 @@
 body {
   margin: 0;
   min-height: 100vh;
+  font-size: 14px;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(249, 115, 22, 0.16), transparent 28rem),
     linear-gradient(135deg, #070707 0%, #111111 48%, #1b1b1b 100%);
@@ -47,5 +54,22 @@ textarea {
 
   .focus-ring {
     @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-carbon-950;
+  }
+
+  /* Bottom sheet / modal list styling */
+  .bottom-sheet {
+    @apply fixed inset-x-0 bottom-0 max-h-[70vh] overflow-auto rounded-t-2xl bg-white text-carbon-950 shadow-2xl p-4;
+  }
+
+  .bottom-sheet.dark {
+    @apply bg-carbon-900 text-white;
+  }
+
+  .sheet-title {
+    @apply text-lg font-semibold mb-2;
+  }
+
+  .sheet-list-item {
+    @apply py-3 border-b border-white/6 text-lg;
   }
 }

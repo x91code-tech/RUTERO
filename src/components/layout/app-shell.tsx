@@ -54,11 +54,11 @@ export async function AppShell({ children, title, subtitle }: { children: React.
         </nav>
       </aside>
       <div>
-        <header className="sticky top-0 z-20 border-b border-white/10 bg-carbon-950/80 px-5 py-4 backdrop-blur lg:px-8">
+        <header className="sticky top-0 z-20 border-b border-white/10 bg-carbon-950/80 px-3 py-3 backdrop-blur sm:px-5 lg:px-8 lg:py-4">
           <div className="flex items-center justify-between gap-4">
             <RuteroLogo href={homeHref} size="sm" showText={false} className="lg:hidden" aria-label="Ir al inicio" />
             <div className="min-w-0">
-              <h1 className="truncate text-2xl font-black tracking-normal">{title}</h1>
+              <h1 className="truncate text-xl font-black tracking-normal sm:text-2xl">{title}</h1>
               <p className="truncate text-sm text-zinc-400">{subtitle}</p>
             </div>
             <div className="flex items-center gap-3">
@@ -67,28 +67,28 @@ export async function AppShell({ children, title, subtitle }: { children: React.
                 <p className="text-xs text-zinc-500">{user.role}</p>
               </div>
               <div className="hidden rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300 sm:block">En linea</div>
-              <Link href="/notifications" className="relative grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06]" aria-label="Ver notificaciones">
+              <Link href="/notifications" className="relative grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-white/[0.06] sm:h-11 sm:w-11 sm:rounded-xl" aria-label="Ver notificaciones">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 ? (
                   <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-xs font-black text-carbon-950">{unreadCount}</span>
                 ) : null}
               </Link>
               <form action={logoutAction}>
-                <button className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]" aria-label="Cerrar sesion">
+                <button className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1] sm:h-11 sm:w-11 sm:rounded-xl" aria-label="Cerrar sesion">
                   <LogOut className="h-5 w-5" />
                 </button>
               </form>
             </div>
           </div>
-          <nav className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
+          <nav className="mt-3 flex gap-1.5 overflow-x-auto lg:hidden">
             {allowedNavigation.slice(0, 8).map((item) => (
-              <Link key={item.href} className="shrink-0 rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-300" href={item.href}>
+              <Link key={item.href} className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300" href={item.href}>
                 {item.label}
               </Link>
             ))}
           </nav>
         </header>
-        <main className="px-5 py-6 lg:px-8">{children}</main>
+        <main className="px-3 py-4 sm:px-5 lg:px-8 lg:py-6">{children}</main>
       </div>
     </div>
   );
