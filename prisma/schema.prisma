@@ -148,6 +148,7 @@ model Client {
 
   @@index([companyId, status])
   @@index([sellerId])
+  @@unique([companyId, document])
 }
 
 model ClientLocation {
@@ -199,6 +200,7 @@ model Route {
   routeClients RouteClient[]
 
   @@index([companyId])
+  @@unique([companyId, name])
 }
 
 model RouteClient {
@@ -236,6 +238,7 @@ model Sale {
 
   @@index([companyId, date])
   @@index([sellerId, date])
+  @@unique([companyId, clientId, sellerId, concept, date])
 }
 
 model Collection {
@@ -258,6 +261,7 @@ model Collection {
 
   @@index([companyId, date])
   @@index([sellerId, date])
+  @@unique([companyId, clientId, sellerId, date, amount])
 }
 
 model Expense {
@@ -277,6 +281,7 @@ model Expense {
 
   @@index([companyId, date])
   @@index([sellerId, date])
+  @@unique([companyId, sellerId, type, date, amount])
 }
 
 model Cashbox {
@@ -328,6 +333,7 @@ model Product {
   inventoryMovements InventoryMovement[]
 
   @@index([companyId, active])
+  @@unique([companyId, name])
 }
 
 model InventoryMovement {

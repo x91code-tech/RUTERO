@@ -35,18 +35,39 @@ async function main() {
     create: { companyId: company.id, name: "Vendedor Demo", email: "vendedor@rutero.app", passwordHash: sellerPassword, role: Role.SELLER }
   });
 
-  const routeCentro = await prisma.route.create({ data: { companyId: company.id, sellerId: seller.id, name: "Ruta Centro", zone: "Centro" } });
-  await prisma.route.createMany({
-    data: [
-      { companyId: company.id, sellerId: seller.id, name: "Ruta Norte", zone: "Norte" },
-      { companyId: company.id, sellerId: seller.id, name: "Ruta Sur", zone: "Sur" }
-    ]
+  const routeCentro = await prisma.route.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Ruta Centro" } },
+    update: { sellerId: seller.id, zone: "Centro" },
+    create: { companyId: company.id, sellerId: seller.id, name: "Ruta Centro", zone: "Centro" }
   });
+  for (const route of [
+    { name: "Ruta Norte", zone: "Norte" },
+    { name: "Ruta Sur", zone: "Sur" }
+  ]) {
+    await prisma.route.upsert({
+      where: { companyId_name: { companyId: company.id, name: route.name } },
+      update: { sellerId: seller.id, zone: route.zone },
+      create: { companyId: company.id, sellerId: seller.id, name: route.name, zone: route.zone }
+    });
+  }
 
   const clientNames = ["Carlos Pérez", "María González", "José Ramírez", "Ana Torres", "Luis Fernández"];
   for (const [index, name] of clientNames.entries()) {
-    const client = await prisma.client.create({
-      data: {
+    const document = `V-${12345678 + index}`;
+    const client = await prisma.client.upsert({
+      where: { companyId_document: { companyId: company.id, document } },
+      update: {
+        sellerId: seller.id,
+        name,
+        phone: `+58 412-555-010${index}`,
+        address: `Dirección comercial ${index + 1}`,
+        latitude: 10.5 + index * 0.004,
+        longitude: -66.91 - index * 0.003,
+        pendingBalance: index % 2 === 0 ? 240 : 0,
+        status: index === 2 ? ClientStatus.DELINQUENT : ClientStatus.ACTIVE,
+        notes: "Cliente demo para probar rutas y recaudos."
+      },
+      create: {
         companyId: company.id,
         sellerId: seller.id,
         name,
@@ -54,14 +75,19 @@ async function main() {
         address: `Dirección comercial ${index + 1}`,
         latitude: 10.5 + index * 0.004,
         longitude: -66.91 - index * 0.003,
-        document: `V-${12345678 + index}`,
+        document,
         pendingBalance: index % 2 === 0 ? 240 : 0,
         status: index === 2 ? ClientStatus.DELINQUENT : ClientStatus.ACTIVE,
         notes: "Cliente demo para probar rutas y recaudos."
       }
     });
 
-    await prisma.routeClient.create({ data: { routeId: routeCentro.id, clientId: client.id, visitOrder: index + 1 } });
+    await prisma.routeClient.upsert({
+      where: { routeId_clientId: { routeId: routeCentro.id, clientId: client.id } },
+      update: { visitOrder: index + 1 },
+      create: { routeId: routeCentro.id, clientId: client.id, visitOrder: index + 1 }
+    });
+    await prisma.clientLocation.deleteMany({ where: { clientId: client.id } });
     await prisma.clientLocation.createMany({
       data: [
         {
@@ -84,27 +110,48 @@ async function main() {
         }
       ]
     });
-    await prisma.clientDocument.createMany({
-      data: getClientDocumentRequirements("VE").map((requirement, requirementIndex) => ({
-        clientId: client.id,
-        countryCode: "VE",
-        documentType: requirement.type,
-        label: requirement.label,
-        required: requirement.required,
-        status: requirementIndex === 0 ? ClientDocumentStatus.UPLOADED : ClientDocumentStatus.PENDING,
-        fileUrl: requirementIndex === 0 ? `/demo-documents/${client.id}-${requirement.type.toLowerCase()}.pdf` : null,
-        notes: requirement.description
-      }))
-    });
+    for (const [requirementIndex, requirement] of getClientDocumentRequirements("VE").entries()) {
+      await prisma.clientDocument.upsert({
+        where: { clientId_documentType: { clientId: client.id, documentType: requirement.type } },
+        update: {
+          countryCode: "VE",
+          label: requirement.label,
+          required: requirement.required,
+          notes: requirement.description
+        },
+        create: {
+          clientId: client.id,
+          countryCode: "VE",
+          documentType: requirement.type,
+          label: requirement.label,
+          required: requirement.required,
+          status: requirementIndex === 0 ? ClientDocumentStatus.UPLOADED : ClientDocumentStatus.PENDING,
+          fileUrl: requirementIndex === 0 ? `/demo-documents/${client.id}-${requirement.type.toLowerCase()}.pdf` : null,
+          notes: requirement.description
+        }
+      });
+    }
   }
 
-  const product = await prisma.product.create({
-    data: { companyId: company.id, name: "Combo recarga rápida", price: 35, cost: 21, stock: 64, minStock: 20 }
+  const product = await prisma.product.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Combo recarga rápida" } },
+    update: { price: 35, cost: 21, stock: 64, minStock: 20, active: true },
+    create: { companyId: company.id, name: "Combo recarga rápida", price: 35, cost: 21, stock: 64, minStock: 20 }
   });
 
   const firstClient = await prisma.client.findFirstOrThrow({ where: { companyId: company.id } });
-  await prisma.sale.create({
-    data: {
+  await prisma.sale.upsert({
+    where: {
+      companyId_clientId_sellerId_concept_date: {
+        companyId: company.id,
+        clientId: firstClient.id,
+        sellerId: seller.id,
+        concept: "Pedido mixto",
+        date: new Date("2026-06-12")
+      }
+    },
+    update: { amount: 840, paymentMethod: PaymentMethod.CASH, productId: product.id },
+    create: {
       companyId: company.id,
       sellerId: seller.id,
       clientId: firstClient.id,
@@ -116,8 +163,18 @@ async function main() {
     }
   });
 
-  await prisma.collection.create({
-    data: {
+  await prisma.collection.upsert({
+    where: {
+      companyId_clientId_sellerId_date_amount: {
+        companyId: company.id,
+        clientId: firstClient.id,
+        sellerId: seller.id,
+        date: new Date("2026-06-12"),
+        amount: 400
+      }
+    },
+    update: { previousBalance: 640, newBalance: 240, paymentMethod: PaymentMethod.CASH },
+    create: {
       companyId: company.id,
       sellerId: seller.id,
       clientId: firstClient.id,
@@ -129,8 +186,18 @@ async function main() {
     }
   });
 
-  await prisma.expense.create({
-    data: {
+  await prisma.expense.upsert({
+    where: {
+      companyId_sellerId_type_date_amount: {
+        companyId: company.id,
+        sellerId: seller.id,
+        type: "Gasolina",
+        date: new Date("2026-06-12"),
+        amount: 80
+      }
+    },
+    update: { paymentMethod: PaymentMethod.CASH, comment: "Recarga para Ruta Centro" },
+    create: {
       companyId: company.id,
       sellerId: seller.id,
       type: "Gasolina",
@@ -141,8 +208,19 @@ async function main() {
     }
   });
 
-  await prisma.cashbox.create({
-    data: {
+  await prisma.cashbox.upsert({
+    where: { sellerId_date: { sellerId: seller.id, date: new Date("2026-06-12") } },
+    update: {
+      initialCash: 375,
+      reportedCash: 1535,
+      reportedTransfer: 1200,
+      reportedPix: 800,
+      expectedCash: 1535,
+      difference: 0,
+      status: CashboxStatus.BALANCED,
+      observations: "Ruta cerrada sin diferencias."
+    },
+    create: {
       companyId: company.id,
       sellerId: seller.id,
       date: new Date("2026-06-12"),
@@ -157,6 +235,7 @@ async function main() {
     }
   });
 
+  await prisma.notification.deleteMany({ where: { companyId: company.id, title: "Caja cuadrada" } });
   await prisma.notification.create({
     data: {
       companyId: company.id,
@@ -166,16 +245,21 @@ async function main() {
     }
   });
 
-  await prisma.auditLog.create({
-    data: {
-      companyId: company.id,
-      userId: admin.id,
-      action: "SEED_DEMO_CREATED",
-      entity: "Company",
-      entityId: company.id,
-      newValue: { demo: true }
-    }
+  const existingSeedAudit = await prisma.auditLog.findFirst({
+    where: { companyId: company.id, action: "SEED_DEMO_CREATED", entity: "Company", entityId: company.id }
   });
+  if (!existingSeedAudit) {
+    await prisma.auditLog.create({
+      data: {
+        companyId: company.id,
+        userId: admin.id,
+        action: "SEED_DEMO_CREATED",
+        entity: "Company",
+        entityId: company.id,
+        newValue: { demo: true }
+      }
+    });
+  }
 }
 
 main()
