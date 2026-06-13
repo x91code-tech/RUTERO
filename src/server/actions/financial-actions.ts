@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
 import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema } from "@/lib/validations";
+import { createNotification } from "@/server/services/notification-service";
 
 const LOAN_INTEREST_RATE = 0.2;
 
@@ -98,6 +99,7 @@ export async function createCollectionAction(formData: FormData) {
   const previousBalance = Number(client.pendingBalance);
   const newBalance = Math.max(previousBalance - payload.amount, 0);
   const date = payload.date ? new Date(payload.date) : new Date();
+  let paidLoanNotification: { balance: number } | null = null;
 
   await prisma.$transaction(async (tx) => {
     const activeLoan = payload.loanId
@@ -139,6 +141,8 @@ export async function createCollectionAction(formData: FormData) {
           status: loanBalance <= 0 ? "PAID" : "ACTIVE"
         }
       });
+
+      if (loanBalance <= 0) paidLoanNotification = { balance: loanBalance };
     }
 
     await tx.client.update({
@@ -162,6 +166,15 @@ export async function createCollectionAction(formData: FormData) {
 
     return createdCollection;
   });
+
+  if (paidLoanNotification) {
+    await createNotification({
+      companyId: user.companyId,
+      title: "Prestamo pagado",
+      message: `${client.name} completo el pago de su prestamo.`,
+      severity: "info"
+    });
+  }
 
   revalidatePath("/collections");
   revalidatePath("/loans");
@@ -236,6 +249,13 @@ export async function createLoanAction(formData: FormData) {
         }
       }
     });
+  });
+
+  await createNotification({
+    companyId: user.companyId,
+    title: "Prestamo creado",
+    message: `${client.name} recibio un prestamo por ${principalAmount}. Total a cobrar: ${totalAmount}.`,
+    severity: "info"
   });
 
   revalidatePath("/loans");
@@ -384,6 +404,15 @@ export async function closeCashboxAction(formData: FormData) {
       entityId: cashbox.id,
       newValue: { ...payload, expectedCash: summary.expectedCash, difference: summary.difference, status }
     }
+  });
+
+  await createNotification({
+    companyId: user.companyId,
+    title: summary.difference === 0 ? "Caja cerrada correctamente" : "Caja con diferencia",
+    message: summary.difference === 0
+      ? `${user.name} cerro caja sin diferencias.`
+      : `${user.name} cerro caja con diferencia de ${summary.difference}.`,
+    severity: summary.difference === 0 ? "info" : "critical"
   });
 
   revalidatePath("/cashbox");

@@ -184,4 +184,6 @@ export type Notification = {
   title: string;
   message: string;
   severity: "info" | "warning" | "critical";
+  readAt?: string;
+  createdAt?: string;
 };

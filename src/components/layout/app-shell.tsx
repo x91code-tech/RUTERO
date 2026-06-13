@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Bell, Boxes, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
 import { RuteroLogo } from "@/components/brand/rutero-logo";
-import { demoNotifications } from "@/lib/demo-data";
+import { getNotificationSummary } from "@/lib/notifications-data";
 import { canRoleAccessPath, getDefaultPathForRole } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import { logoutAction } from "@/server/actions/auth-actions";
@@ -20,6 +20,7 @@ const navigation = [
   { href: "/cashbox", label: "Caja diaria", icon: Shield },
   { href: "/reports", label: "Reportes", icon: Map },
   { href: "/inventory", label: "Inventario", icon: Boxes },
+  { href: "/notifications", label: "Notificaciones", icon: Bell },
   { href: "/settings", label: "Configuracion", icon: Settings }
 ];
 
@@ -33,6 +34,7 @@ export async function AppShell({ children, title, subtitle }: { children: React.
   if (!canRoleAccessPath(user.role, currentPath)) redirect(homeHref);
 
   const allowedNavigation = navigation.filter((item) => canRoleAccessPath(user.role, item.href));
+  const { unreadCount } = await getNotificationSummary();
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">
@@ -65,10 +67,12 @@ export async function AppShell({ children, title, subtitle }: { children: React.
                 <p className="text-xs text-zinc-500">{user.role}</p>
               </div>
               <div className="hidden rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300 sm:block">En linea</div>
-              <button className="relative grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06]" aria-label="Ver alertas">
+              <Link href="/notifications" className="relative grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06]" aria-label="Ver notificaciones">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-brand-500 text-xs font-black text-carbon-950">{demoNotifications.length}</span>
-              </button>
+                {unreadCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-xs font-black text-carbon-950">{unreadCount}</span>
+                ) : null}
+              </Link>
               <form action={logoutAction}>
                 <button className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]" aria-label="Cerrar sesion">
                   <LogOut className="h-5 w-5" />

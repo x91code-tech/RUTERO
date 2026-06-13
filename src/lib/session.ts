@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createHash, randomBytes } from "crypto";
 import type { User } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -8,6 +8,20 @@ const sessionDurationDays = 30;
 
 export function hashSessionToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+async function shouldUseSecureCookies() {
+  if (process.env.COOKIE_SECURE === "true") return true;
+  if (process.env.COOKIE_SECURE === "false") return false;
+
+  const headerStore = await headers();
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  if (forwardedProto) return forwardedProto.split(",")[0]?.trim() === "https";
+
+  const referer = headerStore.get("referer");
+  if (referer) return referer.startsWith("https://");
+
+  return false;
 }
 
 export async function createUserSession(userId: string) {
@@ -27,7 +41,7 @@ export async function createUserSession(userId: string) {
   cookieStore.set(sessionCookieName, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: await shouldUseSecureCookies(),
     path: "/",
     expires: expiresAt
   });

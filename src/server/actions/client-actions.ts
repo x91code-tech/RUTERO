@@ -7,6 +7,7 @@ import { getClientDocumentRequirements } from "@/lib/countries";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { clientDocumentSchema, clientLocationSchema, createClientSchema, verifyClientSchema } from "@/lib/validations";
+import { createNotification } from "@/server/services/notification-service";
 
 export async function createClientAction(formData: FormData) {
   const user = await getSessionUser();
@@ -128,6 +129,12 @@ export async function createClientAction(formData: FormData) {
   });
 
   revalidatePath("/clients");
+  await createNotification({
+    companyId: user.companyId,
+    title: "Cliente pendiente de verificacion",
+    message: `${createdClient.name} fue creado y necesita revision antes de otorgar prestamos.`,
+    severity: "warning"
+  });
   redirect(`/clients/${createdClient.id}`);
 }
 
@@ -252,6 +259,13 @@ export async function verifyClientAction(formData: FormData) {
       oldValue: { status: client.status },
       newValue: { status: updatedClient.status, notes: payload.notes }
     }
+  });
+
+  await createNotification({
+    companyId: user.companyId,
+    title: payload.decision === "APPROVE" ? "Cliente aprobado" : "Cliente rechazado",
+    message: `${client.name} fue ${payload.decision === "APPROVE" ? "aprobado para operar" : "rechazado o desactivado"}.`,
+    severity: payload.decision === "APPROVE" ? "info" : "warning"
   });
 
   revalidatePath("/clients");

@@ -2,9 +2,9 @@ import type { Cashbox, Role, User } from "@/lib/types";
 
 const roleAccess: Record<Role, string[]> = {
   SUPER_ADMIN: ["*"],
-  ADMIN: ["/dashboard", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/reports", "/inventory", "/settings", "/seller", "/sales"],
-  SUPERVISOR: ["/dashboard", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/reports", "/seller", "/sales"],
-  SELLER: ["/seller", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/sales"]
+  ADMIN: ["/dashboard", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/reports", "/inventory", "/notifications", "/settings", "/seller", "/sales"],
+  SUPERVISOR: ["/dashboard", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/reports", "/notifications", "/seller", "/sales"],
+  SELLER: ["/seller", "/clients", "/routes", "/loans", "/collections", "/expenses", "/cashbox", "/notifications", "/sales"]
 };
 
 export function canRoleAccessPath(role: Role, path: string) {

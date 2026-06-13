@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { canManageUsers } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import { createUserSchema } from "@/lib/validations";
+import { createNotification } from "@/server/services/notification-service";
 
 export type UserFormState = {
   ok: boolean;
@@ -43,6 +44,13 @@ export async function createUserAction(formData: FormData) {
       entityId: user.id,
       newValue: { name: user.name, email: user.email, role: user.role }
     }
+  });
+
+  await createNotification({
+    companyId: currentUser.companyId,
+    title: "Usuario creado",
+    message: `${user.name} fue creado con rol ${user.role}.`,
+    severity: "info"
   });
 
   revalidatePath("/settings");
@@ -85,6 +93,13 @@ export async function createUserFormAction(_state: UserFormState, formData: Form
       entityId: user.id,
       newValue: { name: user.name, email: user.email, role: user.role }
     }
+  });
+
+  await createNotification({
+    companyId: currentUser.companyId,
+    title: "Usuario creado",
+    message: `${user.name} fue creado con rol ${user.role}.`,
+    severity: "info"
   });
 
   revalidatePath("/settings");
