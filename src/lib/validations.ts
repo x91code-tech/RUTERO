@@ -1,0 +1,38 @@
+import { z } from "zod";
+
+export const moneySchema = z.coerce.number().positive("El monto debe ser mayor a cero");
+
+export const saleSchema = z.object({
+  clientId: z.string().min(1, "Selecciona un cliente"),
+  product: z.string().min(2, "Indica el producto o concepto"),
+  amount: moneySchema,
+  paymentMethod: z.enum(["CASH", "TRANSFER", "PIX", "CREDIT", "MIXED"]),
+  observation: z.string().optional()
+});
+
+export const collectionSchema = z.object({
+  clientId: z.string().min(1, "Selecciona un cliente"),
+  amount: moneySchema,
+  paymentMethod: z.enum(["CASH", "TRANSFER", "PIX", "CREDIT", "MIXED"]),
+  observation: z.string().optional()
+});
+
+export const expenseSchema = z.object({
+  type: z.enum(["Gasolina", "Comida", "Transporte", "Material", "Otro"]),
+  amount: moneySchema,
+  paymentMethod: z.enum(["CASH", "TRANSFER", "PIX", "CREDIT", "MIXED"]),
+  comment: z.string().min(2, "Agrega un comentario")
+});
+
+export const cashboxCloseSchema = z.object({
+  reportedCash: z.coerce.number().nonnegative(),
+  reportedTransfer: z.coerce.number().nonnegative(),
+  reportedPix: z.coerce.number().nonnegative(),
+  observations: z.string().optional()
+});
+
+export const clientLocationSchema = z.object({
+  clientId: z.string().min(1, "Cliente requerido"),
+  latitude: z.coerce.number().min(-90, "Latitud inválida").max(90, "Latitud inválida"),
+  longitude: z.coerce.number().min(-180, "Longitud inválida").max(180, "Longitud inválida")
+});

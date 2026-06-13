@@ -1,0 +1,17 @@
+{
+  "name": "RUTERO",
+  "short_name": "RUTERO",
+  "description": "Control de rutas, ventas, recaudos y caja diaria.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,577 @@
+Actúa como un arquitecto de software senior, product designer UI/UX senior y full-stack developer senior.
+
+Quiero que construyas desde cero una aplicación web/app móvil tipo sistema de control de rutas, ventas, recaudos, gastos, caja diaria y reportes para negocios con vendedores/cobradores en calle.
+
+La app debe ser muchísimo más moderna, rápida, bonita y profesional que TryController. No quiero una copia visual ni de código. Quiero un producto original, superior, con mejor experiencia de usuario, mejor diseño, mejor arquitectura y enfoque SaaS multiempresa.
+
+NOMBRE TEMPORAL DEL PROYECTO:
+RutaControl Pro
+
+IDIOMA:
+Toda la interfaz, textos, labels, botones, mensajes, reportes y validaciones deben estar en español natural latino/venezolano.
+El código, nombres de variables, funciones, componentes y comentarios técnicos deben estar en inglés.
+
+OBJETIVO DEL PRODUCTO:
+Crear una plataforma para que dueños de negocios puedan controlar en tiempo real:
+- Vendedores en ruta
+- Clientes
+- Ventas
+- Recaudos/cobranza
+- Gastos
+- Transferencias
+- Métodos de pago
+- Caja inicial
+- Caja final
+- Cierre de caja
+- Diferencias de dinero
+- Reportes diarios
+- Historial por vendedor
+- Dashboard administrativo
+- Exportación/compartir reporte por WhatsApp
+
+TIPO DE PRODUCTO:
+SaaS multiempresa.
+Cada empresa debe tener sus propios usuarios, clientes, ventas, recaudos, gastos, cajas y reportes.
+Ninguna empresa puede ver datos de otra empresa.
+
+STACK TÉCNICO REQUERIDO:
+Usa una arquitectura moderna y profesional.
+
+Frontend:
+- Next.js con TypeScript
+- Tailwind CSS
+- Shadcn/UI o componentes equivalentes
+- Diseño responsive mobile-first
+- PWA instalable en celular
+- Interfaz moderna, premium, limpia y rápida
+
+Backend:
+- Next.js API Routes o Server Actions si conviene
+- Prisma ORM
+- PostgreSQL
+- Autenticación segura
+- Roles y permisos
+- Validación con Zod
+- Manejo de errores profesional
+
+Base de datos:
+- PostgreSQL
+- Prisma schema bien diseñado
+- Multi-tenant con companyId en las entidades principales
+
+Autenticación:
+- Login
+- Registro de empresa
+- Registro de usuarios
+- Roles:
+  - SUPER_ADMIN
+  - ADMIN
+  - SUPERVISOR
+  - SELLER
+
+DISEÑO VISUAL:
+Quiero que se vea como una app premium de fintech/logística.
+Nada básico.
+Nada feo.
+Nada genérico.
+
+Estilo:
+- Dashboard oscuro elegante con opción clara
+- Tarjetas con métricas
+- Bordes redondeados
+- Sombras suaves
+- Iconos modernos
+- Microinteracciones
+- Estados visuales claros
+- Diseño mobile-first
+- Botones grandes para vendedores en ruta
+- Formularios rápidos y fáciles
+- Gráficas modernas
+- Tablas limpias
+- Colores sugeridos:
+  - Negro carbón
+  - Naranja profesional
+  - Blanco
+  - Gris suave
+  - Verde para pagos confirmados
+  - Rojo para diferencias o alertas
+
+NO uses portugués.
+NO uses textos genéricos tipo “Lorem ipsum”.
+NO hagas un diseño básico de Bootstrap.
+NO hagas una app de ejemplo sin lógica real.
+
+MÓDULOS PRINCIPALES:
+
+1. LANDING / LOGIN
+Crear una pantalla inicial moderna con:
+- Logo temporal “RutaControl Pro”
+- Mensaje principal:
+  “Controla tus rutas, ventas, recaudos y caja diaria en tiempo real”
+- Botón iniciar sesión
+- Botón crear empresa
+- Diseño profesional
+
+2. DASHBOARD ADMINISTRADOR
+Debe mostrar:
+- Ventas de hoy
+- Recaudos de hoy
+- Gastos de hoy
+- Caja esperada
+- Caja reportada
+- Diferencia
+- Vendedores activos
+- Clientes visitados
+- Clientes pendientes
+- Gráfica de ventas por día
+- Gráfica de recaudos por vendedor
+- Tabla de últimos movimientos
+- Alertas de cajas descuadradas
+- Acceso rápido a reportes
+
+3. DASHBOARD VENDEDOR
+Debe ser simple y rápido:
+- Botón registrar venta
+- Botón registrar recaudo
+- Botón registrar gasto
+- Botón ver clientes
+- Botón cerrar caja
+- Métricas del día:
+  - Ventas
+  - Recaudos
+  - Gastos
+  - Efectivo
+  - Transferencia
+  - Pix
+  - Caja esperada
+  - Diferencia
+
+4. CLIENTES
+Crear CRUD completo:
+- Nombre
+- Teléfono
+- Dirección
+- Documento/Cédula/RIF
+- Ruta asignada
+- Vendedor asignado
+- Saldo pendiente
+- Estado:
+  - Activo
+  - Pendiente
+  - Moroso
+  - Inactivo
+- Notas
+- Historial de ventas
+- Historial de pagos/recaudos
+
+5. RUTAS
+Crear módulo de rutas:
+- Nombre de ruta
+- Zona
+- Vendedor asignado
+- Lista de clientes
+- Orden de visita
+- Estado de visita:
+  - Pendiente
+  - Visitado
+  - No encontrado
+  - Cobrado
+  - Venta realizada
+- Resumen de ruta del día
+- Mapa opcional como placeholder visual si no se implementa mapa real
+
+6. VENTAS
+Formulario para registrar venta:
+- Cliente
+- Producto/concepto
+- Monto
+- Método de pago:
+  - Efectivo
+  - Transferencia
+  - Pix
+  - Crédito
+  - Mixto
+- Fecha
+- Vendedor
+- Observación
+- Comprobante opcional
+- Si es crédito, debe aumentar saldo pendiente del cliente
+- Si es contado, debe impactar caja del vendedor
+
+7. RECAUDOS / COBRANZA
+Formulario para registrar recaudo:
+- Cliente
+- Monto pagado
+- Método de pago
+- Saldo anterior
+- Saldo nuevo
+- Fecha
+- Vendedor
+- Observación
+- Comprobante opcional
+- Debe reducir el saldo pendiente del cliente
+- Debe impactar la caja según método de pago
+
+8. GASTOS
+Formulario:
+- Tipo de gasto
+  - Gasolina
+  - Comida
+  - Transporte
+  - Material
+  - Otro
+- Monto
+- Método de pago
+- Foto/comprobante opcional
+- Comentario
+- Fecha
+- Vendedor
+- Debe restarse del cierre de caja
+
+9. CAJA DIARIA
+Este módulo es crítico.
+Debe permitir:
+- Abrir caja del día
+- Caja inicial
+- Registrar movimientos automáticos durante el día
+- Cerrar caja del día
+- Caja final reportada
+- Efectivo reportado
+- Transferencia reportada
+- Pix reportado
+- Gastos
+- Ventas
+- Recaudos
+- Diferencia
+- Observaciones
+- Estado:
+  - Abierta
+  - Cerrada
+  - Cuadrada
+  - Descuadrada
+  - Requiere revisión
+
+FÓRMULA DE CAJA:
+La app debe calcular automáticamente:
+
+totalIncome = cashSales + cashCollections
+expectedCash = initialCash + totalIncome - cashExpenses
+difference = reportedCash - expectedCash
+
+También debe manejar métodos digitales:
+digitalTotal = transferTotal + pixTotal
+grossMovement = salesTotal + collectionsTotal
+netMovement = grossMovement - expensesTotal
+
+Mostrar en pantalla:
+- Caja inicial
+- Ventas en efectivo
+- Recaudos en efectivo
+- Gastos en efectivo
+- Caja esperada
+- Caja reportada
+- Diferencia
+- Total por Pix
+- Total por transferencia
+- Total general del día
+
+Si la diferencia es 0, mostrar:
+“Caja cuadrada correctamente”
+
+Si la diferencia es positiva:
+“Sobra dinero en caja”
+
+Si la diferencia es negativa:
+“Falta dinero en caja”
+
+10. REPORTE DIARIO
+Generar un reporte bonito y copiable para WhatsApp:
+
+Formato ejemplo:
+
+Cierre de ruta - {nombreVendedor}
+{díaSemana} - {fecha}
+
+Caja inicial: $0.00
+Ventas: $0.00
+Recaudos: $0.00
+Gastos: $0.00
+
+Efectivo esperado: $0.00
+Efectivo reportado: $0.00
+Pix: $0.00
+Transferencia: $0.00
+
+Diferencia: $0.00
+Estado: Caja cuadrada correctamente
+
+Clientes visitados: 0
+Ventas realizadas: 0
+Recaudos realizados: 0
+
+Observación:
+{observacion}
+
+Debe tener botones:
+- Copiar reporte
+- Compartir por WhatsApp
+- Descargar PDF
+- Exportar Excel, puede quedar preparado como función pendiente
+
+11. REPORTES ADMINISTRATIVOS
+Crear reportes por:
+- Día
+- Semana
+- Mes
+- Vendedor
+- Cliente
+- Ruta
+- Método de pago
+- Estado de caja
+- Gastos
+- Ventas
+- Recaudos
+
+Debe haber filtros:
+- Fecha inicial
+- Fecha final
+- Vendedor
+- Ruta
+- Cliente
+- Método de pago
+
+12. INVENTARIO BÁSICO
+Crear módulo inicial:
+- Productos
+- Precio
+- Costo
+- Stock
+- Stock mínimo
+- Estado
+- Movimiento de entrada
+- Movimiento de salida
+- Relación con ventas
+
+13. PERMISOS
+Implementar reglas:
+- SUPER_ADMIN ve todas las empresas
+- ADMIN ve toda su empresa
+- SUPERVISOR ve vendedores asignados
+- SELLER solo ve sus propios datos
+- Un vendedor no puede editar una caja cerrada
+- Un vendedor no puede borrar ventas/recaudos/gastos
+- Un admin sí puede corregir con auditoría
+
+14. AUDITORÍA
+Crear tabla AuditLog:
+Guardar:
+- Usuario
+- Empresa
+- Acción
+- Entidad afectada
+- ID de entidad
+- Valor anterior
+- Valor nuevo
+- Fecha
+- IP opcional
+- User agent opcional
+
+Toda acción crítica debe registrarse:
+- Crear venta
+- Editar venta
+- Eliminar venta
+- Crear recaudo
+- Editar recaudo
+- Cerrar caja
+- Reabrir caja
+- Corregir diferencia
+- Crear gasto
+- Cambiar saldo de cliente
+
+15. NOTIFICACIONES / ALERTAS
+Crear sistema básico de alertas:
+- Caja descuadrada
+- Cliente moroso
+- Ruta sin cerrar
+- Vendedor sin reportar
+- Gasto alto
+- Recaudo pendiente
+
+16. MODO OFFLINE / PWA
+Preparar estructura para PWA:
+- Manifest
+- Service worker básico
+- Pantalla instalable
+- Estado visual “Sin conexión”
+- Cola local pendiente de sincronización, puede quedar como primera implementación básica
+
+REQUISITOS DE CÓDIGO:
+- Código limpio y escalable
+- Componentes separados
+- Types claros
+- Validaciones con Zod
+- Prisma schema completo
+- Seeds con datos de ejemplo
+- Manejo de loading/error/empty states
+- Diseño responsive
+- Buenas prácticas de seguridad
+- No dejar lógica sensible solo en frontend
+- Usar helpers para cálculos de caja
+- Usar formato de moneda en dólares
+- Fechas en español
+
+ESTRUCTURA ESPERADA DEL PROYECTO:
+Crear una estructura similar:
+
+src/
+  app/
+    login/
+    register/
+    dashboard/
+    seller/
+    clients/
+    routes/
+    sales/
+    collections/
+    expenses/
+    cashbox/
+    reports/
+    inventory/
+    settings/
+  components/
+    ui/
+    layout/
+    charts/
+    forms/
+    cards/
+  lib/
+    auth.ts
+    db.ts
+    permissions.ts
+    cashbox-calculations.ts
+    formatters.ts
+    validations.ts
+  server/
+    actions/
+    services/
+  prisma/
+    schema.prisma
+    seed.ts
+
+MODELOS DE BASE DE DATOS MÍNIMOS:
+Crear en Prisma:
+- Company
+- User
+- Role
+- Client
+- Route
+- RouteClient
+- Sale
+- Collection
+- Expense
+- Cashbox
+- CashboxMovement
+- Product
+- InventoryMovement
+- PaymentMethod
+- Report
+- Notification
+- AuditLog
+- SubscriptionPlan
+
+FUNCIONES IMPORTANTES:
+Implementar funciones puras para:
+- calculateExpectedCash
+- calculateCashDifference
+- calculateDailySummary
+- generateWhatsAppReport
+- formatCurrency
+- formatSpanishDate
+- canUserAccessCompany
+- canUserModifyCashbox
+
+UX IMPORTANTE:
+La app debe ser muy fácil de usar para un vendedor en la calle.
+Evita pantallas sobrecargadas.
+Usa botones grandes.
+Usa modales rápidos.
+Usa confirmaciones claras.
+Usa colores para estados.
+Usa textos humanos.
+
+Ejemplos de textos:
+- “Registrar venta”
+- “Registrar recaudo”
+- “Cerrar caja”
+- “Caja cuadrada correctamente”
+- “Falta dinero en caja”
+- “Sobra dinero en caja”
+- “Este cierre requiere revisión”
+- “Reporte copiado listo para enviar por WhatsApp”
+
+PANTALLAS QUE DEBES CREAR:
+1. Login
+2. Crear empresa
+3. Dashboard admin
+4. Dashboard vendedor
+5. Lista de clientes
+6. Perfil de cliente
+7. Rutas del día
+8. Registrar venta
+9. Registrar recaudo
+10. Registrar gasto
+11. Caja diaria
+12. Cierre de caja
+13. Reporte diario
+14. Reportes administrativos
+15. Inventario
+16. Usuarios y permisos
+17. Configuración de empresa
+
+ENTREGABLE:
+Genera el proyecto completo con:
+- Código funcional
+- Diseño profesional
+- Prisma schema
+- Seed de ejemplo
+- Componentes reutilizables
+- Instrucciones de instalación
+- Variables de entorno necesarias
+- Comandos para correr el proyecto
+- Datos demo para probar como administrador y vendedor
+
+DATOS DEMO:
+Crear una empresa demo:
+Nombre: Orange Store Demo
+
+Usuarios:
+Admin:
+email: admin@orangestore.com
+password: Admin123456
+
+Vendedor:
+email: vendedor@orangestore.com
+password: Vendedor123456
+
+Clientes demo:
+- Carlos Pérez
+- María González
+- José Ramírez
+- Ana Torres
+- Luis Fernández
+
+Rutas demo:
+- Ruta Centro
+- Ruta Norte
+- Ruta Sur
+
+IMPORTANTE:
+No quiero solo maquetas.
+Quiero lógica real.
+No quiero una app básica.
+No quiero pantallas feas.
+No quiero portugués.
+No quiero copiar TryController.
+Quiero una base seria para convertir esto en un producto vendible.
+
+Primero genera la arquitectura, luego crea el código por módulos, asegurándote de que la app compile y funcione.

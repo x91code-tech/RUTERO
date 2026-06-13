@@ -1,0 +1,41 @@
+import Link from "next/link";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
+import { cn } from "@/lib/utils";
+
+const variants = {
+  primary: "bg-brand-500 text-carbon-950 hover:bg-brand-600",
+  secondary: "border border-white/10 bg-white/[0.06] text-white hover:bg-white/[0.1]",
+  ghost: "text-zinc-300 hover:bg-white/[0.08] hover:text-white",
+  danger: "bg-red-500 text-white hover:bg-red-600"
+};
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: keyof typeof variants;
+};
+
+export function Button({ className, variant = "primary", ...props }: ButtonProps) {
+  return (
+    <button
+      className={cn("focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 font-semibold transition", variants[variant], className)}
+      {...props}
+    />
+  );
+}
+
+type LinkButtonProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  href: string;
+  children: ReactNode;
+  variant?: keyof typeof variants;
+};
+
+export function LinkButton({ className, href, variant = "primary", children, ...props }: LinkButtonProps) {
+  return (
+    <Link
+      href={href}
+      className={cn("focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 font-semibold transition", variants[variant], className)}
+      {...props}
+    >
+      {children}
+    </Link>
+  );
+}
