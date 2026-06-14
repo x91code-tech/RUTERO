@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
+import { CollectorLoginRedirect } from "@/components/auth/collector-login-redirect";
 import { LoginForm } from "@/components/auth/login-form";
 import { RuteroLogo } from "@/components/brand/rutero-logo";
 
@@ -8,6 +9,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="grid min-h-screen bg-carbon-950 px-5 py-8 lg:grid-cols-[1fr_28rem] lg:px-8">
+      <CollectorLoginRedirect />
       <section className="hidden min-h-[calc(100vh-4rem)] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-8 lg:flex">
         <RuteroLogo href="/" size="md" />
         <div>

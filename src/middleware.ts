@@ -28,7 +28,7 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = protectedPrefixes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   if (isProtectedRoute && !hasSession) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL(pathname === "/seller" || pathname.startsWith("/seller/") ? "/mobile-login" : "/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
