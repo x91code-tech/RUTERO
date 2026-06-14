@@ -33,7 +33,7 @@ export default async function MobileLoginPage({ searchParams }: { searchParams: 
           <p className="mt-2 text-sm text-zinc-400">Despues de vincular este telefono, usa tu identificador y PIN de 4 numeros.</p>
           <MobileLoginForm nextPath={next} />
           <div className="mt-6 flex items-center justify-between text-sm text-zinc-400">
-            <Link href="/login" className="font-semibold text-brand-400 hover:text-brand-300">Entrar con correo</Link>
+            <Link href="/login?force=email" className="font-semibold text-brand-400 hover:text-brand-300">Entrar con correo</Link>
             <span>Primer acceso: correo</span>
           </div>
         </div>

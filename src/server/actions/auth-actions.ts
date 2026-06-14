@@ -112,7 +112,7 @@ async function authenticate(formData: FormData): Promise<AuthFormState | { userI
 
   return {
     userId: user.id,
-    redirectTo: deviceCheck.linkedNow ? "/device-setup" : normalizeNextPath(formData.get("next"), getDefaultPathForRole(user.role))
+    redirectTo: user.role === "SELLER" ? "/device-setup" : normalizeNextPath(formData.get("next"), getDefaultPathForRole(user.role))
   };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -30,13 +30,14 @@ export function MobileLoginForm({ nextPath }: { nextPath?: string }) {
     if (deviceNameRef.current) deviceNameRef.current.value = navigator.userAgent.slice(0, 180);
   }, []);
 
-  function prepareSubmit(event: FormEvent<HTMLFormElement>) {
-    const formData = new FormData(event.currentTarget);
-    const rawIdentifier = typeof formData.get("identifier") === "string" ? String(formData.get("identifier")) : "";
-    const identifier = (savedIdentifier || rawIdentifier).trim().toUpperCase().replace(/\s+/g, "");
-    if (identifier) window.localStorage.setItem(collectorIdKey, identifier);
+  function prepareSubmit() {
     if (deviceTokenRef.current) deviceTokenRef.current.value = getOrCreateDeviceToken();
     if (deviceNameRef.current) deviceNameRef.current.value = navigator.userAgent.slice(0, 180);
+  }
+
+  function clearSavedCollector() {
+    window.localStorage.removeItem(collectorIdKey);
+    setSavedIdentifier("");
   }
 
   return (
@@ -50,6 +51,9 @@ export function MobileLoginForm({ nextPath }: { nextPath?: string }) {
           <p className="text-xs uppercase text-zinc-500">Identificador del telefono</p>
           <p className="mt-1 font-mono text-2xl font-black text-white">{savedIdentifier}</p>
           <input type="hidden" name="identifier" value={savedIdentifier} />
+          <button type="button" onClick={clearSavedCollector} className="mt-3 text-xs font-semibold text-brand-300 hover:text-brand-200">
+            Cambiar cobrador o vincular otra cuenta
+          </button>
         </div>
       ) : (
         <Field label="Identificador">

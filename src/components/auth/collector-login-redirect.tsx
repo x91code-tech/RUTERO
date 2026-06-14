@@ -10,6 +10,8 @@ export function CollectorLoginRedirect() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (searchParams.get("force") === "email") return;
+
     const collectorId = window.localStorage.getItem(collectorIdKey);
     if (!collectorId) return;
 
