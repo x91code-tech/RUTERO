@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { CompanySettingsForm } from "@/components/forms/company-settings-form";
 import { UserForm } from "@/components/forms/user-form";
+import { ReleaseCollectorDeviceForm } from "@/components/settings/release-collector-device-form";
 import { ResetCollectorPinForm } from "@/components/settings/reset-collector-pin-form";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -45,14 +46,25 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                   <p className="text-sm text-zinc-400">{user.email}</p>
                   <p className="mt-1 text-xs text-zinc-500">{roleDescription(user.role)}</p>
                   {user.role === "SELLER" ? (
-                    <p className="mt-2 text-xs text-zinc-400">
-                      Acceso telefono: <span className="font-mono text-zinc-100">{user.mobileIdentifier ?? "Sin generar"}</span>
-                    </p>
+                    <div className="mt-2 grid gap-1 text-xs text-zinc-400">
+                      <p>Acceso telefono: <span className="font-mono text-zinc-100">{user.mobileIdentifier ?? "Sin generar"}</span></p>
+                      <p>
+                        Dispositivo:{" "}
+                        <span className={user.mobileDeviceBoundAt ? "text-emerald-300" : "text-amber-300"}>
+                          {user.mobileDeviceBoundAt ? "Vinculado" : "Sin vincular"}
+                        </span>
+                      </p>
+                    </div>
                   ) : null}
                 </div>
                 <div className="grid gap-2 sm:justify-items-end">
                   <StatusBadge tone={roleTone(user.role)}>{roleLabel(user.role)}</StatusBadge>
-                  {user.role === "SELLER" ? <ResetCollectorPinForm userId={user.id} hasMobileAccess={Boolean(user.mobileIdentifier)} /> : null}
+                  {user.role === "SELLER" ? (
+                    <div className="grid gap-2">
+                      <ResetCollectorPinForm userId={user.id} hasMobileAccess={Boolean(user.mobileIdentifier)} />
+                      <ReleaseCollectorDeviceForm userId={user.id} disabled={!user.mobileDeviceBoundAt} />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))}

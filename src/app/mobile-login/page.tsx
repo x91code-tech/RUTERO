@@ -11,9 +11,9 @@ export default async function MobileLoginPage({ searchParams }: { searchParams: 
       <section className="hidden min-h-[calc(100vh-4rem)] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-8 lg:flex">
         <RuteroLogo href="/" size="md" />
         <div>
-          <p className="max-w-2xl text-5xl font-black leading-tight text-white">Acceso rapido para cobradores en ruta.</p>
+          <p className="max-w-2xl text-5xl font-black leading-tight text-white">Acceso seguro para cobradores en ruta.</p>
           <p className="mt-5 max-w-xl text-zinc-400">
-            El administrador genera un identificador y un PIN de 4 numeros para cada telefono de cobro.
+            El cobrador inicia una primera vez con correo y contrasena. Luego este telefono queda vinculado y entra solo con PIN.
           </p>
         </div>
         <div className="grid grid-cols-3 gap-3 text-sm">
@@ -30,11 +30,11 @@ export default async function MobileLoginPage({ searchParams }: { searchParams: 
             <Smartphone className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-black">Acceso de cobrador</h1>
-          <p className="mt-2 text-sm text-zinc-400">Usa el identificador del telefono y el PIN generado por el administrador.</p>
+          <p className="mt-2 text-sm text-zinc-400">Despues de vincular este telefono, usa tu identificador y PIN de 4 numeros.</p>
           <MobileLoginForm nextPath={next} />
           <div className="mt-6 flex items-center justify-between text-sm text-zinc-400">
             <Link href="/login" className="font-semibold text-brand-400 hover:text-brand-300">Entrar con correo</Link>
-            <span>Solo cobradores</span>
+            <span>Primer acceso: correo</span>
           </div>
         </div>
       </section>

@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { randomInt } from "node:crypto";
 import { clearUserSession, createUserSession } from "@/lib/session";
 import { getCurrencyConfig } from "@/lib/countries";
 import { prisma } from "@/lib/db";
@@ -17,8 +18,70 @@ export type AuthFormState = {
 function normalizeNextPath(value: FormDataEntryValue | null, fallback: string) {
   if (typeof value !== "string") return fallback;
   if (!value.startsWith("/") || value.startsWith("//")) return fallback;
-  if (value.startsWith("/login") || value.startsWith("/register")) return fallback;
+  if (value.startsWith("/login") || value.startsWith("/register") || value.startsWith("/mobile-login")) return fallback;
   return value;
+}
+
+function getDeviceToken(formData: FormData) {
+  const value = formData.get("deviceToken");
+  if (typeof value !== "string") return null;
+  const token = value.trim();
+  if (token.length < 20 || token.length > 200) return null;
+  return token;
+}
+
+function getDeviceName(formData: FormData) {
+  const value = formData.get("deviceName");
+  if (typeof value !== "string") return "Telefono vinculado";
+  return value.trim().slice(0, 180) || "Telefono vinculado";
+}
+
+function generateIdentifier() {
+  return `COB-${randomInt(100000, 1000000)}`;
+}
+
+async function generateUniqueIdentifier() {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const mobileIdentifier = generateIdentifier();
+    const existing = await prisma.user.findUnique({ where: { mobileIdentifier } });
+    if (!existing) return mobileIdentifier;
+  }
+  throw new Error("No se pudo generar un identificador unico.");
+}
+
+async function verifyOrBindCollectorDevice(user: {
+  id: string;
+  role: string;
+  mobileIdentifier: string | null;
+  mobileDeviceHash: string | null;
+}, formData: FormData) {
+  if (user.role !== "SELLER") return { ok: true as const, linkedNow: false };
+
+  const deviceToken = getDeviceToken(formData);
+  if (!deviceToken) {
+    return { ok: false as const, message: "No se pudo identificar este telefono. Abre la app nuevamente e intenta entrar." };
+  }
+
+  if (user.mobileDeviceHash) {
+    const isSameDevice = await bcrypt.compare(deviceToken, user.mobileDeviceHash);
+    if (!isSameDevice) {
+      return { ok: false as const, message: "Este cobrador ya esta vinculado a otro telefono. Pide al administrador liberar el dispositivo." };
+    }
+    return { ok: true as const, linkedNow: false };
+  }
+
+  const mobileIdentifier = user.mobileIdentifier ?? (await generateUniqueIdentifier());
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      mobileIdentifier,
+      mobileDeviceHash: await bcrypt.hash(deviceToken, 10),
+      mobileDeviceName: getDeviceName(formData),
+      mobileDeviceBoundAt: new Date()
+    }
+  });
+
+  return { ok: true as const, linkedNow: true };
 }
 
 async function authenticate(formData: FormData): Promise<AuthFormState | { userId: string; redirectTo: string }> {
@@ -44,9 +107,12 @@ async function authenticate(formData: FormData): Promise<AuthFormState | { userI
     return { ok: false, message: "Este usuario esta inactivo. Contacta al administrador de la empresa." };
   }
 
+  const deviceCheck = await verifyOrBindCollectorDevice(user, formData);
+  if (!deviceCheck.ok) return { ok: false, message: deviceCheck.message };
+
   return {
     userId: user.id,
-    redirectTo: normalizeNextPath(formData.get("next"), getDefaultPathForRole(user.role))
+    redirectTo: deviceCheck.linkedNow ? "/device-setup" : normalizeNextPath(formData.get("next"), getDefaultPathForRole(user.role))
   };
 }
 
@@ -71,6 +137,20 @@ async function authenticateMobile(formData: FormData): Promise<AuthFormState | {
 
   if (!user.active) {
     return { ok: false, message: "Este cobrador esta inactivo. Contacta al administrador." };
+  }
+
+  if (!user.mobileDeviceHash) {
+    return { ok: false, message: "Este cobrador aun no ha vinculado un telefono. Primero debe iniciar una vez con correo y contrasena." };
+  }
+
+  const deviceToken = getDeviceToken(formData);
+  if (!deviceToken) {
+    return { ok: false, message: "No se pudo identificar este telefono. Abre la app nuevamente e intenta entrar." };
+  }
+
+  const isSameDevice = await bcrypt.compare(deviceToken, user.mobileDeviceHash);
+  if (!isSameDevice) {
+    return { ok: false, message: "Este usuario esta vinculado a otro telefono. Pide al administrador liberar el dispositivo." };
   }
 
   return {

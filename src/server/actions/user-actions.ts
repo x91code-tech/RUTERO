@@ -26,6 +26,11 @@ export type PinFormState = {
   pin?: string;
 };
 
+export type DeviceFormState = {
+  ok: boolean;
+  message: string;
+};
+
 function generatePin() {
   return randomInt(0, 10000).toString().padStart(4, "0");
 }
@@ -217,4 +222,59 @@ export async function resetCollectorPinFormAction(_state: PinFormState, formData
     mobileIdentifier,
     pin
   };
+}
+
+export async function releaseCollectorDeviceFormAction(_state: DeviceFormState, formData: FormData): Promise<DeviceFormState> {
+  const currentUser = await getSessionUser();
+  if (!currentUser) redirect("/login");
+  if (!canManageUsers(currentUser.role)) return { ok: false, message: "No tienes permiso para liberar telefonos." };
+
+  const userId = formData.get("userId");
+  if (typeof userId !== "string" || !userId) return { ok: false, message: "Usuario invalido." };
+
+  const target = await prisma.user.findFirst({
+    where: {
+      id: userId,
+      companyId: currentUser.companyId,
+      role: "SELLER"
+    }
+  });
+
+  if (!target) return { ok: false, message: "Solo puedes liberar cobradores de tu empresa." };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: target.id },
+      data: {
+        mobileDeviceHash: null,
+        mobileDeviceName: null,
+        mobileDeviceBoundAt: null
+      }
+    });
+
+    await tx.session.deleteMany({
+      where: { userId: target.id }
+    });
+
+    await tx.auditLog.create({
+      data: {
+        companyId: currentUser.companyId,
+        userId: currentUser.id,
+        action: "COLLECTOR_DEVICE_RELEASED",
+        entity: "User",
+        entityId: target.id,
+        newValue: { mobileIdentifier: target.mobileIdentifier }
+      }
+    });
+  });
+
+  await createNotification({
+    companyId: currentUser.companyId,
+    title: "Telefono de cobrador liberado",
+    message: `${target.name} puede vincular un telefono nuevo con correo y contrasena.`,
+    severity: "warning"
+  });
+
+  revalidatePath("/settings");
+  return { ok: true, message: `Telefono liberado para ${target.name}. Ahora puede iniciar con correo en el nuevo dispositivo.` };
 }

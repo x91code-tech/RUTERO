@@ -64,6 +64,8 @@ export async function getClientsPageData() {
       name: item.name,
       email: item.email,
       mobileIdentifier: item.mobileIdentifier ?? undefined,
+      mobileDeviceBoundAt: item.mobileDeviceBoundAt?.toISOString(),
+      mobileDeviceName: item.mobileDeviceName ?? undefined,
       role: item.role
     })) satisfies User[],
     locations: locations.map((location) => ({

@@ -45,6 +45,8 @@ export type User = {
   name: string;
   email: string;
   mobileIdentifier?: string;
+  mobileDeviceBoundAt?: string;
+  mobileDeviceName?: string;
   role: Role;
   routeIds?: string[];
 };

@@ -112,28 +112,31 @@ model Company {
 }
 
 model User {
-  id                 String       @id @default(cuid())
-  companyId          String
-  company            Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name               String
-  email              String       @unique
-  passwordHash       String
-  mobileIdentifier   String?      @unique
-  mobilePinHash      String?
-  mobilePinUpdatedAt DateTime?
-  role               Role         @default(SELLER)
-  active             Boolean      @default(true)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  assignedRoutes     Route[]
-  clients            Client[]
-  loans              Loan[]
-  sales              Sale[]
-  collections        Collection[]
-  expenses           Expense[]
-  cashboxes          Cashbox[]
-  auditLogs          AuditLog[]
-  sessions           Session[]
+  id                  String       @id @default(cuid())
+  companyId           String
+  company             Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name                String
+  email               String       @unique
+  passwordHash        String
+  mobileIdentifier    String?      @unique
+  mobilePinHash       String?
+  mobilePinUpdatedAt  DateTime?
+  mobileDeviceHash    String?
+  mobileDeviceName    String?
+  mobileDeviceBoundAt DateTime?
+  role                Role         @default(SELLER)
+  active              Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  assignedRoutes      Route[]
+  clients             Client[]
+  loans               Loan[]
+  sales               Sale[]
+  collections         Collection[]
+  expenses            Expense[]
+  cashboxes           Cashbox[]
+  auditLogs           AuditLog[]
+  sessions            Session[]
 
   @@index([companyId, role])
 }
