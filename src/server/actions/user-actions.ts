@@ -180,7 +180,7 @@ export async function resetCollectorPinFormAction(_state: PinFormState, formData
   if (!target) return { ok: false, message: "Solo puedes generar PIN a cobradores de tu empresa." };
 
   const pin = generatePin();
-  const mobileIdentifier = target.mobileIdentifier ?? await generateUniqueIdentifier();
+  const mobileIdentifier = target.mobileIdentifier ?? (await generateUniqueIdentifier());
   const mobilePinHash = await bcrypt.hash(pin, 10);
 
   const updated = await prisma.user.update({

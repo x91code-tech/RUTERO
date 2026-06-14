@@ -22,6 +22,7 @@ async function main() {
 
   const adminPassword = await bcrypt.hash("Admin123456", 10);
   const sellerPassword = await bcrypt.hash("Cobrador123456", 10);
+  const sellerPinHash = await bcrypt.hash("1234", 10);
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@rutero.app" },
@@ -31,8 +32,17 @@ async function main() {
 
   const seller = await prisma.user.upsert({
     where: { email: "cobrador@rutero.app" },
-    update: {},
-    create: { companyId: company.id, name: "Cobrador Demo", email: "cobrador@rutero.app", passwordHash: sellerPassword, role: Role.SELLER }
+    update: { mobileIdentifier: "COB-DEMO", mobilePinHash: sellerPinHash, mobilePinUpdatedAt: new Date() },
+    create: {
+      companyId: company.id,
+      name: "Cobrador Demo",
+      email: "cobrador@rutero.app",
+      passwordHash: sellerPassword,
+      mobileIdentifier: "COB-DEMO",
+      mobilePinHash: sellerPinHash,
+      mobilePinUpdatedAt: new Date(),
+      role: Role.SELLER
+    }
   });
 
   const routeCentro = await prisma.route.upsert({

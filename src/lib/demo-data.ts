@@ -25,6 +25,7 @@ export const demoUsers: User[] = [
     companyId: demoCompany.id,
     name: "Cobrador Demo",
     email: "cobrador@rutero.app",
+    mobileIdentifier: "COB-DEMO",
     role: "SELLER",
     routeIds: ["route_centro"]
   },

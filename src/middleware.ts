@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const sessionCookieName = "rutero_session";
-const authRoutes = ["/login", "/register"];
+const authRoutes = ["/login", "/register", "/mobile-login"];
 const protectedPrefixes = [
   "/cashbox",
   "/clients",

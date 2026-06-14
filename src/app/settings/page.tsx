@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { CompanySettingsForm } from "@/components/forms/company-settings-form";
 import { UserForm } from "@/components/forms/user-form";
+import { ResetCollectorPinForm } from "@/components/settings/reset-collector-pin-form";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getClientsPageData } from "@/lib/clients-data";
@@ -38,13 +39,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </div>
           <div className="space-y-3">
             {users.map((user) => (
-              <div key={user.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] p-4">
+              <div key={user.id} className="grid gap-3 rounded-xl bg-white/[0.04] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <p className="font-semibold">{user.name}</p>
                   <p className="text-sm text-zinc-400">{user.email}</p>
                   <p className="mt-1 text-xs text-zinc-500">{roleDescription(user.role)}</p>
+                  {user.role === "SELLER" ? (
+                    <p className="mt-2 text-xs text-zinc-400">
+                      Acceso telefono: <span className="font-mono text-zinc-100">{user.mobileIdentifier ?? "Sin generar"}</span>
+                    </p>
+                  ) : null}
                 </div>
-                <StatusBadge tone={roleTone(user.role)}>{roleLabel(user.role)}</StatusBadge>
+                <div className="grid gap-2 sm:justify-items-end">
+                  <StatusBadge tone={roleTone(user.role)}>{roleLabel(user.role)}</StatusBadge>
+                  {user.role === "SELLER" ? <ResetCollectorPinForm userId={user.id} hasMobileAccess={Boolean(user.mobileIdentifier)} /> : null}
+                </div>
               </div>
             ))}
           </div>
