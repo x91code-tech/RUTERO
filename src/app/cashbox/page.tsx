@@ -7,11 +7,12 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { getCashboxPageData } from "@/lib/cashbox-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
-import { closeCashboxAction } from "@/server/actions/financial-actions";
+import { closeCashboxAction, openTodayCashboxesAction } from "@/server/actions/financial-actions";
 
 export default async function CashboxPage() {
-  const { cashbox, collections, company, expenses, loans, movements, sales } = await getCashboxPageData();
+  const { cashbox, canOpenCashboxes, collectorCount, collections, company, currentUser, expenses, loans, movements, openedCashboxes, sales } = await getCashboxPageData();
   const summary = calculateDailySummary({ cashbox, sales, collections, expenses, loans, countryCode: company.countryCode });
+  const isCollector = currentUser?.role === "SELLER";
 
   return (
     <AppShell title="Caja diaria" subtitle="Movimientos automaticos, cierre y diferencias del dia.">
@@ -19,24 +20,43 @@ export default async function CashboxPage() {
         <MetricCard label="Caja inicial" value={formatCurrency(cashbox.initialCash, company)} />
         <MetricCard label="Prestamos entregados" value={formatCurrency(-summary.loanDisbursementsTotal, company)} tone="red" />
         <MetricCard label="Recaudos efectivo" value={formatCurrency(summary.cashCollections, company)} />
-        <MetricCard label="Gastos del dia" value={formatCurrency(-summary.expensesTotal, company)} tone="red" />
-        <MetricCard label="Caja esperada" value={formatCurrency(summary.expectedCash, company)} />
-        <MetricCard label="Total reportado" value={formatCurrency(summary.reportedTotal, company)} />
-        <MetricCard label="Diferencia" value={formatCurrency(summary.difference, company)} tone={summary.difference === 0 ? "green" : "red"} />
-        <MetricCard label="Movimiento neto" value={formatCurrency(summary.netMovement, company)} tone={summary.netMovement >= 0 ? "green" : "red"} />
+        <MetricCard label="Gastos efectivo" value={formatCurrency(-summary.cashExpenses, company)} tone="red" />
+        <MetricCard label="Caja fisica esperada" value={formatCurrency(summary.expectedCash, company)} tone={summary.expectedCash < 0 ? "red" : "green"} />
+        <MetricCard label="Efectivo final reportado" value={formatCurrency(cashbox.reportedCash, company)} tone={cashbox.reportedCash < 0 ? "red" : "green"} />
+        <MetricCard label="Diferencia fisica" value={formatCurrency(summary.difference, company)} tone={summary.difference === 0 ? "green" : "red"} />
+        <MetricCard label="Digital declarado" value={formatCurrency(summary.digitalTotal, company)} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
-          <CardHeader title="Cerrar caja" description="Guarda el reporte del usuario actual y deja auditoria." />
-          <form action={closeCashboxAction} className="grid gap-4">
-            <Field label="Caja inicial"><Input name="initialCash" type="number" defaultValue={cashbox.initialCash} min="0" step="0.01" /></Field>
-            <Field label="Efectivo reportado"><Input name="reportedCash" type="number" defaultValue={cashbox.reportedCash} min="0" step="0.01" /></Field>
-            <Field label="Transferencia reportada"><Input name="reportedTransfer" type="number" defaultValue={cashbox.reportedTransfer || summary.transferTotal} min="0" step="0.01" /></Field>
-            <Field label="Digital reportado"><Input name="reportedPix" type="number" defaultValue={cashbox.reportedPix || summary.pixTotal} min="0" step="0.01" /></Field>
-            <Field label="Observaciones"><Textarea name="observations" defaultValue={cashbox.observations} placeholder="Notas del cierre de caja" /></Field>
-            <Button type="submit">Cerrar caja</Button>
-          </form>
+          {isCollector ? (
+            <>
+              <CardHeader title="Cerrar caja" description="La caja fisica puede quedar en negativo si se entrego dinero que no estaba en caja." />
+              <form action={closeCashboxAction} className="grid gap-4">
+                <Field label="Caja inicial"><Input name="initialCash" type="number" defaultValue={cashbox.initialCash} step="0.01" /></Field>
+                <Field label="Efectivo final reportado"><Input name="reportedCash" type="number" defaultValue={cashbox.reportedCash || summary.expectedCash} step="0.01" /></Field>
+                <Field label="Transferencia reportada"><Input name="reportedTransfer" type="number" defaultValue={cashbox.reportedTransfer || summary.transferTotal} min="0" step="0.01" /></Field>
+                <Field label="Digital / wallet reportado"><Input name="reportedPix" type="number" defaultValue={cashbox.reportedPix || summary.pixTotal} min="0" step="0.01" /></Field>
+                <Field label="Observaciones"><Textarea name="observations" defaultValue={cashbox.observations} placeholder="Notas del cierre de caja" /></Field>
+                <Button type="submit">Cerrar caja</Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <CardHeader title="Abrir cajas de hoy" description="Crea la caja diaria de cada cobrador usando su efectivo final cerrado anterior como caja inicial." />
+              <div className="grid gap-4">
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-300">
+                  <p>Cajas abiertas hoy: <span className="font-bold text-white">{openedCashboxes}</span> / {collectorCount}</p>
+                  <p className="mt-2 text-zinc-500">La apertura automatica por hora requiere un programador en la VPS; por ahora queda control manual desde aqui.</p>
+                </div>
+                {canOpenCashboxes ? (
+                  <form action={openTodayCashboxesAction}>
+                    <Button type="submit">Abrir cajas pendientes</Button>
+                  </form>
+                ) : null}
+              </div>
+            </>
+          )}
         </Card>
         <Card>
           <CardHeader title="Resumen calculado" description={summary.statusMessage} />
@@ -44,15 +64,15 @@ export default async function CashboxPage() {
             {[
               ["Digital / wallets", summary.pixTotal],
               ["Transferencias y tarjetas", summary.transferTotal],
-              ["Entradas brutas", summary.salesTotal + summary.collectionsTotal],
-              ["Salidas del dia", -(summary.expensesTotal + summary.loanDisbursementsTotal)],
-              ["Movimiento neto", summary.netMovement],
-              ["Ventas contado", summary.salesTotal],
+              ["Entradas efectivo", summary.cashSales + summary.cashCollections],
+              ["Salidas efectivo", -(summary.cashExpenses + summary.loanDisbursementsTotal)],
+              ["Movimiento neto fisico", summary.expectedCash - cashbox.initialCash],
+              ["Ventas efectivo", summary.cashSales],
               ["Prestamos entregados", -summary.loanDisbursementsTotal],
-              ["Recaudos", summary.collectionsTotal],
-              ["Gastos", -summary.expensesTotal],
+              ["Recaudos efectivo", summary.cashCollections],
+              ["Gastos totales", -summary.expensesTotal],
               ["Gastos efectivo", -summary.cashExpenses],
-              ["Total reportado", summary.reportedTotal],
+              ["Total declarado", summary.reportedTotal],
               ["Digital total", summary.digitalTotal]
             ].map(([label, value]) => (
               <div key={label} className="rounded-xl bg-white/[0.04] p-4">

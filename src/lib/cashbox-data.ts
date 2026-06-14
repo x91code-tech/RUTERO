@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
-import type { Cashbox, Collection, Company, Expense, Loan, Sale } from "@/lib/types";
+import type { Cashbox, Collection, Company, Expense, Loan, Role, Sale, User } from "@/lib/types";
 
 export type CashboxMovementRow = {
   id: string;
@@ -44,6 +44,10 @@ export async function getCashboxPageData() {
       sales: demoSales,
       collections: demoCollections,
       expenses: demoExpenses,
+      currentUser: null,
+      openedCashboxes: 1,
+      collectorCount: 1,
+      canOpenCashboxes: false,
       movements: [
         ...demoLoans.map((loan) => ({
           id: loan.id,
@@ -85,7 +89,7 @@ export async function getCashboxPageData() {
   const todayEnd = endOfLocalDay();
   const sellerScope = user.role === "SELLER" ? { sellerId: user.id } : {};
   const movementDateScope = { OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }] };
-  const [company, cashboxes, loans, sales, collections, expenses] = await Promise.all([
+  const [company, cashboxes, loans, sales, collections, expenses, collectors] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
     prisma.cashbox.findMany({
       where: { companyId: user.companyId, ...sellerScope, date: { gte: todayStart, lt: todayEnd } }
@@ -93,8 +97,37 @@ export async function getCashboxPageData() {
     prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, createdAt: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
     prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope }, include: { client: { select: { name: true } } } }),
     prisma.collection.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope }, include: { client: { select: { name: true } } } }),
-    prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } })
+    prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
+    prisma.user.findMany({
+      where: {
+        companyId: user.companyId,
+        active: true,
+        role: "SELLER",
+        ...(user.role === "SELLER" ? { id: user.id } : {})
+      },
+      select: { id: true, companyId: true, name: true, email: true, role: true, mobileIdentifier: true }
+    })
   ]);
+  const collectorIds = collectors.map((collector) => collector.id);
+  const previousCashboxes = collectorIds.length
+    ? await prisma.cashbox.findMany({
+        where: {
+          companyId: user.companyId,
+          sellerId: { in: collectorIds },
+          date: { lt: todayStart },
+          closedAt: { not: null }
+        },
+        orderBy: { date: "desc" }
+      })
+    : [];
+  const previousBySeller = new Map<string, (typeof previousCashboxes)[number]>();
+  for (const previous of previousCashboxes) {
+    if (!previousBySeller.has(previous.sellerId)) previousBySeller.set(previous.sellerId, previous);
+  }
+  const openedSellerIds = new Set(cashboxes.map((cashbox) => cashbox.sellerId));
+  const carryForwardInitialCash = collectorIds
+    .filter((sellerId) => !openedSellerIds.has(sellerId))
+    .reduce((total, sellerId) => total + Number(previousBySeller.get(sellerId)?.reportedCash ?? 0), 0);
   const currentCashbox = cashboxes.find((item) => item.sellerId === user.id) ?? cashboxes[0];
   const sumCashboxes = (selector: (cashbox: (typeof cashboxes)[number]) => unknown) =>
     cashboxes.reduce((total, item) => total + Number(selector(item) ?? 0), 0);
@@ -106,13 +139,24 @@ export async function getCashboxPageData() {
       companyId: user.companyId,
       sellerId: user.id,
       date: todayStart.toISOString(),
-      initialCash: sumCashboxes((cashbox) => cashbox.initialCash),
+      initialCash: sumCashboxes((cashbox) => cashbox.initialCash) + carryForwardInitialCash,
       reportedCash: sumCashboxes((cashbox) => cashbox.reportedCash),
       reportedTransfer: sumCashboxes((cashbox) => cashbox.reportedTransfer),
       reportedPix: sumCashboxes((cashbox) => cashbox.reportedPix),
       status: cashboxes.some((cashbox) => cashbox.status === "OPEN") ? "OPEN" : currentCashbox?.status ?? "OPEN",
       observations: cashboxes.map((cashbox) => cashbox.observations).filter(Boolean).join(" | ")
     } satisfies Cashbox,
+    currentUser: {
+      id: user.id,
+      companyId: user.companyId,
+      name: user.name,
+      email: user.email,
+      mobileIdentifier: user.mobileIdentifier ?? undefined,
+      role: user.role as Role
+    } satisfies User,
+    openedCashboxes: cashboxes.length,
+    collectorCount: collectors.length,
+    canOpenCashboxes: user.role !== "SELLER",
     loans: loans.map((loan) => ({
       id: loan.id,
       companyId: loan.companyId,

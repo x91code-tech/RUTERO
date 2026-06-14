@@ -45,8 +45,8 @@ export const expenseSchema = z.object({
 });
 
 export const cashboxCloseSchema = z.object({
-  initialCash: z.coerce.number().nonnegative(),
-  reportedCash: z.coerce.number().nonnegative(),
+  initialCash: z.coerce.number(),
+  reportedCash: z.coerce.number(),
   reportedTransfer: z.coerce.number().nonnegative(),
   reportedPix: z.coerce.number().nonnegative(),
   observations: z.string().optional()

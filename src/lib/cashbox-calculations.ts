@@ -24,8 +24,8 @@ export function calculateExpectedCash(initialCash: number, salesTotal: number, c
   return initialCash + salesTotal + collectionsTotal - expensesTotal - loanDisbursementsTotal;
 }
 
-export function calculateCashDifference(reportedTotal: number, expectedCash: number) {
-  return reportedTotal - expectedCash;
+export function calculateCashDifference(reportedCash: number, expectedCash: number) {
+  return reportedCash - expectedCash;
 }
 
 export function getCashboxStatusMessage(difference: number) {
@@ -72,7 +72,7 @@ export function calculateDailySummary(input: {
     loanDisbursementsTotal
   );
   const reportedTotal = cashbox.reportedCash + cashbox.reportedTransfer + cashbox.reportedPix;
-  const difference = calculateCashDifference(reportedTotal, expectedCash);
+  const difference = calculateCashDifference(cashbox.reportedCash, expectedCash);
 
   return {
     salesTotal,

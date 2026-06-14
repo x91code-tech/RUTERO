@@ -301,14 +301,102 @@ export async function createExpenseAction(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+async function getLastClosedCashboxBySeller(companyId: string, sellerIds: string[], beforeDate: Date) {
+  if (!sellerIds.length) return new Map<string, { reportedCash: unknown }>();
+
+  const previousCashboxes = await prisma.cashbox.findMany({
+    where: {
+      companyId,
+      sellerId: { in: sellerIds },
+      date: { lt: beforeDate },
+      closedAt: { not: null }
+    },
+    orderBy: { date: "desc" }
+  });
+  const bySeller = new Map<string, { reportedCash: unknown }>();
+  for (const cashbox of previousCashboxes) {
+    if (!bySeller.has(cashbox.sellerId)) bySeller.set(cashbox.sellerId, cashbox);
+  }
+  return bySeller;
+}
+
+export async function openTodayCashboxesAction() {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  if (user.role === "SELLER") redirect("/cashbox");
+
+  const todayStart = startOfLocalDay();
+  const todayEnd = endOfLocalDay();
+  const collectors = await prisma.user.findMany({
+    where: { companyId: user.companyId, active: true, role: "SELLER" },
+    select: { id: true, name: true }
+  });
+  const sellerIds = collectors.map((collector) => collector.id);
+  const [existing, previousBySeller] = await Promise.all([
+    prisma.cashbox.findMany({
+      where: { companyId: user.companyId, sellerId: { in: sellerIds }, date: { gte: todayStart, lt: todayEnd } },
+      select: { sellerId: true }
+    }),
+    getLastClosedCashboxBySeller(user.companyId, sellerIds, todayStart)
+  ]);
+  const openedSellerIds = new Set(existing.map((cashbox) => cashbox.sellerId));
+  const missingCollectors = collectors.filter((collector) => !openedSellerIds.has(collector.id));
+
+  await prisma.$transaction(async (tx) => {
+    for (const collector of missingCollectors) {
+      await tx.cashbox.create({
+        data: {
+          companyId: user.companyId,
+          sellerId: collector.id,
+          date: todayStart,
+          initialCash: Number(previousBySeller.get(collector.id)?.reportedCash ?? 0),
+          reportedCash: 0,
+          reportedTransfer: 0,
+          reportedPix: 0,
+          expectedCash: Number(previousBySeller.get(collector.id)?.reportedCash ?? 0),
+          difference: 0,
+          status: "OPEN"
+        }
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        companyId: user.companyId,
+        userId: user.id,
+        action: "CASHBOXES_OPENED",
+        entity: "Cashbox",
+        entityId: todayStart.toISOString(),
+        newValue: {
+          opened: missingCollectors.length,
+          alreadyOpen: existing.length
+        }
+      }
+    });
+  });
+
+  await createNotification({
+    companyId: user.companyId,
+    title: "Cajas abiertas",
+    message: missingCollectors.length
+      ? `${user.name} abrio ${missingCollectors.length} caja(s) para hoy.`
+      : "Todas las cajas de hoy ya estaban abiertas.",
+    severity: "info"
+  });
+
+  revalidatePath("/cashbox");
+  revalidatePath("/dashboard");
+}
+
 export async function closeCashboxAction(formData: FormData) {
   const payload = cashboxCloseSchema.parse(Object.fromEntries(formData));
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  if (user.role !== "SELLER") redirect("/cashbox");
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
-  const sellerScope = user.role === "SELLER" ? { sellerId: user.id } : {};
+  const sellerScope = { sellerId: user.id };
   const movementDateScope = { OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }] };
   const [sales, collections, expenses, loans] = await Promise.all([
     prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),

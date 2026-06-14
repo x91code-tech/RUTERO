@@ -129,9 +129,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <SummaryItem label="Ventas" value={formatCurrency(summary.salesTotal, company)} />
               <SummaryItem label="Recaudos" value={formatCurrency(summary.collectionsTotal, company)} />
               <SummaryItem label="Gastos descontados" value={formatCurrency(-summary.expensesTotal, company)} />
-              <SummaryItem label="Caja esperada" value={formatCurrency(summary.expectedCash, company)} />
-              <SummaryItem label="Total reportado" value={formatCurrency(summary.reportedTotal, company)} />
-              <SummaryItem label="Diferencia" value={formatCurrency(summary.difference, company)} />
+              <SummaryItem label="Caja fisica esperada" value={formatCurrency(summary.expectedCash, company)} />
+              <SummaryItem label="Efectivo final reportado" value={formatCurrency(cashbox.reportedCash, company)} />
+              <SummaryItem label="Diferencia fisica" value={formatCurrency(summary.difference, company)} />
               <SummaryItem label="Estado de caja" value={summary.statusMessage} />
             </div>
           </Card>
