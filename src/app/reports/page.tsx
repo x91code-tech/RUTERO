@@ -1,7 +1,7 @@
-import { Copy, Download, FileSpreadsheet, MessageCircle } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button, LinkButton } from "@/components/ui/button";
+import { ReportActions } from "@/components/reports/report-actions";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/input";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
@@ -16,7 +16,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   if (!data) redirect("/login");
 
   const { cashbox, clients, collections, company, currentUser, expenses, filters, loans, routes, sales, users } = data;
-  const seller = users.find((user) => user.id === cashbox.sellerId) ?? currentUser;
+  const reportingAllCollectors = currentUser.role !== "SELLER" && !filters.sellerId;
+  const seller = reportingAllCollectors
+    ? { ...currentUser, name: "Todos los cobradores" }
+    : users.find((user) => user.id === cashbox.sellerId) ?? currentUser;
   const dateLabel = filters.from === filters.to ? undefined : `${formatInputDateLabel(filters.from)} - ${formatInputDateLabel(filters.to)}`;
   const visitedClients = new Set([
     ...collections.map((collection) => collection.clientId),
@@ -53,20 +56,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <Card>
           <CardHeader title="Reporte diario para WhatsApp" description="Formato listo para revisar y enviar." />
           <pre className="max-h-[34rem] overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-carbon-950 p-5 text-sm leading-6 text-zinc-200">{report}</pre>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Button type="button">
-              <Copy className="h-4 w-4" /> Copiar reporte
-            </Button>
-            <LinkButton href={whatsappHref} target="_blank" rel="noreferrer" variant="secondary">
-              <MessageCircle className="h-4 w-4" /> Compartir por WhatsApp
-            </LinkButton>
-            <Button type="button" variant="secondary">
-              <Download className="h-4 w-4" /> Descargar PDF
-            </Button>
-            <Button type="button" variant="secondary">
-              <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
-            </Button>
-          </div>
+          <ReportActions report={report} whatsappHref={whatsappHref} filenameBase={`rutero-reporte-${filters.from}-${filters.to}`} />
         </Card>
 
         <div className="grid gap-6">
@@ -135,10 +125,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <Card>
             <CardHeader title="Resumen administrativo" />
             <div className="grid gap-3 sm:grid-cols-2">
-              <SummaryItem label="Prestamos entregados" value={formatCurrency(summary.loanDisbursementsTotal, company)} />
+              <SummaryItem label="Prestamos entregados" value={formatCurrency(-summary.loanDisbursementsTotal, company)} />
               <SummaryItem label="Ventas" value={formatCurrency(summary.salesTotal, company)} />
               <SummaryItem label="Recaudos" value={formatCurrency(summary.collectionsTotal, company)} />
-              <SummaryItem label="Gastos" value={formatCurrency(summary.expensesTotal, company)} />
+              <SummaryItem label="Gastos descontados" value={formatCurrency(-summary.expensesTotal, company)} />
               <SummaryItem label="Caja esperada" value={formatCurrency(summary.expectedCash, company)} />
               <SummaryItem label="Total reportado" value={formatCurrency(summary.reportedTotal, company)} />
               <SummaryItem label="Diferencia" value={formatCurrency(summary.difference, company)} />

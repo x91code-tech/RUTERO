@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { demoClients, demoCollections, demoCompany, demoLoans } from "@/lib/demo-data";
+import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import type { Client, Collection, Company, Loan } from "@/lib/types";
 
 export type SellerCollectionItem = {
@@ -12,14 +13,6 @@ export type SellerCollectionItem = {
   lateAmount: number;
   isPaidToday: boolean;
 };
-
-function startOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function endOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-}
 
 function daysBetween(startDate: string | Date, endDate = new Date()) {
   const start = startOfLocalDay(new Date(startDate));
@@ -220,10 +213,7 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
       where: {
         companyId: user.companyId,
         sellerId: user.id,
-        date: {
-          gte: todayStart,
-          lt: todayEnd
-        }
+        OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }]
       }
     })
   ]);

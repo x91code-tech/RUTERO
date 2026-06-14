@@ -1,15 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoNotifications, demoSales, demoUsers } from "@/lib/demo-data";
+import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import type { Company, Notification, PaymentMethod } from "@/lib/types";
-
-function startOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function endOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-}
 
 function toCompany(company: {
   id: string;
@@ -45,6 +38,7 @@ export async function getDashboardData() {
   const user = await getSessionUser();
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
+  const movementDateScope = { OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }] };
 
   if (!user) {
     const activeLoans = demoLoans.filter((loan) => loan.status === "ACTIVE");
@@ -80,19 +74,19 @@ export async function getDashboardData() {
       take: 50
     }),
     prisma.collection.findMany({
-      where: { companyId: user.companyId, date: { gte: todayStart, lt: todayEnd } },
+      where: { companyId: user.companyId, ...movementDateScope },
       include: { client: { select: { name: true } }, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 50
     }),
     prisma.expense.findMany({
-      where: { companyId: user.companyId, date: { gte: todayStart, lt: todayEnd } },
+      where: { companyId: user.companyId, ...movementDateScope },
       include: { seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 25
     }),
     prisma.sale.findMany({
-      where: { companyId: user.companyId, date: { gte: todayStart, lt: todayEnd } },
+      where: { companyId: user.companyId, ...movementDateScope },
       include: { client: { select: { name: true } }, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 25

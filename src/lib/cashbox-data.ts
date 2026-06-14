@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
+import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import type { Cashbox, Collection, Company, Expense, Loan, Sale } from "@/lib/types";
 
 export type CashboxMovementRow = {
@@ -11,14 +12,6 @@ export type CashboxMovementRow = {
   date: string;
   amount: number;
 };
-
-function startOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function endOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-}
 
 function toCompany(company: {
   id: string;
@@ -90,35 +83,35 @@ export async function getCashboxPageData() {
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
-  const [company, cashbox, loans, sales, collections, expenses] = await Promise.all([
+  const sellerScope = user.role === "SELLER" ? { sellerId: user.id } : {};
+  const movementDateScope = { OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }] };
+  const [company, cashboxes, loans, sales, collections, expenses] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
-    prisma.cashbox.findUnique({
-      where: {
-        sellerId_date: {
-          sellerId: user.id,
-          date: todayStart
-        }
-      }
+    prisma.cashbox.findMany({
+      where: { companyId: user.companyId, ...sellerScope, date: { gte: todayStart, lt: todayEnd } }
     }),
-    prisma.loan.findMany({ where: { companyId: user.companyId, sellerId: user.id, createdAt: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
-    prisma.sale.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
-    prisma.collection.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
-    prisma.expense.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } })
+    prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, createdAt: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
+    prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope }, include: { client: { select: { name: true } } } }),
+    prisma.collection.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope }, include: { client: { select: { name: true } } } }),
+    prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } })
   ]);
+  const currentCashbox = cashboxes.find((item) => item.sellerId === user.id) ?? cashboxes[0];
+  const sumCashboxes = (selector: (cashbox: (typeof cashboxes)[number]) => unknown) =>
+    cashboxes.reduce((total, item) => total + Number(selector(item) ?? 0), 0);
 
   return {
     company: toCompany(company),
     cashbox: {
-      id: cashbox?.id ?? "cashbox_today",
+      id: currentCashbox?.id ?? "cashbox_today",
       companyId: user.companyId,
       sellerId: user.id,
       date: todayStart.toISOString(),
-      initialCash: Number(cashbox?.initialCash ?? 0),
-      reportedCash: Number(cashbox?.reportedCash ?? 0),
-      reportedTransfer: Number(cashbox?.reportedTransfer ?? 0),
-      reportedPix: Number(cashbox?.reportedPix ?? 0),
-      status: cashbox?.status ?? "OPEN",
-      observations: cashbox?.observations ?? ""
+      initialCash: sumCashboxes((cashbox) => cashbox.initialCash),
+      reportedCash: sumCashboxes((cashbox) => cashbox.reportedCash),
+      reportedTransfer: sumCashboxes((cashbox) => cashbox.reportedTransfer),
+      reportedPix: sumCashboxes((cashbox) => cashbox.reportedPix),
+      status: cashboxes.some((cashbox) => cashbox.status === "OPEN") ? "OPEN" : currentCashbox?.status ?? "OPEN",
+      observations: cashboxes.map((cashbox) => cashbox.observations).filter(Boolean).join(" | ")
     } satisfies Cashbox,
     loans: loans.map((loan) => ({
       id: loan.id,

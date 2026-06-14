@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { PaymentMethod } from "@prisma/client";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
+import { endOfLocalDay, parseDateInputAsLocal, startOfLocalDay } from "@/lib/date-utils";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
@@ -14,14 +15,6 @@ function addDays(date: Date, days: number) {
   const nextDate = new Date(date);
   nextDate.setDate(nextDate.getDate() + days);
   return nextDate;
-}
-
-function startOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function endOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
 }
 
 export async function createSaleAction(formData: FormData) {
@@ -36,7 +29,7 @@ export async function createSaleAction(formData: FormData) {
       ...(user.role === "SELLER" ? { sellerId: user.id } : {})
     }
   });
-  const date = payload.date ? new Date(payload.date) : new Date();
+  const date = parseDateInputAsLocal(payload.date);
 
   await prisma.$transaction(async (tx) => {
     const createdSale = await tx.sale.create({
@@ -80,6 +73,7 @@ export async function createSaleAction(formData: FormData) {
   revalidatePath("/sales");
   revalidatePath("/dashboard");
   revalidatePath("/cashbox");
+  revalidatePath("/reports");
 }
 
 export async function createCollectionAction(formData: FormData) {
@@ -95,7 +89,7 @@ export async function createCollectionAction(formData: FormData) {
     }
   });
   const previousBalance = Number(client.pendingBalance);
-  const date = payload.date ? new Date(payload.date) : new Date();
+  const date = parseDateInputAsLocal(payload.date);
   let paidLoanNotification: { balance: number } | null = null;
 
   await prisma.$transaction(async (tx) => {
@@ -181,7 +175,8 @@ export async function createCollectionAction(formData: FormData) {
   revalidatePath("/cashbox");
   revalidatePath("/clients");
   revalidatePath(`/clients/${client.id}`);
-  revalidatePath("/cashbox");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
 }
 
 export async function createLoanAction(formData: FormData) {
@@ -199,7 +194,7 @@ export async function createLoanAction(formData: FormData) {
 
   if (client.status !== "ACTIVE") redirect(`/clients/${client.id}?error=client_not_verified`);
 
-  const startDate = payload.startDate ? new Date(payload.startDate) : new Date();
+  const startDate = parseDateInputAsLocal(payload.startDate);
   const dueDate = addDays(startDate, payload.termDays - 1);
   const principalAmount = payload.principalAmount;
   const interestRate = payload.interestRatePercent / 100;
@@ -265,14 +260,17 @@ export async function createLoanAction(formData: FormData) {
   revalidatePath("/clients");
   revalidatePath(`/clients/${client.id}`);
   revalidatePath("/collections");
+  revalidatePath("/seller");
   revalidatePath("/dashboard");
+  revalidatePath("/cashbox");
+  revalidatePath("/reports");
 }
 
 export async function createExpenseAction(formData: FormData) {
   const payload = expenseSchema.parse(Object.fromEntries(formData));
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  const date = payload.date ? new Date(payload.date) : new Date();
+  const date = parseDateInputAsLocal(payload.date);
 
   const expense = await prisma.expense.create({
     data: {
@@ -299,6 +297,8 @@ export async function createExpenseAction(formData: FormData) {
 
   revalidatePath("/expenses");
   revalidatePath("/cashbox");
+  revalidatePath("/reports");
+  revalidatePath("/dashboard");
 }
 
 export async function closeCashboxAction(formData: FormData) {
@@ -308,11 +308,13 @@ export async function closeCashboxAction(formData: FormData) {
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
+  const sellerScope = user.role === "SELLER" ? { sellerId: user.id } : {};
+  const movementDateScope = { OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }] };
   const [sales, collections, expenses, loans] = await Promise.all([
-    prisma.sale.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
-    prisma.collection.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
-    prisma.expense.findMany({ where: { companyId: user.companyId, sellerId: user.id, date: { gte: todayStart, lt: todayEnd } } }),
-    prisma.loan.findMany({ where: { companyId: user.companyId, sellerId: user.id, createdAt: { gte: todayStart, lt: todayEnd } } })
+    prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
+    prisma.collection.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
+    prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
+    prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, createdAt: { gte: todayStart, lt: todayEnd } } })
   ]);
   const cashboxInput: Cashbox = {
     id: "cashbox_close",

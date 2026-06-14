@@ -1,5 +1,6 @@
 import type { CashboxStatus, PaymentMethod as PrismaPaymentMethod, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { endOfLocalDay, formatDateInput, startOfLocalDay } from "@/lib/date-utils";
 import { getSessionUser } from "@/lib/session";
 import type { Cashbox, Client, Collection, Company, Expense, Loan, Route, Sale, User } from "@/lib/types";
 
@@ -16,25 +17,11 @@ type ClientIdWhere = {
   clientId?: string | { in: string[] };
 };
 
-function startOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function endOfLocalDay(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-}
-
 function parseDateInput(value?: string) {
   if (!value) return null;
   const [year, month, day] = value.split("-").map(Number);
   if (!year || !month || !day) return null;
   return new Date(year, month - 1, day);
-}
-
-function formatDateInput(date: Date) {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function selected(value?: string) {
@@ -93,6 +80,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
     gte: normalized.fromDate,
     lt: normalized.toDateExclusive
   };
+  const movementDateScope = { OR: [{ date: dateRange }, { createdAt: dateRange }] };
   const sellerWhere = activeSellerId ? { sellerId: activeSellerId } : {};
 
   const [company, users, routes, clients] = await Promise.all([
@@ -145,7 +133,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
         ...sellerWhere,
         ...clientWhere,
         ...paymentMethodWhere,
-        date: dateRange
+        ...movementDateScope
       },
       orderBy: { createdAt: "desc" }
     }),
@@ -155,7 +143,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
         ...sellerWhere,
         ...clientWhere,
         ...paymentMethodWhere,
-        date: dateRange
+        ...movementDateScope
       },
       orderBy: { createdAt: "desc" }
     }),
@@ -164,7 +152,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
         companyId: user.companyId,
         ...sellerWhere,
         ...paymentMethodWhere,
-        date: dateRange
+        ...movementDateScope
       },
       orderBy: { createdAt: "desc" }
     }),
