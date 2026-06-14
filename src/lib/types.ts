@@ -44,6 +44,7 @@ export type User = {
   companyId: string;
   name: string;
   email: string;
+  mobileIdentifier?: string;
   role: Role;
   routeIds?: string[];
 };

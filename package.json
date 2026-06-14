@@ -6,6 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "cap:init": "npx cap init --web-dir=public RUTERO com.rutero.app",
+    "cap:sync": "npx cap sync",
+    "cap:add:android": "npx cap add android",
+    "cap:open:android": "npx cap open android",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -23,6 +27,10 @@
     "recharts": "^2.15.3",
     "tailwind-merge": "^2.5.5",
     "zod": "^3.24.1"
+  ,
+    "@capacitor/core": "^5.0.6",
+    "@capacitor/android": "^5.0.6",
+    "@capacitor/cli": "^5.0.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

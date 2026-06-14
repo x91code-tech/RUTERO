@@ -63,7 +63,14 @@ export function calculateDailySummary(input: {
     ...sales.filter((sale) => isWalletMethod(sale.paymentMethod)).map((sale) => sale.amount),
     ...collections.filter((collection) => isWalletMethod(collection.paymentMethod)).map((collection) => collection.amount)
   ]);
-  const expectedCash = calculateExpectedCash(cashbox.initialCash, salesTotal, collectionsTotal, expensesTotal, loanDisbursementsTotal);
+  // Expected cash must consider only movements that impact physical cash: cash sales, cash collections and cash expenses.
+  const expectedCash = calculateExpectedCash(
+    cashbox.initialCash,
+    cashSales,
+    cashCollections,
+    cashExpenses,
+    loanDisbursementsTotal
+  );
   const reportedTotal = cashbox.reportedCash + cashbox.reportedTransfer + cashbox.reportedPix;
   const difference = calculateCashDifference(reportedTotal, expectedCash);
 

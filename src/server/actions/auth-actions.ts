@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { clearUserSession, createUserSession } from "@/lib/session";
 import { getCurrencyConfig } from "@/lib/countries";
 import { prisma } from "@/lib/db";
-import { loginSchema, registerCompanySchema } from "@/lib/validations";
+import { loginSchema, mobileLoginSchema, registerCompanySchema } from "@/lib/validations";
 import { getDefaultPathForRole } from "@/lib/permissions";
 
 export type AuthFormState = {
@@ -50,6 +50,35 @@ async function authenticate(formData: FormData): Promise<AuthFormState | { userI
   };
 }
 
+async function authenticateMobile(formData: FormData): Promise<AuthFormState | { userId: string; redirectTo: string }> {
+  const parsed = mobileLoginSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "Revisa tu identificador y PIN.",
+      fieldErrors: parsed.error.flatten().fieldErrors
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { mobileIdentifier: parsed.data.identifier }
+  });
+
+  const isValidPin = user?.mobilePinHash ? await bcrypt.compare(parsed.data.pin, user.mobilePinHash) : false;
+  if (!user || user.role !== "SELLER" || !isValidPin) {
+    return { ok: false, message: "Identificador o PIN incorrecto." };
+  }
+
+  if (!user.active) {
+    return { ok: false, message: "Este cobrador esta inactivo. Contacta al administrador." };
+  }
+
+  return {
+    userId: user.id,
+    redirectTo: normalizeNextPath(formData.get("next"), "/seller")
+  };
+}
+
 export async function loginAction(formData: FormData) {
   const result = await authenticate(formData);
   if ("ok" in result) redirect(`/login?error=${encodeURIComponent(result.message)}`);
@@ -60,6 +89,14 @@ export async function loginAction(formData: FormData) {
 
 export async function loginFormAction(_state: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const result = await authenticate(formData);
+  if ("ok" in result) return result;
+
+  await createUserSession(result.userId);
+  redirect(result.redirectTo);
+}
+
+export async function mobileLoginFormAction(_state: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  const result = await authenticateMobile(formData);
   if ("ok" in result) return result;
 
   await createUserSession(result.userId);

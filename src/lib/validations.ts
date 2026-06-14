@@ -77,6 +77,11 @@ export const loginSchema = z.object({
   password: z.string().min(8, "La contraseña debe tener mínimo 8 caracteres")
 });
 
+export const mobileLoginSchema = z.object({
+  identifier: z.string().min(4, "Indica tu identificador").transform((value) => value.trim().toUpperCase().replace(/\s+/g, "")),
+  pin: z.string().regex(/^\d{4}$/, "El PIN debe tener 4 numeros")
+});
+
 export const registerCompanySchema = z.object({
   companyName: z.string().min(2, "Indica el nombre de la empresa"),
   rif: z.string().optional(),

@@ -118,6 +118,9 @@ model User {
   name           String
   email          String              @unique
   passwordHash   String
+  mobileIdentifier String?           @unique
+  mobilePinHash     String?
+  mobilePinUpdatedAt DateTime?
   role           Role                @default(SELLER)
   active         Boolean             @default(true)
   createdAt      DateTime            @default(now())

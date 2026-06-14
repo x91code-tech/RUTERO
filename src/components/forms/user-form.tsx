@@ -23,6 +23,14 @@ export function UserForm() {
           {state.message}
         </p>
       ) : null}
+      {state.ok && state.mobileIdentifier && state.pin ? (
+        <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm text-emerald-100">
+          <p className="font-bold">Acceso del telefono</p>
+          <p className="mt-2">Identificador: <span className="font-mono text-lg text-white">{state.mobileIdentifier}</span></p>
+          <p>PIN: <span className="font-mono text-lg text-white">{state.pin}</span></p>
+          <p className="mt-2 text-xs text-emerald-200/80">Este PIN se muestra una sola vez. Si se pierde, regeneralo desde la lista de usuarios.</p>
+        </div>
+      ) : null}
       <Field label="Nombre">
         <Input name="name" placeholder="Nombre del usuario" required aria-invalid={Boolean(state.fieldErrors?.name)} />
         <FieldError message={state.fieldErrors?.name?.[0]} />
