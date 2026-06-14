@@ -23,8 +23,8 @@ export const demoUsers: User[] = [
   {
     id: "user_seller",
     companyId: demoCompany.id,
-    name: "Vendedor Demo",
-    email: "vendedor@rutero.app",
+    name: "Cobrador Demo",
+    email: "cobrador@rutero.app",
     role: "SELLER",
     routeIds: ["route_centro"]
   },
@@ -240,5 +240,5 @@ export const demoProducts: Product[] = [
 export const demoNotifications: Notification[] = [
   { id: "notification_1", companyId: demoCompany.id, title: "Cliente moroso", message: "José Ramírez mantiene saldo pendiente por revisar.", severity: "warning" },
   { id: "notification_2", companyId: demoCompany.id, title: "Stock bajo", message: "Accesorio premium está por debajo del mínimo.", severity: "warning" },
-  { id: "notification_3", companyId: demoCompany.id, title: "Caja cuadrada", message: "Vendedor Demo cerró la caja sin diferencias.", severity: "info" }
+  { id: "notification_3", companyId: demoCompany.id, title: "Caja cuadrada", message: "Cobrador Demo cerro la caja sin diferencias.", severity: "info" }
 ];

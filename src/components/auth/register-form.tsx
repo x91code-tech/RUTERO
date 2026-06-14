@@ -54,7 +54,7 @@ export function RegisterForm({ countries }: { countries: CurrencyConfig[] }) {
         <FieldError message={state.fieldErrors?.password?.[0]} />
       </Field>
       <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-300">
-        La empresa queda lista con rol ADMIN, moneda por pais, plan PRO y usuarios/vendedores internos.
+        La empresa queda lista con rol ADMIN, moneda por pais, plan PRO y cobradores internos.
       </div>
       <Button type="submit" disabled={isPending} className="sm:col-span-2">
         <Building2 className="h-4 w-4" />

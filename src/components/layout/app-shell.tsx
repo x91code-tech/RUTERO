@@ -5,12 +5,13 @@ import { Bell, Boxes, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, Re
 import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { getNotificationSummary } from "@/lib/notifications-data";
 import { canRoleAccessPath, getDefaultPathForRole } from "@/lib/permissions";
+import { roleLabel } from "@/lib/roles";
 import { getSessionUser } from "@/lib/session";
 import { logoutAction } from "@/server/actions/auth-actions";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/seller", label: "Vendedor", icon: CreditCard },
+  { href: "/seller", label: "Cobrador", icon: CreditCard },
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/routes", label: "Rutas", icon: Route },
   { href: "/loans", label: "Prestamos", icon: Landmark },
@@ -64,7 +65,7 @@ export async function AppShell({ children, title, subtitle }: { children: React.
             <div className="flex items-center gap-3">
               <div className="hidden text-right text-sm md:block">
                 <p className="font-semibold text-white">{user.name}</p>
-                <p className="text-xs text-zinc-500">{user.role}</p>
+                <p className="text-xs text-zinc-500">{roleLabel(user.role)}</p>
               </div>
               <div className="hidden rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300 sm:block">En linea</div>
               <Link href="/notifications" className="relative grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-white/[0.06] sm:h-11 sm:w-11 sm:rounded-xl" aria-label="Ver notificaciones">

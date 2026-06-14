@@ -21,7 +21,7 @@ async function main() {
   });
 
   const adminPassword = await bcrypt.hash("Admin123456", 10);
-  const sellerPassword = await bcrypt.hash("Vendedor123456", 10);
+  const sellerPassword = await bcrypt.hash("Cobrador123456", 10);
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@rutero.app" },
@@ -30,9 +30,9 @@ async function main() {
   });
 
   const seller = await prisma.user.upsert({
-    where: { email: "vendedor@rutero.app" },
+    where: { email: "cobrador@rutero.app" },
     update: {},
-    create: { companyId: company.id, name: "Vendedor Demo", email: "vendedor@rutero.app", passwordHash: sellerPassword, role: Role.SELLER }
+    create: { companyId: company.id, name: "Cobrador Demo", email: "cobrador@rutero.app", passwordHash: sellerPassword, role: Role.SELLER }
   });
 
   const routeCentro = await prisma.route.upsert({
@@ -240,7 +240,7 @@ async function main() {
     data: {
       companyId: company.id,
       title: "Caja cuadrada",
-      message: "Vendedor Demo cerró la caja sin diferencias.",
+      message: "Cobrador Demo cerro la caja sin diferencias.",
       severity: "info"
     }
   });

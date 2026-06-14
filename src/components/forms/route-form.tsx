@@ -5,7 +5,7 @@ import type { User } from "@/lib/types";
 import { createRouteAction } from "@/server/actions/route-actions";
 
 export function RouteForm({ users }: { users: User[] }) {
-  const sellers = users.filter((user) => user.role === "SELLER" || user.role === "SUPERVISOR");
+  const collectors = users.filter((user) => user.role === "SELLER" || user.role === "SUPERVISOR");
 
   return (
     <form action={createRouteAction} className="grid gap-4">
@@ -15,11 +15,11 @@ export function RouteForm({ users }: { users: User[] }) {
       <Field label="Zona">
         <Input name="zone" placeholder="Oeste / Centro / Norte" required />
       </Field>
-      <Field label="Vendedor asignado">
-        <Select name="sellerId" defaultValue={sellers[0]?.id ?? ""}>
+      <Field label="Cobrador asignado">
+        <Select name="sellerId" defaultValue={collectors[0]?.id ?? ""}>
           <option value="">Sin asignar</option>
-          {sellers.map((seller) => (
-            <option key={seller.id} value={seller.id}>{seller.name}</option>
+          {collectors.map((collector) => (
+            <option key={collector.id} value={collector.id}>{collector.name}</option>
           ))}
         </Select>
       </Field>

@@ -79,9 +79,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <Field label="Fecha final">
                 <Input type="date" name="to" defaultValue={filters.to} />
               </Field>
-              <Field label="Vendedor">
+              <Field label="Cobrador">
                 <Select name="sellerId" defaultValue={filters.sellerId ?? "all"}>
-                  {currentUser.role !== "SELLER" ? <option value="all">Todos los vendedores</option> : null}
+                  {currentUser.role !== "SELLER" ? <option value="all">Todos los cobradores</option> : null}
                   {usersForSelect.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name}

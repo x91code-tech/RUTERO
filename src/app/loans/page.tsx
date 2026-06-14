@@ -15,7 +15,7 @@ export default async function LoansPage() {
   const projectedInterest = loans.reduce((total, loan) => total + loan.interestAmount, 0);
 
   return (
-    <AppShell title="Ventas / prestamos" subtitle="Registra el dinero entregado, calcula interes, cuotas y saldo automatico.">
+    <AppShell title="Prestamos" subtitle="Registra el dinero entregado, calcula interes, cuotas y saldo automatico.">
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard label="Saldo activo" value={formatCurrency(activeBalance, company)} icon={<Landmark />} />
         <MetricCard label="Cobro diario esperado" value={formatCurrency(dailyExpected, company)} />
@@ -24,7 +24,7 @@ export default async function LoansPage() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
-          <CardHeader title="Nueva venta / prestamo" description="Capital entregado + interes = total a cobrar en cuotas diarias." />
+          <CardHeader title="Nuevo prestamo" description="Capital entregado + interes = total a cobrar en cuotas diarias." />
           <LoanForm clients={clients} company={company} />
         </Card>
         <Card>

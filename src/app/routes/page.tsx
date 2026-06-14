@@ -16,7 +16,7 @@ export default async function RoutesPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
         <div className="grid gap-4">
           <Card>
-            <CardHeader title="Crear ruta" description="Crea rutas por zona y asígnalas a vendedores o supervisores." />
+            <CardHeader title="Crear ruta" description="Crea rutas por zona y asignales cobradores o supervisores." />
             <RouteForm users={users} />
           </Card>
           {routes.map((route) => {

@@ -28,12 +28,12 @@ export function UserForm() {
         <FieldError message={state.fieldErrors?.name?.[0]} />
       </Field>
       <Field label="Correo">
-        <Input name="email" type="email" placeholder="vendedor@empresa.com" required aria-invalid={Boolean(state.fieldErrors?.email)} />
+        <Input name="email" type="email" placeholder="cobrador@empresa.com" required aria-invalid={Boolean(state.fieldErrors?.email)} />
         <FieldError message={state.fieldErrors?.email?.[0]} />
       </Field>
       <Field label="Rol">
         <Select name="role" defaultValue="SELLER">
-          <option value="SELLER">Vendedor</option>
+          <option value="SELLER">Cobrador</option>
           <option value="SUPERVISOR">Supervisor</option>
           <option value="ADMIN">Administrador</option>
         </Select>

@@ -21,12 +21,12 @@ export default async function DashboardPage() {
         <MetricCard label="Neto hoy" value={formatCurrency(netToday, company)} tone={netToday >= 0 ? "green" : "red"} />
         <MetricCard label="Prestamos vencidos" value={String(metrics.overdueLoans)} icon={<AlertTriangle />} tone={metrics.overdueLoans > 0 ? "red" : "green"} />
         <MetricCard label="Clientes pendientes" value={String(metrics.pendingClients)} tone={metrics.pendingClients > 0 ? "orange" : "green"} />
-        <MetricCard label="Vendedores activos" value={String(metrics.activeSellers)} icon={<Users />} />
+        <MetricCard label="Cobradores activos" value={String(metrics.activeSellers)} icon={<Users />} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <Card>
-          <CardHeader title="Recaudos por vendedor" description="Cobranza registrada hoy por usuario operativo." />
+          <CardHeader title="Recaudos por cobrador" description="Cobranza registrada hoy por usuario operativo." />
           <SimpleBars currencyConfig={company} data={sellerCollections} />
         </Card>
         <Card>
@@ -53,7 +53,7 @@ export default async function DashboardPage() {
               <tr>
                 <th className="pb-3">Tipo</th>
                 <th className="pb-3">Cliente</th>
-                <th className="pb-3">Vendedor</th>
+                <th className="pb-3">Cobrador</th>
                 <th className="pb-3">Metodo</th>
                 <th className="pb-3 text-right">Monto</th>
               </tr>

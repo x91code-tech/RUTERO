@@ -12,13 +12,13 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
       <section className="hidden min-h-[calc(100vh-4rem)] flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-8 lg:flex">
         <RuteroLogo href="/" size="md" />
         <div>
-          <p className="max-w-2xl text-5xl font-black leading-tight text-white">Crea una empresa lista para operar con vendedores.</p>
+          <p className="max-w-2xl text-5xl font-black leading-tight text-white">Crea una empresa lista para operar con cobradores.</p>
           <p className="mt-5 max-w-xl text-zinc-400">
             Cada empresa queda separada por datos, moneda, pais, usuarios, clientes, rutas y prestamos.
           </p>
         </div>
         <div className="grid gap-3 text-sm">
-          {["Moneda y metodos de pago por pais", "Admin crea vendedores y supervisores", "Clientes con documentos y GPS", "Prestamos con cobro diario"].map((item) => (
+          {["Moneda y metodos de pago por pais", "Admin crea cobradores y supervisores", "Clientes con documentos y GPS", "Prestamos con cobro diario"].map((item) => (
             <div key={item} className="flex items-center gap-3 rounded-xl bg-carbon-900/80 p-4">
               <CheckCircle2 className="h-5 w-5 text-emerald-300" />
               <span className="font-semibold text-white">{item}</span>

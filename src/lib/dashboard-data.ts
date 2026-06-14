@@ -59,7 +59,7 @@ export async function getDashboardData() {
         pendingClients: demoClients.filter((client) => client.status === "PENDING").length,
         activeSellers: demoUsers.filter((item) => item.role === "SELLER").length
       },
-      sellerCollections: [{ label: "Vendedor Demo", value: demoCollections.reduce((total, collection) => total + collection.amount, 0) }],
+      sellerCollections: [{ label: "Cobrador Demo", value: demoCollections.reduce((total, collection) => total + collection.amount, 0) }],
       recentMovements: [
         ...demoLoans.map((loan) => ({ id: loan.id, type: "Prestamo" as const, clientName: demoClients.find((client) => client.id === loan.clientId)?.name, amount: loan.principalAmount })),
         ...demoCollections.map((collection) => ({ id: collection.id, type: "Recaudo" as const, clientName: demoClients.find((client) => client.id === collection.clientId)?.name, paymentMethod: collection.paymentMethod, amount: collection.amount })),

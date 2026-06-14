@@ -36,7 +36,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   });
 
   return (
-    <AppShell title="Clientes" subtitle="Clientes con saldo, ruta, vendedor, documentos y ubicacion.">
+    <AppShell title="Clientes" subtitle="Clientes con saldo, ruta, cobrador, documentos y ubicacion.">
       <div className="mb-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card>
           <CardHeader title="Crear cliente" description="El cliente queda pendiente de verificacion y se generan sus documentos requeridos por pais." />
@@ -44,7 +44,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
           <ClientForm routes={routes} users={users} />
         </Card>
         <Card>
-          <CardHeader title="Control del cliente" description="Antes de prestar, valida identidad, ubicacion y vendedor asignado." />
+          <CardHeader title="Control del cliente" description="Antes de prestar, valida identidad, ubicacion y cobrador asignado." />
           <div className="grid gap-3 text-sm text-zinc-300">
             <div className="rounded-xl bg-white/[0.04] p-4">
               <p className="font-semibold text-white">Documento y telefono unicos</p>
@@ -63,7 +63,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       </div>
 
       <Card>
-        <CardHeader title="Lista de clientes" description="Filtra por busqueda, estado, ruta, vendedor y saldo." />
+        <CardHeader title="Lista de clientes" description="Filtra por busqueda, estado, ruta, cobrador y saldo." />
         <form className="mb-5 grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.8fr]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
@@ -81,7 +81,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             {routes.map((route) => <option key={route.id} value={route.id}>{route.name}</option>)}
           </Select>
           <Select name="sellerId" defaultValue={sellerId ?? "ALL"}>
-            <option value="ALL">Todos los vendedores</option>
+            <option value="ALL">Todos los cobradores</option>
             {users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}
           </Select>
           <Select name="balance" defaultValue={balance ?? "ALL"}>
@@ -95,7 +95,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredClients.map((client) => {
             const route = routes.find((item) => item.id === client.routeId);
-            const seller = users.find((item) => item.id === client.sellerId);
+            const collector = users.find((item) => item.id === client.sellerId);
             const hasStoreLocation = locations.some((location) => location.clientId === client.id && location.type === "STORE");
             const requiredDocuments = documents.filter((document) => document.clientId === client.id && document.required);
             const uploadedRequiredDocuments = requiredDocuments.filter((document) => document.status === "UPLOADED" || document.status === "APPROVED");
@@ -112,7 +112,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                 <p className="mt-4 text-sm text-zinc-300">{client.address}</p>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <span className="text-zinc-400">Ruta</span><span className="text-right">{route?.name ?? "-"}</span>
-                  <span className="text-zinc-400">Vendedor</span><span className="text-right">{seller?.name ?? "-"}</span>
+                  <span className="text-zinc-400">Cobrador</span><span className="text-right">{collector?.name ?? "-"}</span>
                   <span className="text-zinc-400">Saldo</span><span className="text-right font-bold">{formatCurrency(client.pendingBalance, company)}</span>
                   <span className="text-zinc-400">GPS tienda</span><span className="text-right">{hasStoreLocation ? "Guardado" : "Pendiente"}</span>
                   <span className="text-zinc-400">Documentos</span><span className="text-right">{uploadedRequiredDocuments.length}/{requiredDocuments.length}</span>

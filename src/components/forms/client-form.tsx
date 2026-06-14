@@ -5,7 +5,7 @@ import type { Route, User } from "@/lib/types";
 import { createClientAction } from "@/server/actions/client-actions";
 
 export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }) {
-  const sellers = users.filter((user) => user.role === "SELLER" || user.role === "SUPERVISOR");
+  const collectors = users.filter((user) => user.role === "SELLER" || user.role === "SUPERVISOR");
 
   return (
     <form action={createClientAction} className="grid gap-4">
@@ -21,10 +21,10 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
         <Field label="Teléfono">
           <Input name="phone" placeholder="+58 412-000-0000" required />
         </Field>
-        <Field label="Vendedor asignado">
-          <Select name="sellerId" defaultValue={sellers[0]?.id}>
-            {sellers.map((seller) => (
-              <option key={seller.id} value={seller.id}>{seller.name}</option>
+        <Field label="Cobrador asignado">
+          <Select name="sellerId" defaultValue={collectors[0]?.id}>
+            {collectors.map((collector) => (
+              <option key={collector.id} value={collector.id}>{collector.name}</option>
             ))}
           </Select>
         </Field>

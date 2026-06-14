@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { canManageUsers } from "@/lib/permissions";
+import { roleLabel } from "@/lib/roles";
 import { getSessionUser } from "@/lib/session";
 import { createUserSchema } from "@/lib/validations";
 import { createNotification } from "@/server/services/notification-service";
@@ -49,7 +50,7 @@ export async function createUserAction(formData: FormData) {
   await createNotification({
     companyId: currentUser.companyId,
     title: "Usuario creado",
-    message: `${user.name} fue creado con rol ${user.role}.`,
+    message: `${user.name} fue creado con rol ${roleLabel(user.role)}.`,
     severity: "info"
   });
 
@@ -98,10 +99,10 @@ export async function createUserFormAction(_state: UserFormState, formData: Form
   await createNotification({
     companyId: currentUser.companyId,
     title: "Usuario creado",
-    message: `${user.name} fue creado con rol ${user.role}.`,
+    message: `${user.name} fue creado con rol ${roleLabel(user.role)}.`,
     severity: "info"
   });
 
   revalidatePath("/settings");
-  return { ok: true, message: `${user.name} fue creado correctamente.` };
+  return { ok: true, message: `${user.name} fue creado correctamente como ${roleLabel(user.role)}.` };
 }
