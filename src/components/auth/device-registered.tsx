@@ -6,7 +6,7 @@ import { LinkButton } from "@/components/ui/button";
 
 const collectorIdKey = "rutero_collector_id";
 
-export function DeviceRegistered({ identifier }: { identifier?: string }) {
+export function DeviceRegistered({ identifier, pin }: { identifier?: string; pin?: string }) {
   useEffect(() => {
     if (identifier) window.localStorage.setItem(collectorIdKey, identifier);
   }, [identifier]);
@@ -24,6 +24,13 @@ export function DeviceRegistered({ identifier }: { identifier?: string }) {
         <p className="text-xs uppercase text-zinc-500">Tu identificador</p>
         <p className="mt-1 font-mono text-2xl font-black text-white">{identifier ?? "Sin generar"}</p>
       </div>
+      {pin ? (
+        <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+          <p className="text-xs uppercase text-emerald-200/80">Tu PIN</p>
+          <p className="mt-1 font-mono text-4xl font-black text-white">{pin}</p>
+          <p className="mt-2 text-xs text-emerald-100/80">Anotalo. Desde ahora entraras solo con este PIN en este telefono.</p>
+        </div>
+      ) : null}
       <LinkButton href="/seller" className="mt-5 w-full">Ir a mi ruta</LinkButton>
       <p className="mt-4 text-xs text-zinc-500">La proxima vez entra por Acceso cobrador y escribe solo tu PIN.</p>
     </div>

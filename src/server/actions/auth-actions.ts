@@ -40,6 +40,10 @@ function generateIdentifier() {
   return `COB-${randomInt(100000, 1000000)}`;
 }
 
+function generatePin() {
+  return randomInt(0, 10000).toString().padStart(4, "0");
+}
+
 async function generateUniqueIdentifier() {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const mobileIdentifier = generateIdentifier();
@@ -107,12 +111,32 @@ async function authenticate(formData: FormData): Promise<AuthFormState | { userI
     return { ok: false, message: "Este usuario esta inactivo. Contacta al administrador de la empresa." };
   }
 
+  if (user.role === "SELLER" && user.mobileDeviceHash) {
+    return { ok: false, message: "Este cobrador ya tiene un telefono vinculado. Entra por Acceso cobrador con tu PIN." };
+  }
+
   const deviceCheck = await verifyOrBindCollectorDevice(user, formData);
   if (!deviceCheck.ok) return { ok: false, message: deviceCheck.message };
 
+  if (user.role === "SELLER") {
+    const pin = generatePin();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        mobilePinHash: await bcrypt.hash(pin, 10),
+        mobilePinUpdatedAt: new Date()
+      }
+    });
+
+    return {
+      userId: user.id,
+      redirectTo: `/device-setup?pin=${encodeURIComponent(pin)}`
+    };
+  }
+
   return {
     userId: user.id,
-    redirectTo: user.role === "SELLER" ? "/device-setup" : normalizeNextPath(formData.get("next"), getDefaultPathForRole(user.role))
+    redirectTo: normalizeNextPath(formData.get("next"), getDefaultPathForRole(user.role))
   };
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -35,11 +36,6 @@ export function MobileLoginForm({ nextPath }: { nextPath?: string }) {
     if (deviceNameRef.current) deviceNameRef.current.value = navigator.userAgent.slice(0, 180);
   }
 
-  function clearSavedCollector() {
-    window.localStorage.removeItem(collectorIdKey);
-    setSavedIdentifier("");
-  }
-
   return (
     <form action={action} onSubmit={prepareSubmit} className="mt-6 grid gap-4">
       <input type="hidden" name="next" value={nextPath ?? "/seller"} />
@@ -51,9 +47,6 @@ export function MobileLoginForm({ nextPath }: { nextPath?: string }) {
           <p className="text-xs uppercase text-zinc-500">Identificador del telefono</p>
           <p className="mt-1 font-mono text-2xl font-black text-white">{savedIdentifier}</p>
           <input type="hidden" name="identifier" value={savedIdentifier} />
-          <button type="button" onClick={clearSavedCollector} className="mt-3 text-xs font-semibold text-brand-300 hover:text-brand-200">
-            Cambiar cobrador o vincular otra cuenta
-          </button>
         </div>
       ) : (
         <Field label="Identificador">
@@ -66,6 +59,15 @@ export function MobileLoginForm({ nextPath }: { nextPath?: string }) {
         <FieldError message={state.fieldErrors?.pin?.[0]} />
       </Field>
       <p className="text-xs text-zinc-500">Si necesitas usar otro telefono, el administrador debe liberar el dispositivo actual.</p>
+      {!savedIdentifier ? (
+        <Link href="/login?force=email" className="text-xs font-semibold text-brand-300 hover:text-brand-200">
+          Primer acceso o telefono liberado: entrar con correo
+        </Link>
+      ) : (
+        <Link href="/login?force=email" className="text-xs font-semibold text-zinc-500 hover:text-zinc-300">
+          Acceso administrativo
+        </Link>
+      )}
       <Button type="submit" disabled={isPending}>
         <Smartphone className="h-4 w-4" />
         {isPending ? "Entrando..." : "Entrar como cobrador"}
