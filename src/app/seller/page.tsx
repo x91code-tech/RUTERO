@@ -31,7 +31,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
         <div className="grid grid-cols-3 gap-2 lg:contents">
           <LinkButton href="/loans" variant="secondary" className="px-2 text-xs sm:text-sm"><Landmark className="h-4 w-4" /> Prestamo</LinkButton>
           <LinkButton href="/collections" variant="secondary" className="px-2 text-xs sm:text-sm"><WalletCards className="h-4 w-4" /> Recaudo</LinkButton>
-          <LinkButton href="/expenses" variant="secondary" className="px-2 text-xs sm:text-sm"><Banknote className="h-4 w-4" /> Gasto</LinkButton>
+          <LinkButton href="/expenses" variant="secondary" className="px-2 text-xs sm:text-sm"><Banknote className="h-4 w-4" /> Movimiento</LinkButton>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
+import { cashMovementKindLabels, getCashMovementImpact, isCashMovementOutflow, normalizeCashMovementKind } from "@/lib/cash-movements";
 import { demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoNotifications, demoSales, demoUsers } from "@/lib/demo-data";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import type { Company, Notification, PaymentMethod } from "@/lib/types";
@@ -27,7 +28,7 @@ function toCompany(company: {
 
 export type DashboardMovement = {
   id: string;
-  type: "Prestamo" | "Recaudo" | "Gasto" | "Venta";
+  type: "Prestamo" | "Recaudo" | "Gasto" | "Retiro" | "Entrada" | "Venta";
   clientName?: string;
   sellerName?: string;
   paymentMethod?: PaymentMethod;
@@ -48,7 +49,7 @@ export async function getDashboardData() {
         activeLoanBalance: activeLoans.reduce((total, loan) => total + loan.balance, 0),
         expectedToday: activeLoans.reduce((total, loan) => total + Math.min(loan.dailyPayment, loan.balance), 0),
         collectedToday: demoCollections.reduce((total, collection) => total + collection.amount, 0),
-        expensesToday: demoExpenses.reduce((total, expense) => total + expense.amount, 0),
+        expensesToday: demoExpenses.filter((expense) => isCashMovementOutflow(expense.movementKind)).reduce((total, expense) => total + expense.amount, 0),
         overdueLoans: activeLoans.filter((loan) => new Date(loan.dueDate) < new Date()).length,
         pendingClients: demoClients.filter((client) => client.status === "PENDING").length,
         activeSellers: demoUsers.filter((item) => item.role === "SELLER").length
@@ -57,7 +58,8 @@ export async function getDashboardData() {
       recentMovements: [
         ...demoLoans.map((loan) => ({ id: loan.id, type: "Prestamo" as const, clientName: demoClients.find((client) => client.id === loan.clientId)?.name, amount: loan.principalAmount })),
         ...demoCollections.map((collection) => ({ id: collection.id, type: "Recaudo" as const, clientName: demoClients.find((client) => client.id === collection.clientId)?.name, paymentMethod: collection.paymentMethod, amount: collection.amount })),
-        ...demoSales.map((sale) => ({ id: sale.id, type: "Venta" as const, clientName: demoClients.find((client) => client.id === sale.clientId)?.name, paymentMethod: sale.paymentMethod, amount: sale.amount }))
+        ...demoSales.map((sale) => ({ id: sale.id, type: "Venta" as const, clientName: demoClients.find((client) => client.id === sale.clientId)?.name, paymentMethod: sale.paymentMethod, amount: sale.amount })),
+        ...demoExpenses.map((expense) => ({ id: expense.id, type: cashMovementKindLabels[expense.movementKind], sellerName: demoUsers.find((seller) => seller.id === expense.sellerId)?.name, paymentMethod: expense.paymentMethod, amount: getCashMovementImpact(expense.amount, expense.movementKind) }))
       ].slice(0, 8),
       notifications: demoNotifications
     };
@@ -130,7 +132,9 @@ export async function getDashboardData() {
       activeLoanBalance: loans.reduce((total, loan) => total + Number(loan.balance), 0),
       expectedToday: loans.reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0),
       collectedToday: collectionsToday.reduce((total, collection) => total + Number(collection.amount), 0),
-      expensesToday: expensesToday.reduce((total, expense) => total + Number(expense.amount), 0),
+      expensesToday: expensesToday
+        .filter((expense) => isCashMovementOutflow(normalizeCashMovementKind(expense.movementKind)))
+        .reduce((total, expense) => total + Number(expense.amount), 0),
       overdueLoans: loans.filter((loan) => loan.dueDate < todayStart && Number(loan.balance) > 0).length,
       pendingClients: clients.filter((client) => client.status === "PENDING").length,
       activeSellers: users.filter((item) => item.role === "SELLER").length
@@ -162,10 +166,10 @@ export async function getDashboardData() {
       })),
       ...expensesToday.map((expense) => ({
         id: expense.id,
-        type: "Gasto" as const,
+        type: cashMovementKindLabels[normalizeCashMovementKind(expense.movementKind)],
         sellerName: expense.seller.name,
         paymentMethod: expense.paymentMethod,
-        amount: Number(expense.amount)
+        amount: getCashMovementImpact(Number(expense.amount), normalizeCashMovementKind(expense.movementKind))
       }))
     ].slice(0, 10) satisfies DashboardMovement[],
     notifications: [...generatedNotifications, ...notifications.map((notification) => ({

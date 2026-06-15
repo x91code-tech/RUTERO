@@ -37,6 +37,7 @@ export const loanSchema = z.object({
 });
 
 export const expenseSchema = z.object({
+  movementKind: z.enum(["EXPENSE", "WITHDRAWAL", "INCOME"]).default("EXPENSE"),
   type: z.string().min(2, "Selecciona el tipo de gasto"),
   amount: moneySchema,
   paymentMethod: paymentMethodSchema,

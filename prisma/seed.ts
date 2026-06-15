@@ -196,27 +196,41 @@ async function main() {
     }
   });
 
-  await prisma.expense.upsert({
+  const expenseDate = new Date("2026-06-12");
+  const existingExpense = await prisma.expense.findFirst({
     where: {
-      companyId_sellerId_type_date_amount: {
-        companyId: company.id,
-        sellerId: seller.id,
-        type: "Gasolina",
-        date: new Date("2026-06-12"),
-        amount: 80
-      }
-    },
-    update: { paymentMethod: PaymentMethod.CASH_USD, comment: "Recarga para Ruta Centro" },
-    create: {
       companyId: company.id,
       sellerId: seller.id,
+      movementKind: "EXPENSE",
       type: "Gasolina",
-      amount: 80,
-      paymentMethod: PaymentMethod.CASH_USD,
-      date: new Date("2026-06-12"),
-      comment: "Recarga para Ruta Centro"
+      date: expenseDate,
+      amount: 80
     }
   });
+  const expensePayload = {
+    paymentMethod: PaymentMethod.CASH_USD,
+    comment: "Recarga para Ruta Centro"
+  };
+
+  if (existingExpense) {
+    await prisma.expense.update({
+      where: { id: existingExpense.id },
+      data: expensePayload
+    });
+  } else {
+    await prisma.expense.create({
+      data: {
+        companyId: company.id,
+        sellerId: seller.id,
+        movementKind: "EXPENSE",
+        type: "Gasolina",
+        amount: 80,
+        paymentMethod: PaymentMethod.CASH_USD,
+        date: expenseDate,
+        comment: "Recarga para Ruta Centro"
+      }
+    });
+  }
 
   await prisma.cashbox.upsert({
     where: { sellerId_date: { sellerId: seller.id, date: new Date("2026-06-12") } },

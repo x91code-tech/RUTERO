@@ -26,6 +26,7 @@ export type CashboxStatus = "OPEN" | "CLOSED" | "BALANCED" | "UNBALANCED" | "REQ
 export type LoanStatus = "ACTIVE" | "PAID" | "OVERDUE" | "CANCELLED";
 export type ClientLocationType = "STORE" | "WAREHOUSE" | "BILLING" | "OTHER";
 export type ClientDocumentStatus = "PENDING" | "UPLOADED" | "APPROVED" | "REJECTED";
+export type CashMovementKind = "EXPENSE" | "WITHDRAWAL" | "INCOME";
 
 export type Company = {
   id: string;
@@ -150,6 +151,7 @@ export type Expense = {
   id: string;
   companyId: string;
   sellerId: string;
+  movementKind: CashMovementKind;
   type: string;
   amount: number;
   paymentMethod: PaymentMethod;

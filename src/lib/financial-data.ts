@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
+import { normalizeCashMovementKind } from "@/lib/cash-movements";
 import { demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
 import type { Client, Collection, Company, Expense, Loan, Sale } from "@/lib/types";
 
@@ -98,6 +99,7 @@ export async function getFinancialPageData() {
       id: expense.id,
       companyId: expense.companyId,
       sellerId: expense.sellerId,
+      movementKind: normalizeCashMovementKind(expense.movementKind),
       type: expense.type as Expense["type"],
       amount: Number(expense.amount),
       paymentMethod: expense.paymentMethod,

@@ -17,7 +17,7 @@ export default async function DashboardPage() {
         <MetricCard label="Saldo activo" value={formatCurrency(metrics.activeLoanBalance, company)} icon={<Landmark />} />
         <MetricCard label="Esperado hoy" value={formatCurrency(metrics.expectedToday, company)} icon={<Wallet />} />
         <MetricCard label="Cobrado hoy" value={formatCurrency(metrics.collectedToday, company)} icon={<Wallet />} tone="green" />
-        <MetricCard label="Gastos hoy" value={formatCurrency(metrics.expensesToday, company)} icon={<Banknote />} tone="orange" />
+        <MetricCard label="Salidas hoy" value={formatCurrency(metrics.expensesToday, company)} icon={<Banknote />} tone="orange" />
         <MetricCard label="Neto hoy" value={formatCurrency(netToday, company)} tone={netToday >= 0 ? "green" : "red"} />
         <MetricCard label="Prestamos vencidos" value={String(metrics.overdueLoans)} icon={<AlertTriangle />} tone={metrics.overdueLoans > 0 ? "red" : "green"} />
         <MetricCard label="Clientes pendientes" value={String(metrics.pendingClients)} tone={metrics.pendingClients > 0 ? "orange" : "green"} />
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
       </div>
 
       <Card className="mt-6">
-        <CardHeader title="Ultimos movimientos" description="Prestamos, recaudos, ventas y gastos recientes." />
+        <CardHeader title="Ultimos movimientos" description="Prestamos, recaudos, ventas y movimientos de caja recientes." />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="text-zinc-400">
@@ -65,7 +65,7 @@ export default async function DashboardPage() {
                   <td>{"clientName" in movement ? movement.clientName ?? "-" : "-"}</td>
                   <td>{"sellerName" in movement ? movement.sellerName ?? "-" : "-"}</td>
                   <td>{"paymentMethod" in movement && movement.paymentMethod ? paymentMethodLabel(movement.paymentMethod, company.countryCode) : "-"}</td>
-                  <td className="text-right font-semibold">{formatCurrency(movement.amount, company)}</td>
+                  <td className={movement.amount < 0 ? "text-right font-semibold text-red-300" : "text-right font-semibold"}>{formatCurrency(movement.amount, company)}</td>
                 </tr>
               ))}
             </tbody>
@@ -79,6 +79,6 @@ export default async function DashboardPage() {
 function movementTone(type: string): "green" | "red" | "orange" | "gray" | "blue" {
   if (type === "Prestamo") return "orange";
   if (type === "Recaudo") return "blue";
-  if (type === "Gasto") return "red";
+  if (type === "Gasto" || type === "Retiro") return "red";
   return "green";
 }

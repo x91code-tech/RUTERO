@@ -16,7 +16,7 @@ export function roleDescription(role: Role) {
     SUPER_ADMIN: "Acceso total a la plataforma.",
     ADMIN: "Gestiona empresa, usuarios, rutas y reportes.",
     SUPERVISOR: "Supervisa rutas, clientes, cobros y caja.",
-    SELLER: "Cobra cuotas, registra gastos y atiende su ruta asignada."
+    SELLER: "Cobra cuotas, registra movimientos de caja y atiende su ruta asignada."
   };
 
   return descriptions[role];

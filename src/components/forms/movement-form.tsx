@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { CashMovementFields } from "@/components/forms/cash-movement-fields";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { demoClients, demoCompany } from "@/lib/demo-data";
 import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
@@ -34,17 +35,31 @@ export function LoanForm(props: MovementFormProps) {
   return (
     <form action={createLoanAction} className="grid gap-4">
       <Field label="Cliente">
-        <Select name="clientId" defaultValue={clients[0]?.id}>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</Select>
+        <Select name="clientId" defaultValue={clients[0]?.id}>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
+            </option>
+          ))}
+        </Select>
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Monto entregado"><Input name="principalAmount" type="number" defaultValue="100" min="0" step="0.01" /></Field>
-        <Field label="Dias de pago"><Input name="termDays" type="number" defaultValue="10" min="1" step="1" /></Field>
+        <Field label="Monto entregado">
+          <Input name="principalAmount" type="number" defaultValue="100" min="0" step="0.01" />
+        </Field>
+        <Field label="Dias de pago">
+          <Input name="termDays" type="number" defaultValue="10" min="1" step="1" />
+        </Field>
       </div>
-      <Field label="Fecha de inicio"><Input name="startDate" type="date" defaultValue={todayInputValue()} /></Field>
+      <Field label="Fecha de inicio">
+        <Input name="startDate" type="date" defaultValue={todayInputValue()} />
+      </Field>
       <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
         RUTERO calcula 20% de ganancia. Ejemplo: si prestas 100, el cliente debe pagar 120 dividido entre los dias indicados.
       </div>
-      <Field label="Notas"><Textarea name="notes" placeholder="Condiciones, referencia o acuerdo con el cliente" /></Field>
+      <Field label="Notas">
+        <Textarea name="notes" placeholder="Condiciones, referencia o acuerdo con el cliente" />
+      </Field>
       <Button type="submit">Crear prestamo</Button>
     </form>
   );
@@ -52,21 +67,40 @@ export function LoanForm(props: MovementFormProps) {
 
 export function SaleForm(props: MovementFormProps) {
   const { clients, paymentOptions } = getFormData(props);
+  const defaultPaymentMethod = paymentOptions.find((method) => method.category === "cash")?.code ?? paymentOptions[0]?.code;
 
   return (
     <form action={createSaleAction} className="grid gap-4">
       <Field label="Cliente">
-        <Select name="clientId" defaultValue={clients[0]?.id}>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</Select>
-      </Field>
-      <Field label="Producto o concepto"><Input name="product" defaultValue="Pedido mixto" /></Field>
-      <Field label="Monto"><Input name="amount" type="number" defaultValue="120" min="0" step="0.01" /></Field>
-      <Field label="Método de pago">
-        <Select name="paymentMethod" defaultValue="CASH_USD">
-          {paymentOptions.map((method) => <option key={method.code} value={method.code}>{method.label}</option>)}
+        <Select name="clientId" defaultValue={clients[0]?.id}>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
+            </option>
+          ))}
         </Select>
       </Field>
-      <Field label="Fecha"><Input name="date" type="date" defaultValue={todayInputValue()} /></Field>
-      <Field label="Observación"><Textarea name="observation" placeholder="Agrega una nota si aplica" /></Field>
+      <Field label="Producto o concepto">
+        <Input name="product" defaultValue="Pedido mixto" />
+      </Field>
+      <Field label="Monto">
+        <Input name="amount" type="number" defaultValue="120" min="0" step="0.01" />
+      </Field>
+      <Field label="Metodo de pago">
+        <Select name="paymentMethod" defaultValue={defaultPaymentMethod}>
+          {paymentOptions.map((method) => (
+            <option key={method.code} value={method.code}>
+              {method.label}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="Fecha">
+        <Input name="date" type="date" defaultValue={todayInputValue()} />
+      </Field>
+      <Field label="Observacion">
+        <Textarea name="observation" placeholder="Agrega una nota si aplica" />
+      </Field>
       <Button type="submit">Registrar venta</Button>
     </form>
   );
@@ -75,32 +109,55 @@ export function SaleForm(props: MovementFormProps) {
 export function CollectionForm(props: MovementFormProps) {
   const { clients, loans, paymentOptions } = getFormData(props);
   const activeLoans = loans.filter((loan) => loan.status === "ACTIVE" && loan.balance > 0);
+  const defaultPaymentMethod = paymentOptions.find((method) => method.category === "cash")?.code ?? paymentOptions[0]?.code;
 
   return (
     <form action={createCollectionAction} className="grid gap-4">
       <Field label="Cliente">
-        <Select name="clientId" defaultValue={clients[0]?.id}>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</Select>
+        <Select name="clientId" defaultValue={clients[0]?.id}>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
+            </option>
+          ))}
+        </Select>
       </Field>
       <Field label="Prestamo">
         <Select name="loanId" defaultValue="">
           <option value="">Recaudo general del cliente</option>
           {activeLoans.map((loan) => {
             const client = clients.find((item) => item.id === loan.clientId);
-            return <option key={loan.id} value={loan.id}>{client?.name} - saldo {loan.balance.toFixed(2)} - cuota {loan.dailyPayment.toFixed(2)}</option>;
+            return (
+              <option key={loan.id} value={loan.id}>
+                {client?.name} - saldo {loan.balance.toFixed(2)} - cuota {loan.dailyPayment.toFixed(2)}
+              </option>
+            );
           })}
         </Select>
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Saldo anterior"><Input value="640.00" readOnly /></Field>
-        <Field label="Monto pagado"><Input name="amount" type="number" defaultValue="100" min="0" step="0.01" /></Field>
+        <Field label="Saldo anterior">
+          <Input value="640.00" readOnly />
+        </Field>
+        <Field label="Monto pagado">
+          <Input name="amount" type="number" defaultValue="100" min="0" step="0.01" />
+        </Field>
       </div>
-      <Field label="Método de pago">
-        <Select name="paymentMethod" defaultValue="PAGO_MOVIL">
-          {paymentOptions.map((method) => <option key={method.code} value={method.code}>{method.label}</option>)}
+      <Field label="Metodo de pago">
+        <Select name="paymentMethod" defaultValue={defaultPaymentMethod}>
+          {paymentOptions.map((method) => (
+            <option key={method.code} value={method.code}>
+              {method.label}
+            </option>
+          ))}
         </Select>
       </Field>
-      <Field label="Fecha"><Input name="date" type="date" defaultValue={todayInputValue()} /></Field>
-      <Field label="Observación"><Textarea name="observation" placeholder="Ejemplo: abono semanal confirmado" /></Field>
+      <Field label="Fecha">
+        <Input name="date" type="date" defaultValue={todayInputValue()} />
+      </Field>
+      <Field label="Observacion">
+        <Textarea name="observation" placeholder="Ejemplo: abono semanal confirmado" />
+      </Field>
       <Button type="submit">Registrar recaudo</Button>
     </form>
   );
@@ -108,42 +165,11 @@ export function CollectionForm(props: MovementFormProps) {
 
 export function ExpenseForm(props: MovementFormProps) {
   const { paymentOptions } = getFormData(props);
-  const expenseTypes = [
-    "Gasolina",
-    "Transporte",
-    "Alimentacion",
-    "Comision",
-    "Sueldo ayudante",
-    "Sueldo revisor",
-    "Mantenimiento moto",
-    "Oficina",
-    "Arriendo",
-    "Seguro",
-    "Medico",
-    "Papeleria",
-    "Tramites",
-    "Vales",
-    "Recarga celular/cobro",
-    "Varios",
-    "Otro"
-  ];
 
   return (
     <form action={createExpenseAction} className="grid gap-4">
-      <Field label="Tipo de gasto">
-        <Select name="type" defaultValue="Gasolina">
-          {expenseTypes.map((type) => <option key={type}>{type}</option>)}
-        </Select>
-      </Field>
-      <Field label="Monto"><Input name="amount" type="number" defaultValue="25" min="0" step="0.01" /></Field>
-      <Field label="Método de pago">
-        <Select name="paymentMethod" defaultValue="CASH_USD">
-          {paymentOptions.map((method) => <option key={method.code} value={method.code}>{method.label}</option>)}
-        </Select>
-      </Field>
-      <Field label="Fecha"><Input name="date" type="date" defaultValue={todayInputValue()} /></Field>
-      <Field label="Comentario"><Textarea name="comment" defaultValue="Gasto operativo de ruta" /></Field>
-      <Button type="submit">Registrar gasto</Button>
+      <CashMovementFields defaultDate={todayInputValue()} paymentOptions={paymentOptions} />
+      <Button type="submit">Registrar movimiento</Button>
     </form>
   );
 }

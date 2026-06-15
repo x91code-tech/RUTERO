@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { PaymentMethod } from "@prisma/client";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
+import { normalizeCashMovementKind } from "@/lib/cash-movements";
 import { endOfLocalDay, parseDateInputAsLocal, startOfLocalDay } from "@/lib/date-utils";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
@@ -276,6 +277,7 @@ export async function createExpenseAction(formData: FormData) {
     data: {
       companyId: user.companyId,
       sellerId: user.id,
+      movementKind: payload.movementKind,
       type: payload.type,
       amount: payload.amount,
       paymentMethod: payload.paymentMethod as PaymentMethod,
@@ -288,7 +290,7 @@ export async function createExpenseAction(formData: FormData) {
     data: {
       companyId: user.companyId,
       userId: user.id,
-      action: "EXPENSE_CREATED",
+      action: `${payload.movementKind}_CREATED`,
       entity: "Expense",
       entityId: expense.id,
       newValue: payload
@@ -446,6 +448,7 @@ export async function closeCashboxAction(formData: FormData) {
       id: expense.id,
       companyId: expense.companyId,
       sellerId: expense.sellerId,
+      movementKind: normalizeCashMovementKind(expense.movementKind),
       type: expense.type as Expense["type"],
       amount: Number(expense.amount),
       paymentMethod: expense.paymentMethod,

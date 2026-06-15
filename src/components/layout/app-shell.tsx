@@ -17,7 +17,7 @@ const navigation = [
   { href: "/loans", label: "Prestamos", icon: Landmark },
   { href: "/sales", label: "Ventas", icon: ReceiptText },
   { href: "/collections", label: "Recaudos", icon: WalletCards },
-  { href: "/expenses", label: "Gastos", icon: ClipboardList },
+  { href: "/expenses", label: "Movimientos", icon: ClipboardList },
   { href: "/cashbox", label: "Caja diaria", icon: Shield },
   { href: "/reports", label: "Reportes", icon: Map },
   { href: "/inventory", label: "Inventario", icon: Boxes },

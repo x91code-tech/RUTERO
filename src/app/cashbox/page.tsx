@@ -19,8 +19,8 @@ export default async function CashboxPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Caja inicial" value={formatCurrency(cashbox.initialCash, company)} />
         <MetricCard label="Prestamos entregados" value={formatCurrency(-summary.loanDisbursementsTotal, company)} tone="red" />
-        <MetricCard label="Recaudos efectivo" value={formatCurrency(summary.cashCollections, company)} />
-        <MetricCard label="Gastos efectivo" value={formatCurrency(-summary.cashExpenses, company)} tone="red" />
+        <MetricCard label="Entradas efectivo" value={formatCurrency(summary.cashInflows, company)} />
+        <MetricCard label="Salidas efectivo" value={formatCurrency(-summary.cashOutflows, company)} tone="red" />
         <MetricCard label="Caja fisica esperada" value={formatCurrency(summary.expectedCash, company)} tone={summary.expectedCash < 0 ? "red" : "green"} />
         <MetricCard label="Efectivo final reportado" value={formatCurrency(cashbox.reportedCash, company)} tone={cashbox.reportedCash < 0 ? "red" : "green"} />
         <MetricCard label="Diferencia fisica" value={formatCurrency(summary.difference, company)} tone={summary.difference === 0 ? "green" : "red"} />
@@ -64,14 +64,18 @@ export default async function CashboxPage() {
             {[
               ["Digital / wallets", summary.pixTotal],
               ["Transferencias y tarjetas", summary.transferTotal],
-              ["Entradas efectivo", summary.cashSales + summary.cashCollections],
-              ["Salidas efectivo", -(summary.cashExpenses + summary.loanDisbursementsTotal)],
-              ["Movimiento neto fisico", summary.expectedCash - cashbox.initialCash],
               ["Ventas efectivo", summary.cashSales],
-              ["Prestamos entregados", -summary.loanDisbursementsTotal],
               ["Recaudos efectivo", summary.cashCollections],
-              ["Gastos totales", -summary.expensesTotal],
+              ["Entradas manuales efectivo", summary.cashIncomeMovements],
               ["Gastos efectivo", -summary.cashExpenses],
+              ["Retiros efectivo", -summary.cashWithdrawals],
+              ["Prestamos entregados", -summary.loanDisbursementsTotal],
+              ["Entradas efectivo total", summary.cashInflows],
+              ["Salidas efectivo total", -summary.cashOutflows],
+              ["Movimiento neto fisico", summary.expectedCash - cashbox.initialCash],
+              ["Gastos totales", -summary.expensesTotal],
+              ["Retiros totales", -summary.withdrawalsTotal],
+              ["Entradas manuales", summary.incomeMovementsTotal],
               ["Total declarado", summary.reportedTotal],
               ["Digital total", summary.digitalTotal]
             ].map(([label, value]) => (
@@ -102,7 +106,7 @@ export default async function CashboxPage() {
                 movements.map((movement) => (
                   <tr key={`${movement.type}-${movement.id}`}>
                     <td className="py-3">
-                      <StatusBadge tone={movement.type === "Gasto" ? "red" : movement.type === "Prestamo" ? "orange" : "green"}>
+                      <StatusBadge tone={movementTone(movement.type)}>
                         {movement.type}
                       </StatusBadge>
                     </td>
@@ -127,4 +131,11 @@ export default async function CashboxPage() {
       </Card>
     </AppShell>
   );
+}
+
+function movementTone(type: string): "green" | "red" | "orange" | "gray" | "blue" {
+  if (type === "Prestamo") return "orange";
+  if (type === "Gasto" || type === "Retiro") return "red";
+  if (type === "Recaudo") return "blue";
+  return "green";
 }

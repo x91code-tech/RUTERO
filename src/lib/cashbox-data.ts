@@ -1,12 +1,13 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
+import { cashMovementKindLabels, getCashMovementImpact, normalizeCashMovementKind } from "@/lib/cash-movements";
 import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import type { Cashbox, Collection, Company, Expense, Loan, Role, Sale, User } from "@/lib/types";
 
 export type CashboxMovementRow = {
   id: string;
-  type: "Prestamo" | "Venta" | "Recaudo" | "Gasto";
+  type: "Prestamo" | "Venta" | "Recaudo" | "Gasto" | "Retiro" | "Entrada";
   description: string;
   paymentMethod: string;
   date: string;
@@ -75,11 +76,11 @@ export async function getCashboxPageData() {
         })),
         ...demoExpenses.map((expense) => ({
           id: expense.id,
-          type: "Gasto" as const,
+          type: cashMovementKindLabels[expense.movementKind],
           description: expense.comment || expense.type,
           paymentMethod: expense.paymentMethod,
           date: expense.date,
-          amount: -expense.amount
+          amount: getCashMovementImpact(expense.amount, expense.movementKind)
         }))
       ] satisfies CashboxMovementRow[]
     };
@@ -203,6 +204,7 @@ export async function getCashboxPageData() {
       id: expense.id,
       companyId: expense.companyId,
       sellerId: expense.sellerId,
+      movementKind: normalizeCashMovementKind(expense.movementKind),
       type: expense.type as Expense["type"],
       amount: Number(expense.amount),
       paymentMethod: expense.paymentMethod,
@@ -236,11 +238,11 @@ export async function getCashboxPageData() {
       })),
       ...expenses.map((expense) => ({
         id: expense.id,
-        type: "Gasto" as const,
+        type: cashMovementKindLabels[normalizeCashMovementKind(expense.movementKind)],
         description: expense.comment ? `${expense.type} - ${expense.comment}` : expense.type,
         paymentMethod: expense.paymentMethod,
         date: expense.date.toISOString(),
-        amount: -Number(expense.amount)
+        amount: getCashMovementImpact(Number(expense.amount), normalizeCashMovementKind(expense.movementKind))
       }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) satisfies CashboxMovementRow[]
   };

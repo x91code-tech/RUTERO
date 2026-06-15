@@ -1,13 +1,20 @@
 import type { Cashbox, Collection, Expense, Loan, Sale } from "@/lib/types";
+import { normalizeCashMovementKind } from "@/lib/cash-movements";
 import { getPaymentMethodCategory } from "@/lib/payment-methods";
 
 export type DailySummary = {
   salesTotal: number;
   collectionsTotal: number;
   expensesTotal: number;
+  withdrawalsTotal: number;
+  incomeMovementsTotal: number;
   cashSales: number;
   cashCollections: number;
   cashExpenses: number;
+  cashWithdrawals: number;
+  cashIncomeMovements: number;
+  cashOutflows: number;
+  cashInflows: number;
   loanDisbursementsTotal: number;
   transferTotal: number;
   pixTotal: number;
@@ -20,8 +27,16 @@ export type DailySummary = {
   statusMessage: string;
 };
 
-export function calculateExpectedCash(initialCash: number, salesTotal: number, collectionsTotal: number, expensesTotal: number, loanDisbursementsTotal = 0) {
-  return initialCash + salesTotal + collectionsTotal - expensesTotal - loanDisbursementsTotal;
+export function calculateExpectedCash(
+  initialCash: number,
+  salesTotal: number,
+  collectionsTotal: number,
+  expensesTotal: number,
+  loanDisbursementsTotal = 0,
+  withdrawalsTotal = 0,
+  incomeMovementsTotal = 0
+) {
+  return initialCash + salesTotal + collectionsTotal + incomeMovementsTotal - expensesTotal - withdrawalsTotal - loanDisbursementsTotal;
 }
 
 export function calculateCashDifference(reportedCash: number, expectedCash: number) {
@@ -47,29 +62,40 @@ export function calculateDailySummary(input: {
   const countryCode = input.countryCode ?? "VE";
   const salesTotal = sum(sales.map((sale) => sale.amount));
   const collectionsTotal = sum(collections.map((collection) => collection.amount));
-  const expensesTotal = sum(expenses.map((expense) => expense.amount));
+  const expenseOutflows = expenses.filter((expense) => normalizeCashMovementKind(expense.movementKind) === "EXPENSE");
+  const withdrawals = expenses.filter((expense) => normalizeCashMovementKind(expense.movementKind) === "WITHDRAWAL");
+  const incomeMovements = expenses.filter((expense) => normalizeCashMovementKind(expense.movementKind) === "INCOME");
+  const expensesTotal = sum(expenseOutflows.map((expense) => expense.amount));
+  const withdrawalsTotal = sum(withdrawals.map((expense) => expense.amount));
+  const incomeMovementsTotal = sum(incomeMovements.map((expense) => expense.amount));
   const loanDisbursementsTotal = sum(loans.map((loan) => loan.principalAmount));
   const isCashMethod = (method: string) => getPaymentMethodCategory(method, countryCode) === "cash" || method === "CASH";
   const isTransferLikeMethod = (method: string) => ["bank", "card"].includes(getPaymentMethodCategory(method, countryCode)) || method === "TRANSFER";
   const isWalletMethod = (method: string) => getPaymentMethodCategory(method, countryCode) === "wallet" || method === "PIX";
   const cashSales = sum(sales.filter((sale) => isCashMethod(sale.paymentMethod)).map((sale) => sale.amount));
   const cashCollections = sum(collections.filter((collection) => isCashMethod(collection.paymentMethod)).map((collection) => collection.amount));
-  const cashExpenses = sum(expenses.filter((expense) => isCashMethod(expense.paymentMethod)).map((expense) => expense.amount));
+  const cashExpenses = sum(expenseOutflows.filter((expense) => isCashMethod(expense.paymentMethod)).map((expense) => expense.amount));
+  const cashWithdrawals = sum(withdrawals.filter((expense) => isCashMethod(expense.paymentMethod)).map((expense) => expense.amount));
+  const cashIncomeMovements = sum(incomeMovements.filter((expense) => isCashMethod(expense.paymentMethod)).map((expense) => expense.amount));
   const transferTotal = sum([
     ...sales.filter((sale) => isTransferLikeMethod(sale.paymentMethod)).map((sale) => sale.amount),
-    ...collections.filter((collection) => isTransferLikeMethod(collection.paymentMethod)).map((collection) => collection.amount)
+    ...collections.filter((collection) => isTransferLikeMethod(collection.paymentMethod)).map((collection) => collection.amount),
+    ...incomeMovements.filter((expense) => isTransferLikeMethod(expense.paymentMethod)).map((expense) => expense.amount)
   ]);
   const pixTotal = sum([
     ...sales.filter((sale) => isWalletMethod(sale.paymentMethod)).map((sale) => sale.amount),
-    ...collections.filter((collection) => isWalletMethod(collection.paymentMethod)).map((collection) => collection.amount)
+    ...collections.filter((collection) => isWalletMethod(collection.paymentMethod)).map((collection) => collection.amount),
+    ...incomeMovements.filter((expense) => isWalletMethod(expense.paymentMethod)).map((expense) => expense.amount)
   ]);
-  // Expected cash must consider only movements that impact physical cash: cash sales, cash collections and cash expenses.
+  // Expected cash only considers physical cash movements.
   const expectedCash = calculateExpectedCash(
     cashbox.initialCash,
     cashSales,
     cashCollections,
     cashExpenses,
-    loanDisbursementsTotal
+    loanDisbursementsTotal,
+    cashWithdrawals,
+    cashIncomeMovements
   );
   const reportedTotal = cashbox.reportedCash + cashbox.reportedTransfer + cashbox.reportedPix;
   const difference = calculateCashDifference(cashbox.reportedCash, expectedCash);
@@ -78,15 +104,21 @@ export function calculateDailySummary(input: {
     salesTotal,
     collectionsTotal,
     expensesTotal,
+    withdrawalsTotal,
+    incomeMovementsTotal,
     cashSales,
     cashCollections,
     cashExpenses,
+    cashWithdrawals,
+    cashIncomeMovements,
+    cashOutflows: cashExpenses + cashWithdrawals + loanDisbursementsTotal,
+    cashInflows: cashSales + cashCollections + cashIncomeMovements,
     loanDisbursementsTotal,
     transferTotal,
     pixTotal,
     digitalTotal: transferTotal + pixTotal,
-    grossMovement: salesTotal + collectionsTotal + loanDisbursementsTotal,
-    netMovement: salesTotal + collectionsTotal - expensesTotal - loanDisbursementsTotal,
+    grossMovement: salesTotal + collectionsTotal + incomeMovementsTotal + expensesTotal + withdrawalsTotal + loanDisbursementsTotal,
+    netMovement: salesTotal + collectionsTotal + incomeMovementsTotal - expensesTotal - withdrawalsTotal - loanDisbursementsTotal,
     expectedCash,
     reportedTotal,
     difference,

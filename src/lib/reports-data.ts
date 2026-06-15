@@ -1,4 +1,5 @@
 import type { CashboxStatus, PaymentMethod as PrismaPaymentMethod, Prisma } from "@prisma/client";
+import { normalizeCashMovementKind } from "@/lib/cash-movements";
 import { prisma } from "@/lib/db";
 import { endOfLocalDay, formatDateInput, startOfLocalDay } from "@/lib/date-utils";
 import { getSessionUser } from "@/lib/session";
@@ -260,6 +261,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       id: expense.id,
       companyId: expense.companyId,
       sellerId: expense.sellerId,
+      movementKind: normalizeCashMovementKind(expense.movementKind),
       type: expense.type,
       amount: Number(expense.amount),
       paymentMethod: expense.paymentMethod,

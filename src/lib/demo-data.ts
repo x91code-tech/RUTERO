@@ -214,9 +214,9 @@ export const demoCollections: Collection[] = [
 ];
 
 export const demoExpenses: Expense[] = [
-  { id: "expense_1", companyId: demoCompany.id, sellerId: "user_seller", type: "Gasolina", amount: 80, paymentMethod: "CASH_USD", date: today, comment: "Recarga para Ruta Centro" },
-  { id: "expense_2", companyId: demoCompany.id, sellerId: "user_seller", type: "Comida", amount: 25, paymentMethod: "CASH_USD", date: today, comment: "Almuerzo operativo" },
-  { id: "expense_3", companyId: demoCompany.id, sellerId: "user_supervisor", type: "Transporte", amount: 45, paymentMethod: "PAGO_MOVIL", date: today, comment: "Moto taxi para visita extra" }
+  { id: "expense_1", companyId: demoCompany.id, sellerId: "user_seller", movementKind: "EXPENSE", type: "Gasolina", amount: 80, paymentMethod: "CASH_USD", date: today, comment: "Recarga para Ruta Centro" },
+  { id: "expense_2", companyId: demoCompany.id, sellerId: "user_seller", movementKind: "WITHDRAWAL", type: "Retiro de caja", amount: 25, paymentMethod: "CASH_USD", date: today, comment: "Retiro operativo" },
+  { id: "expense_3", companyId: demoCompany.id, sellerId: "user_supervisor", movementKind: "INCOME", type: "Ingreso de caja", amount: 45, paymentMethod: "PAGO_MOVIL", date: today, comment: "Entrada por ajuste" }
 ];
 
 export const demoCashbox: Cashbox = {
