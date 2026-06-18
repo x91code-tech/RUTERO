@@ -24,6 +24,15 @@ export type ClientStatus = "ACTIVE" | "PENDING" | "DELINQUENT" | "INACTIVE";
 export type VisitStatus = "PENDING" | "VISITED" | "NOT_FOUND" | "COLLECTED" | "SALE_DONE";
 export type CashboxStatus = "OPEN" | "CLOSED" | "BALANCED" | "UNBALANCED" | "REQUIRES_REVIEW";
 export type LoanStatus = "ACTIVE" | "PAID" | "OVERDUE" | "CANCELLED";
+export type CollectionPaymentType = "INSTALLMENT" | "ADVANCE" | "SETTLEMENT" | "MANUAL" | "RENEWAL" | "ADDITIONAL";
+export type CollectionApplication =
+  | "NORMAL"
+  | "CAPITAL_INTEREST"
+  | "CAPITAL_ONLY"
+  | "INTEREST_ONLY"
+  | "LATE_FEE"
+  | "ADDITIONAL_WITH_BALANCE"
+  | "ADDITIONAL_NO_BALANCE";
 export type ClientLocationType = "STORE" | "WAREHOUSE" | "BILLING" | "OTHER";
 export type ClientDocumentStatus = "PENDING" | "UPLOADED" | "APPROVED" | "REJECTED";
 export type CashMovementKind = "EXPENSE" | "WITHDRAWAL" | "INCOME";
@@ -121,6 +130,15 @@ export type Collection = {
   loanId?: string;
   sellerId: string;
   amount: number;
+  paymentType?: CollectionPaymentType;
+  application?: CollectionApplication;
+  balanceApplied?: number;
+  principalApplied?: number;
+  interestApplied?: number;
+  lateFeeApplied?: number;
+  additionalApplied?: number;
+  overpaymentAmount?: number;
+  installmentsCovered?: number;
   previousBalance: number;
   newBalance: number;
   paymentMethod: PaymentMethod;
@@ -140,6 +158,10 @@ export type Loan = {
   dailyPayment: number;
   paidAmount: number;
   balance: number;
+  principalBalance?: number;
+  interestBalance?: number;
+  lateFeeBalance?: number;
+  installmentsPaid?: number;
   termDays: number;
   startDate: string;
   dueDate: string;

@@ -7,6 +7,7 @@ import { LoanForm } from "@/components/forms/loan-form";
 import { LoanPaymentForm } from "@/components/forms/loan-payment-form";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { collectionPaymentTypeLabel } from "@/lib/collection-payments";
 import { getClientProfileData } from "@/lib/clients-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
@@ -64,7 +65,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                       clientId={client.id}
                       loan={loan}
                       company={company}
-                      paidToday={collections.filter((collection) => collection.loanId === loan.id && collection.date.startsWith(todayKey)).reduce((total, collection) => total + collection.amount, 0)}
+                      paidToday={collections.filter((collection) => collection.loanId === loan.id && collection.date.startsWith(todayKey)).reduce((total, collection) => total + (collection.balanceApplied ?? collection.amount), 0)}
                     />
                   </div>
                 ) : null}
@@ -81,7 +82,13 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
               <div key={movement.id} className="flex items-center justify-between rounded-xl bg-white/[0.04] p-4">
                 <div>
                   <p className="font-semibold">{"product" in movement ? movement.product : "Recaudo registrado"}</p>
-                  <p className="text-sm text-zinc-400">{paymentMethodLabel(movement.paymentMethod, company.countryCode)}</p>
+                  <p className="text-sm text-zinc-400">
+                    {paymentMethodLabel(movement.paymentMethod, company.countryCode)}
+                    {"paymentType" in movement ? ` - ${collectionPaymentTypeLabel(movement.paymentType)}` : ""}
+                  </p>
+                  {"balanceApplied" in movement ? (
+                    <p className="text-xs text-zinc-500">Aplicado a deuda {formatCurrency(movement.balanceApplied ?? movement.amount, company)}</p>
+                  ) : null}
                 </div>
                 <p className="font-black">{formatCurrency(movement.amount, company)}</p>
               </div>

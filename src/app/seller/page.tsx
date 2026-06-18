@@ -90,7 +90,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
               <div className="mt-3 grid grid-cols-3 gap-2 lg:grid-cols-5">
                 <Info label="Vr. cuota" value={formatCurrency(item.loan.dailyPayment, company)} />
                 <Info label="Cuota No." value={`${item.installmentNumber} / ${item.loan.termDays}`} />
-                <Info label="Pago hoy" value={formatCurrency(item.paidToday, company)} strongClass={item.isPaidToday ? "text-emerald-300" : "text-zinc-100"} />
+                <Info label="Pago hoy" value={formatCurrency(item.receivedToday, company)} strongClass={item.isPaidToday ? "text-emerald-300" : "text-zinc-100"} />
                 <Info label="Saldo deudor" value={formatCurrency(item.loan.balance, company)} />
                 <Info label="Vence" value={formatShortDate(item.loan.dueDate)} />
               </div>

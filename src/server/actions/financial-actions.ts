@@ -7,6 +7,7 @@ import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { normalizeCashMovementKind } from "@/lib/cash-movements";
 import { endOfLocalDay, parseDateInputAsLocal, startOfLocalDay } from "@/lib/date-utils";
 import { prisma } from "@/lib/db";
+import { allocateLoanPayment, getGeneralBalanceAllocation } from "@/lib/loan-payments";
 import { getSessionUser } from "@/lib/session";
 import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
 import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema } from "@/lib/validations";
@@ -105,8 +106,30 @@ export async function createCollectionAction(formData: FormData) {
           }
         })
       : null;
-    const effectiveAmount = activeLoan ? Math.min(payload.amount, Number(activeLoan.balance)) : payload.amount;
-    const newBalance = Math.max(previousBalance - effectiveAmount, 0);
+    const allocation = activeLoan
+      ? allocateLoanPayment({
+          amount: payload.amount,
+          application: payload.application,
+          paymentType: payload.paymentType,
+          loan: {
+            balance: Number(activeLoan.balance),
+            principalAmount: Number(activeLoan.principalAmount),
+            interestAmount: Number(activeLoan.interestAmount),
+            dailyPayment: Number(activeLoan.dailyPayment),
+            termDays: activeLoan.termDays,
+            principalBalance: Number(activeLoan.principalBalance),
+            interestBalance: Number(activeLoan.interestBalance),
+            lateFeeBalance: Number(activeLoan.lateFeeBalance),
+            installmentsPaid: Number(activeLoan.installmentsPaid)
+          }
+        })
+      : null;
+    const generalAllocation = allocation
+      ? null
+      : getGeneralBalanceAllocation(payload.amount, previousBalance, payload.application);
+    const receivedAmount = allocation?.receivedAmount ?? generalAllocation?.receivedAmount ?? payload.amount;
+    const balanceApplied = allocation?.balanceApplied ?? generalAllocation?.balanceApplied ?? payload.amount;
+    const newBalance = Math.max(previousBalance - balanceApplied, 0);
 
     const createdCollection = await tx.collection.create({
       data: {
@@ -114,7 +137,16 @@ export async function createCollectionAction(formData: FormData) {
         sellerId: user.id,
         clientId: client.id,
         loanId: activeLoan?.id,
-        amount: effectiveAmount,
+        amount: receivedAmount,
+        paymentType: payload.paymentType,
+        application: payload.application,
+        balanceApplied,
+        principalApplied: allocation?.principalApplied ?? 0,
+        interestApplied: allocation?.interestApplied ?? 0,
+        lateFeeApplied: allocation?.lateFeeApplied ?? 0,
+        additionalApplied: allocation?.additionalApplied ?? generalAllocation?.additionalApplied ?? 0,
+        overpaymentAmount: allocation?.overpaymentAmount ?? generalAllocation?.overpaymentAmount ?? 0,
+        installmentsCovered: allocation?.installmentsCovered ?? 0,
         previousBalance,
         newBalance,
         paymentMethod: payload.paymentMethod as PaymentMethod,
@@ -124,14 +156,18 @@ export async function createCollectionAction(formData: FormData) {
     });
 
     if (activeLoan) {
-      const loanBalance = Math.max(Number(activeLoan.balance) - effectiveAmount, 0);
-      const paidAmount = Number(activeLoan.paidAmount) + effectiveAmount;
+      const loanBalance = allocation?.nextLoanBalance ?? Math.max(Number(activeLoan.balance) - balanceApplied, 0);
+      const paidAmount = Number(activeLoan.paidAmount) + balanceApplied;
 
       await tx.loan.update({
         where: { id: activeLoan.id },
         data: {
           paidAmount,
           balance: loanBalance,
+          principalBalance: allocation?.nextPrincipalBalance ?? Number(activeLoan.principalBalance),
+          interestBalance: allocation?.nextInterestBalance ?? Number(activeLoan.interestBalance),
+          lateFeeBalance: allocation?.nextLateFeeBalance ?? Number(activeLoan.lateFeeBalance),
+          installmentsPaid: allocation?.nextInstallmentsPaid ?? Number(activeLoan.installmentsPaid),
           status: loanBalance <= 0 ? "PAID" : "ACTIVE"
         }
       });
@@ -154,7 +190,16 @@ export async function createCollectionAction(formData: FormData) {
         entity: "Collection",
         entityId: createdCollection.id,
         oldValue: { pendingBalance: previousBalance },
-        newValue: { ...payload, amount: effectiveAmount, pendingBalance: newBalance }
+        newValue: {
+          ...payload,
+          amountReceived: receivedAmount,
+          balanceApplied,
+          pendingBalance: newBalance,
+          principalApplied: allocation?.principalApplied ?? 0,
+          interestApplied: allocation?.interestApplied ?? 0,
+          lateFeeApplied: allocation?.lateFeeApplied ?? 0,
+          overpaymentAmount: allocation?.overpaymentAmount ?? generalAllocation?.overpaymentAmount ?? 0
+        }
       }
     });
 
@@ -216,6 +261,10 @@ export async function createLoanAction(formData: FormData) {
         totalAmount,
         dailyPayment,
         balance: totalAmount,
+        principalBalance: principalAmount,
+        interestBalance: interestAmount,
+        lateFeeBalance: 0,
+        installmentsPaid: 0,
         termDays: payload.termDays,
         startDate,
         dueDate,

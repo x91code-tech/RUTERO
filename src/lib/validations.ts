@@ -22,6 +22,8 @@ export const collectionSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
   loanId: z.string().optional(),
   amount: moneySchema,
+  paymentType: z.enum(["INSTALLMENT", "ADVANCE", "SETTLEMENT", "MANUAL", "RENEWAL", "ADDITIONAL"]).default("INSTALLMENT"),
+  application: z.enum(["NORMAL", "CAPITAL_INTEREST", "CAPITAL_ONLY", "INTEREST_ONLY", "LATE_FEE", "ADDITIONAL_WITH_BALANCE", "ADDITIONAL_NO_BALANCE"]).default("NORMAL"),
   paymentMethod: paymentMethodSchema,
   date: z.string().optional(),
   observation: z.string().optional()

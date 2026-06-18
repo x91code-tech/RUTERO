@@ -32,7 +32,8 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
     if (mode === "full") return loan.balance;
     return Math.max(customAmount, 0);
   }, [advanceAmount, customAmount, dailyDue, loan.balance, loan.dailyPayment, mode]);
-  const safeAmount = Math.min(selectedAmount, loan.balance);
+  const safeAmount = Math.max(selectedAmount, 0);
+  const paymentType = mode === "advance" ? "ADVANCE" : mode === "full" ? "SETTLEMENT" : mode === "custom" ? "MANUAL" : "INSTALLMENT";
   const submitLabel = mode === "full" ? (compact ? "Liquidar" : "Liquidar prestamo") : compact ? "Cobrar" : `Cobrar ${formatCurrency(safeAmount, company)}`;
 
   return (
@@ -40,6 +41,8 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="loanId" value={loan.id} />
       <input type="hidden" name="amount" value={safeAmount.toFixed(2)} />
+      <input type="hidden" name="paymentType" value={paymentType} />
+      <input type="hidden" name="application" value="NORMAL" />
       <input type="hidden" name="paymentMethod" value={paymentMethod} />
 
       <div className={compact ? "grid grid-cols-4 gap-1" : "grid grid-cols-2 gap-2 sm:grid-cols-4"}>
@@ -62,7 +65,7 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
       </div>
 
       {mode === "custom" ? (
-        <Input className={compact ? "h-9" : undefined} type="number" value={customAmount} min="0" max={loan.balance} step="0.01" onChange={(event) => setCustomAmount(Number(event.target.value))} />
+        <Input className={compact ? "h-9" : undefined} type="number" value={customAmount} min="0" step="0.01" onChange={(event) => setCustomAmount(Number(event.target.value))} />
       ) : null}
 
       {!compact ? (

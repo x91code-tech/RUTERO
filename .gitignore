@@ -31,3 +31,7 @@ Thumbs.db
 # Capacitor / Android builds
 android/app/build/
 android/build/
+
+# Local APK analysis artifacts
+analysis/
+*.apk

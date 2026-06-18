@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { CollectionForm } from "@/components/forms/movement-form";
 import { Card, CardHeader } from "@/components/ui/card";
+import { collectionApplicationLabel, collectionPaymentTypeLabel } from "@/lib/collection-payments";
 import { getFinancialPageData } from "@/lib/financial-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
@@ -27,8 +28,12 @@ export default async function CollectionsPage() {
                     <p className="font-black">{formatCurrency(collection.amount, company)}</p>
                   </div>
                   <p className="mt-1 text-sm text-zinc-400">
-                    {paymentMethodLabel(collection.paymentMethod, company.countryCode)} - Saldo nuevo {formatCurrency(collection.newBalance, company)}
-                    {collection.loanId ? " - aplicado a prestamo" : ""}
+                    {paymentMethodLabel(collection.paymentMethod, company.countryCode)} - {collectionPaymentTypeLabel(collection.paymentType)} - {collectionApplicationLabel(collection.application)}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Aplicado a deuda {formatCurrency(collection.balanceApplied ?? collection.amount, company)} - Saldo nuevo {formatCurrency(collection.newBalance, company)}
+                    {(collection.overpaymentAmount ?? 0) > 0 ? ` - Sobrante ${formatCurrency(collection.overpaymentAmount ?? 0, company)}` : ""}
+                    {collection.loanId ? " - prestamo" : ""}
                   </p>
                 </div>
               );

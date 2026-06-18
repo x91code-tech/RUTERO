@@ -10,6 +10,7 @@ type MovementFormProps = {
   clients?: Client[];
   company?: Company;
   loans?: Loan[];
+  defaultClientId?: string;
 };
 
 function todayInputValue() {
@@ -35,7 +36,7 @@ export function LoanForm(props: MovementFormProps) {
   return (
     <form action={createLoanAction} className="grid gap-4">
       <Field label="Cliente">
-        <Select name="clientId" defaultValue={clients[0]?.id}>
+        <Select name="clientId" defaultValue={props.defaultClientId ?? clients[0]?.id}>
           {clients.map((client) => (
             <option key={client.id} value={client.id}>
               {client.name}
@@ -110,11 +111,28 @@ export function CollectionForm(props: MovementFormProps) {
   const { clients, loans, paymentOptions } = getFormData(props);
   const activeLoans = loans.filter((loan) => loan.status === "ACTIVE" && loan.balance > 0);
   const defaultPaymentMethod = paymentOptions.find((method) => method.category === "cash")?.code ?? paymentOptions[0]?.code;
+  const paymentTypes = [
+    ["INSTALLMENT", "Cuota del dia"],
+    ["ADVANCE", "Cuota adelantada"],
+    ["SETTLEMENT", "Pago total"],
+    ["RENEWAL", "Pago para renovar"],
+    ["MANUAL", "Manual"],
+    ["ADDITIONAL", "Adicional"]
+  ];
+  const applications = [
+    ["NORMAL", "Normal: mora, interes y capital"],
+    ["CAPITAL_INTEREST", "Interes + capital"],
+    ["CAPITAL_ONLY", "Solo capital"],
+    ["INTEREST_ONLY", "Solo interes"],
+    ["LATE_FEE", "Solo mora"],
+    ["ADDITIONAL_WITH_BALANCE", "Adicional que descuenta saldo"],
+    ["ADDITIONAL_NO_BALANCE", "Adicional sin descontar saldo"]
+  ];
 
   return (
     <form action={createCollectionAction} className="grid gap-4">
       <Field label="Cliente">
-        <Select name="clientId" defaultValue={clients[0]?.id}>
+        <Select name="clientId" defaultValue={props.defaultClientId ?? clients[0]?.id}>
           {clients.map((client) => (
             <option key={client.id} value={client.id}>
               {client.name}
@@ -136,11 +154,27 @@ export function CollectionForm(props: MovementFormProps) {
         </Select>
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Saldo anterior">
-          <Input value="640.00" readOnly />
+        <Field label="Referencia de saldo">
+          <Input value="Se calcula al guardar" readOnly />
         </Field>
         <Field label="Monto pagado">
           <Input name="amount" type="number" defaultValue="100" min="0" step="0.01" />
+        </Field>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Tipo de pago">
+          <Select name="paymentType" defaultValue="INSTALLMENT">
+            {paymentTypes.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Aplicar a">
+          <Select name="application" defaultValue="NORMAL">
+            {applications.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </Select>
         </Field>
       </div>
       <Field label="Metodo de pago">

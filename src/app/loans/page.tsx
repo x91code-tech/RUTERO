@@ -50,6 +50,11 @@ export default async function LoansPage() {
                     <p><span className="text-zinc-400">Pagado</span><br /><strong>{formatCurrency(loan.paidAmount, company)}</strong></p>
                     <p><span className="text-zinc-400">Saldo</span><br /><strong>{formatCurrency(loan.balance, company)}</strong></p>
                   </div>
+                  <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                    <p className="rounded-lg bg-carbon-950/45 p-2"><span className="text-zinc-500">Capital pendiente</span><br /><strong>{formatCurrency(loan.principalBalance ?? loan.balance, company)}</strong></p>
+                    <p className="rounded-lg bg-carbon-950/45 p-2"><span className="text-zinc-500">Interes pendiente</span><br /><strong>{formatCurrency(loan.interestBalance ?? 0, company)}</strong></p>
+                    <p className="rounded-lg bg-carbon-950/45 p-2"><span className="text-zinc-500">Mora pendiente</span><br /><strong>{formatCurrency(loan.lateFeeBalance ?? 0, company)}</strong></p>
+                  </div>
                 </div>
               );
             })}

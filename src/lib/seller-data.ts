@@ -8,6 +8,7 @@ export type SellerCollectionItem = {
   client: Client;
   loan: Loan;
   paidToday: number;
+  receivedToday: number;
   installmentNumber: number;
   expectedPaidToDate: number;
   lateAmount: number;
@@ -84,6 +85,10 @@ function toLoan(loan: {
   dailyPayment: unknown;
   paidAmount: unknown;
   balance: unknown;
+  principalBalance: unknown;
+  interestBalance: unknown;
+  lateFeeBalance: unknown;
+  installmentsPaid: unknown;
   termDays: number;
   startDate: Date;
   dueDate: Date;
@@ -102,6 +107,10 @@ function toLoan(loan: {
     dailyPayment: Number(loan.dailyPayment),
     paidAmount: Number(loan.paidAmount),
     balance: Number(loan.balance),
+    principalBalance: Number(loan.principalBalance),
+    interestBalance: Number(loan.interestBalance),
+    lateFeeBalance: Number(loan.lateFeeBalance),
+    installmentsPaid: Number(loan.installmentsPaid),
     termDays: loan.termDays,
     startDate: loan.startDate.toISOString(),
     dueDate: loan.dueDate.toISOString(),
@@ -117,6 +126,15 @@ function toCollection(collection: {
   loanId: string | null;
   sellerId: string;
   amount: unknown;
+  paymentType: Collection["paymentType"];
+  application: Collection["application"];
+  balanceApplied: unknown;
+  principalApplied: unknown;
+  interestApplied: unknown;
+  lateFeeApplied: unknown;
+  additionalApplied: unknown;
+  overpaymentAmount: unknown;
+  installmentsCovered: unknown;
   previousBalance: unknown;
   newBalance: unknown;
   paymentMethod: Collection["paymentMethod"];
@@ -130,6 +148,15 @@ function toCollection(collection: {
     loanId: collection.loanId ?? undefined,
     sellerId: collection.sellerId,
     amount: Number(collection.amount),
+    paymentType: collection.paymentType,
+    application: collection.application,
+    balanceApplied: Number(collection.balanceApplied),
+    principalApplied: Number(collection.principalApplied),
+    interestApplied: Number(collection.interestApplied),
+    lateFeeApplied: Number(collection.lateFeeApplied),
+    additionalApplied: Number(collection.additionalApplied),
+    overpaymentAmount: Number(collection.overpaymentAmount),
+    installmentsCovered: Number(collection.installmentsCovered),
     previousBalance: Number(collection.previousBalance),
     newBalance: Number(collection.newBalance),
     paymentMethod: collection.paymentMethod,
@@ -148,7 +175,8 @@ function buildItems(clients: Client[], loans: Loan[], collections: Collection[],
       if (!client) return null;
 
       const todayCollections = collections.filter((collection) => collection.loanId === loan.id);
-      const paidToday = todayCollections.reduce((total, collection) => total + collection.amount, 0);
+      const receivedToday = todayCollections.reduce((total, collection) => total + collection.amount, 0);
+      const paidToday = todayCollections.reduce((total, collection) => total + (collection.balanceApplied ?? collection.amount), 0);
       const installmentNumber = Math.min(daysBetween(loan.startDate), loan.termDays);
       const expectedPaidToDate = Math.min(installmentNumber * loan.dailyPayment, loan.totalAmount);
       const lateAmount = Math.max(expectedPaidToDate - loan.paidAmount, 0);
@@ -157,6 +185,7 @@ function buildItems(clients: Client[], loans: Loan[], collections: Collection[],
         client,
         loan,
         paidToday,
+        receivedToday,
         installmentNumber,
         expectedPaidToDate,
         lateAmount,
@@ -197,7 +226,7 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
         pendingClients: items.filter((item) => !item.isPaidToday).length,
         paidClients: items.filter((item) => item.isPaidToday).length,
         expectedToday: items.reduce((total, item) => total + Math.min(item.loan.dailyPayment, item.loan.balance), 0),
-        collectedToday: items.reduce((total, item) => total + item.paidToday, 0),
+        collectedToday: items.reduce((total, item) => total + item.receivedToday, 0),
         activeBalance: items.reduce((total, item) => total + item.loan.balance, 0)
       }
     };
@@ -226,7 +255,7 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
       pendingClients: items.filter((item) => !item.isPaidToday).length,
       paidClients: items.filter((item) => item.isPaidToday).length,
       expectedToday: items.reduce((total, item) => total + Math.min(item.loan.dailyPayment, item.loan.balance), 0),
-      collectedToday: items.reduce((total, item) => total + item.paidToday, 0),
+      collectedToday: items.reduce((total, item) => total + item.receivedToday, 0),
       activeBalance: items.reduce((total, item) => total + item.loan.balance, 0)
     }
   };
