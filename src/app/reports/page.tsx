@@ -4,6 +4,7 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { ReportActions } from "@/components/reports/report-actions";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/input";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
@@ -54,8 +55,19 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     <AppShell title="Reportes" subtitle="Reportes diarios y administrativos con datos reales de tu empresa.">
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <Card>
-          <CardHeader title="Reporte diario para WhatsApp" description="Formato listo para revisar y enviar." />
-          <pre className="max-h-[34rem] overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-carbon-950 p-5 text-sm leading-6 text-zinc-200">{report}</pre>
+          <CardHeader title="Reporte visual de caja" description="Resumen grafico listo para revisar antes de compartir." />
+          <VisualCashReport
+            cashbox={cashbox}
+            company={company}
+            collectionsCount={collections.length}
+            dateLabel={dateLabel ?? formatInputDateLabel(filters.from)}
+            expensesCount={expenses.length}
+            loansCount={loans.length}
+            salesCount={sales.length}
+            sellerName={seller.name}
+            summary={summary}
+            visitedClients={visitedClients}
+          />
           <ReportActions report={report} whatsappHref={whatsappHref} filenameBase={`rutero-reporte-${filters.from}-${filters.to}`} />
         </Card>
 
@@ -153,6 +165,173 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl bg-white/[0.04] p-4">
       <p className="text-sm text-zinc-400">{label}</p>
       <p className="text-xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function VisualCashReport({
+  cashbox,
+  collectionsCount,
+  company,
+  dateLabel,
+  expensesCount,
+  loansCount,
+  salesCount,
+  sellerName,
+  summary,
+  visitedClients
+}: {
+  cashbox: { initialCash: number; reportedCash: number };
+  collectionsCount: number;
+  company: Parameters<typeof formatCurrency>[1];
+  dateLabel: string;
+  expensesCount: number;
+  loansCount: number;
+  salesCount: number;
+  sellerName: string;
+  summary: ReturnType<typeof calculateDailySummary>;
+  visitedClients: number;
+}) {
+  const inflowRows = [
+    { label: "Ventas efectivo", value: summary.cashSales },
+    { label: "Recaudos efectivo", value: summary.cashCollections },
+    { label: "Entradas manuales", value: summary.cashIncomeMovements }
+  ];
+  const outflowRows = [
+    { label: "Prestamos entregados", value: summary.loanDisbursementsTotal },
+    { label: "Gastos", value: summary.cashExpenses },
+    { label: "Retiros", value: summary.cashWithdrawals }
+  ];
+  const digitalRows = [
+    { label: "Digital / wallets", value: summary.pixTotal },
+    { label: "Transferencias / tarjetas", value: summary.transferTotal }
+  ];
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm text-zinc-400">Cierre de ruta</p>
+            <h2 className="mt-1 text-2xl font-black">{sellerName}</h2>
+            <p className="text-sm text-zinc-500">{dateLabel}</p>
+          </div>
+          <StatusBadge tone={summary.difference === 0 ? "green" : "orange"}>{summary.statusMessage}</StatusBadge>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <ReportNumber label="Caja inicial" value={formatCurrency(cashbox.initialCash, company)} />
+          <ReportNumber label="Caja esperada" value={formatCurrency(summary.expectedCash, company)} tone={summary.expectedCash < 0 ? "red" : "green"} />
+          <ReportNumber label="Diferencia" value={formatCurrency(summary.difference, company)} tone={summary.difference === 0 ? "green" : "red"} />
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartPanel title="Entradas de efectivo" total={summary.cashInflows} rows={inflowRows} company={company} tone="green" />
+        <ChartPanel title="Salidas de efectivo" total={summary.cashOutflows} rows={outflowRows} company={company} tone="red" />
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm text-zinc-400">Caja fisica</p>
+            <p className="text-xl font-black">{formatCurrency(summary.expectedCash, company)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-zinc-400">Efectivo reportado</p>
+            <p className="text-xl font-black">{formatCurrency(cashbox.reportedCash, company)}</p>
+          </div>
+        </div>
+        <BalanceBar difference={summary.difference} expectedCash={summary.expectedCash} reportedCash={cashbox.reportedCash} />
+      </div>
+
+      <ChartPanel title="Dinero digital declarado" total={summary.digitalTotal} rows={digitalRows} company={company} tone="orange" />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <ReportNumber label="Clientes visitados" value={String(visitedClients)} />
+        <ReportNumber label="Prestamos creados" value={String(loansCount)} />
+        <ReportNumber label="Recaudos" value={String(collectionsCount)} />
+        <ReportNumber label="Movimientos de caja" value={String(expensesCount)} />
+        <ReportNumber label="Ventas" value={String(salesCount)} />
+      </div>
+    </div>
+  );
+}
+
+function ChartPanel({
+  company,
+  rows,
+  title,
+  tone,
+  total
+}: {
+  company: Parameters<typeof formatCurrency>[1];
+  rows: { label: string; value: number }[];
+  title: string;
+  tone: "green" | "orange" | "red";
+  total: number;
+}) {
+  const max = Math.max(...rows.map((row) => Math.abs(row.value)), 1);
+  const color = tone === "green" ? "bg-emerald-400" : tone === "red" ? "bg-red-400" : "bg-brand-500";
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="font-black">{title}</p>
+        <p className={tone === "red" ? "font-black text-red-300" : tone === "green" ? "font-black text-emerald-300" : "font-black text-orange-300"}>
+          {formatCurrency(total, company)}
+        </p>
+      </div>
+      <div className="space-y-3">
+        {rows.map((row) => (
+          <div key={row.label}>
+            <div className="mb-1 flex justify-between gap-3 text-sm">
+              <span className="truncate text-zinc-300">{row.label}</span>
+              <span className="font-semibold text-white">{formatCurrency(row.value, company)}</span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-white/10">
+              <div className={`h-full rounded-full ${color}`} style={{ width: `${(Math.abs(row.value) / max) * 100}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BalanceBar({ difference, expectedCash, reportedCash }: { difference: number; expectedCash: number; reportedCash: number }) {
+  const max = Math.max(Math.abs(expectedCash), Math.abs(reportedCash), Math.abs(difference), 1);
+  const expectedWidth = (Math.abs(expectedCash) / max) * 100;
+  const reportedWidth = (Math.abs(reportedCash) / max) * 100;
+
+  return (
+    <div className="mt-4 grid gap-3">
+      <BalanceRow label="Esperado" value={expectedCash} width={expectedWidth} />
+      <BalanceRow label="Reportado" value={reportedCash} width={reportedWidth} />
+    </div>
+  );
+}
+
+function BalanceRow({ label, value, width }: { label: string; value: number; width: number }) {
+  const color = value < 0 ? "bg-red-400" : "bg-emerald-400";
+
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-sm">
+        <span className="text-zinc-400">{label}</span>
+        <span className={value < 0 ? "font-semibold text-red-300" : "font-semibold text-emerald-300"}>{value < 0 ? "Negativo" : "Positivo"}</span>
+      </div>
+      <div className="h-3 overflow-hidden rounded-full bg-white/10">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function ReportNumber({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "green" | "red" }) {
+  return (
+    <div className="rounded-xl bg-carbon-950/60 p-3">
+      <p className="text-xs font-semibold uppercase text-zinc-500">{label}</p>
+      <p className={tone === "red" ? "mt-2 text-xl font-black text-red-300" : tone === "green" ? "mt-2 text-xl font-black text-emerald-300" : "mt-2 text-xl font-black text-white"}>{value}</p>
     </div>
   );
 }
