@@ -12,42 +12,33 @@ type RuteroLogoProps = {
 
 const sizes = {
   sm: {
-    mark: "h-9 w-9",
-    logo: "h-9 w-auto"
+    mark: "h-9 w-9"
   },
   md: {
-    mark: "h-11 w-11",
-    logo: "h-11 w-auto"
+    mark: "h-11 w-11"
   },
   lg: {
-    mark: "h-14 w-14",
-    logo: "h-14 w-auto"
+    mark: "h-14 w-14"
   }
 };
 
 export function RuteroLogo({ href, size = "md", showText = true, className, ...props }: RuteroLogoProps) {
   const content = (
-    <>
+    <span className="inline-flex items-center gap-2">
+      <Image
+        src="/brand/rutero-logo.png"
+        alt="RUTERO"
+        width={160}
+        height={160}
+        priority={size !== "sm"}
+        className={cn("shrink-0 object-contain", sizes[size].mark)}
+      />
       {showText ? (
-        <Image
-          src="/brand/rutero-logo.png"
-          alt="RUTERO"
-          width={520}
-          height={160}
-          priority={size !== "sm"}
-          className={cn("object-contain", sizes[size].logo)}
-        />
-      ) : (
-        <Image
-          src="/brand/rutero-isotipo.png"
-          alt="RUTERO"
-          width={160}
-          height={160}
-          priority={size !== "sm"}
-          className={cn("shrink-0 rounded-2xl object-contain", sizes[size].mark)}
-        />
-      )}
-    </>
+        <span className={cn("font-black tracking-normal text-white", size === "lg" ? "text-3xl" : size === "md" ? "text-2xl" : "text-xl")}>
+          RUTERO
+        </span>
+      ) : null}
+    </span>
   );
 
   const logoClassName = cn("inline-flex items-center", className);

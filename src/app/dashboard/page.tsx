@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, Landmark, Users, Wallet } from "lucide-react";
+import { AlertTriangle, Banknote, Landmark, TrendingDown, TrendingUp, Users, Wallet } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MetricCard } from "@/components/cards/metric-card";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -9,16 +9,19 @@ import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
 export default async function DashboardPage() {
   const { company, metrics, notifications, recentMovements, sellerCollections } = await getDashboardData();
-  const netToday = metrics.collectedToday - metrics.expensesToday;
+  const cashNetToday = metrics.cashInflowsToday - metrics.cashOutflowsToday;
 
   return (
     <AppShell title="Dashboard administrador" subtitle="Vista ejecutiva de prestamos, recaudos, caja y alertas de hoy.">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Saldo activo" value={formatCurrency(metrics.activeLoanBalance, company)} icon={<Landmark />} />
-        <MetricCard label="Esperado hoy" value={formatCurrency(metrics.expectedToday, company)} icon={<Wallet />} />
+        <MetricCard label="Deuda activa" value={formatCurrency(metrics.activeLoanBalance, company)} icon={<Landmark />} />
+        <MetricCard label="Cuotas esperadas hoy" value={formatCurrency(metrics.expectedToday, company)} icon={<Wallet />} />
         <MetricCard label="Cobrado hoy" value={formatCurrency(metrics.collectedToday, company)} icon={<Wallet />} tone="green" />
-        <MetricCard label="Salidas hoy" value={formatCurrency(metrics.expensesToday, company)} icon={<Banknote />} tone="orange" />
-        <MetricCard label="Neto hoy" value={formatCurrency(netToday, company)} tone={netToday >= 0 ? "green" : "red"} />
+        <MetricCard label="Prestamos entregados hoy" value={formatCurrency(-metrics.loanDisbursementsToday, company)} icon={<TrendingDown />} tone="red" />
+        <MetricCard label="Caja esperada hoy" value={formatCurrency(metrics.cashboxExpectedToday, company)} icon={<Banknote />} tone={metrics.cashboxExpectedToday < 0 ? "red" : "green"} />
+        <MetricCard label="Entradas caja" value={formatCurrency(metrics.cashInflowsToday, company)} icon={<TrendingUp />} tone="green" />
+        <MetricCard label="Salidas caja" value={formatCurrency(-metrics.cashOutflowsToday, company)} icon={<TrendingDown />} tone="orange" />
+        <MetricCard label="Movimiento neto caja" value={formatCurrency(cashNetToday, company)} tone={cashNetToday >= 0 ? "green" : "red"} />
         <MetricCard label="Prestamos vencidos" value={String(metrics.overdueLoans)} icon={<AlertTriangle />} tone={metrics.overdueLoans > 0 ? "red" : "green"} />
         <MetricCard label="Clientes pendientes" value={String(metrics.pendingClients)} tone={metrics.pendingClients > 0 ? "orange" : "green"} />
         <MetricCard label="Cobradores activos" value={String(metrics.activeSellers)} icon={<Users />} />

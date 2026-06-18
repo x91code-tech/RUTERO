@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Bell, Boxes, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
+import { Bell, Boxes, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, Menu, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
 import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { getNotificationSummary } from "@/lib/notifications-data";
 import { canRoleAccessPath, getDefaultPathForRole } from "@/lib/permissions";
@@ -81,13 +81,27 @@ export async function AppShell({ children, title, subtitle }: { children: React.
               </form>
             </div>
           </div>
-          <nav className="mt-3 flex gap-1.5 overflow-x-auto lg:hidden">
-            {allowedNavigation.slice(0, 8).map((item) => (
-              <Link key={item.href} className="shrink-0 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-zinc-300" href={item.href}>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <details className="group mt-3 lg:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-zinc-200">
+              <span className="inline-flex items-center gap-2">
+                <Menu className="h-4 w-4" />
+                Menu
+              </span>
+              <span className="text-xs text-zinc-500">{allowedNavigation.length} opciones</span>
+            </summary>
+            <nav className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {allowedNavigation.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <Link key={item.href} className="flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-zinc-300" href={item.href}>
+                    <Icon className="h-4 w-4 text-brand-500" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </details>
         </header>
         <main className="px-3 py-4 sm:px-5 lg:px-8 lg:py-6">{children}</main>
       </div>

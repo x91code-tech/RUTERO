@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
+import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { cashMovementKindLabels, getCashMovementImpact, isCashMovementOutflow, normalizeCashMovementKind } from "@/lib/cash-movements";
-import { demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoNotifications, demoSales, demoUsers } from "@/lib/demo-data";
+import { demoCashbox, demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoNotifications, demoSales, demoUsers } from "@/lib/demo-data";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
-import type { Company, Notification, PaymentMethod } from "@/lib/types";
+import type { Cashbox, Collection, Company, Expense, Loan, Notification, PaymentMethod, Sale } from "@/lib/types";
 
 function toCompany(company: {
   id: string;
@@ -26,6 +27,10 @@ function toCompany(company: {
   };
 }
 
+function sum(values: number[]) {
+  return values.reduce((total, value) => total + value, 0);
+}
+
 export type DashboardMovement = {
   id: string;
   type: "Prestamo" | "Recaudo" | "Gasto" | "Retiro" | "Entrada" | "Venta";
@@ -43,12 +48,24 @@ export async function getDashboardData() {
 
   if (!user) {
     const activeLoans = demoLoans.filter((loan) => loan.status === "ACTIVE");
+    const demoSummary = calculateDailySummary({
+      cashbox: demoCashbox,
+      sales: demoSales,
+      collections: demoCollections,
+      expenses: demoExpenses,
+      loans: demoLoans,
+      countryCode: demoCompany.countryCode
+    });
     return {
       company: demoCompany,
       metrics: {
         activeLoanBalance: activeLoans.reduce((total, loan) => total + loan.balance, 0),
         expectedToday: activeLoans.reduce((total, loan) => total + Math.min(loan.dailyPayment, loan.balance), 0),
         collectedToday: demoCollections.reduce((total, collection) => total + collection.amount, 0),
+        loanDisbursementsToday: demoSummary.loanDisbursementsTotal,
+        cashboxExpectedToday: demoSummary.expectedCash,
+        cashInflowsToday: demoSummary.cashInflows,
+        cashOutflowsToday: demoSummary.cashOutflows,
         expensesToday: demoExpenses.filter((expense) => isCashMovementOutflow(expense.movementKind)).reduce((total, expense) => total + expense.amount, 0),
         overdueLoans: activeLoans.filter((loan) => new Date(loan.dueDate) < new Date()).length,
         pendingClients: demoClients.filter((client) => client.status === "PENDING").length,
@@ -65,12 +82,18 @@ export async function getDashboardData() {
     };
   }
 
-  const [company, clients, users, loans, collectionsToday, expensesToday, salesToday, notifications] = await Promise.all([
+  const [company, clients, users, loans, loansToday, collectionsToday, expensesToday, salesToday, cashboxesToday, notifications] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
     prisma.client.findMany({ where: { companyId: user.companyId }, select: { id: true, name: true, status: true } }),
     prisma.user.findMany({ where: { companyId: user.companyId, active: true }, select: { id: true, name: true, role: true } }),
     prisma.loan.findMany({
       where: { companyId: user.companyId, status: "ACTIVE" },
+      include: { client: { select: { name: true } }, seller: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    }),
+    prisma.loan.findMany({
+      where: { companyId: user.companyId, createdAt: { gte: todayStart, lt: todayEnd } },
       include: { client: { select: { name: true } }, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 50
@@ -92,6 +115,10 @@ export async function getDashboardData() {
       include: { client: { select: { name: true } }, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 25
+    }),
+    prisma.cashbox.findMany({
+      where: { companyId: user.companyId, date: { gte: todayStart, lt: todayEnd } },
+      orderBy: { openedAt: "desc" }
     }),
     prisma.notification.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 8 })
   ]);
@@ -125,6 +152,75 @@ export async function getDashboardData() {
         }]
       : [])
   ];
+  const dashboardCashbox: Cashbox = {
+    id: cashboxesToday[0]?.id ?? "dashboard_cashbox",
+    companyId: user.companyId,
+    sellerId: user.id,
+    date: todayStart.toISOString(),
+    initialCash: sum(cashboxesToday.map((cashbox) => Number(cashbox.initialCash))),
+    reportedCash: sum(cashboxesToday.map((cashbox) => Number(cashbox.reportedCash))),
+    reportedTransfer: sum(cashboxesToday.map((cashbox) => Number(cashbox.reportedTransfer))),
+    reportedPix: sum(cashboxesToday.map((cashbox) => Number(cashbox.reportedPix))),
+    status: cashboxesToday.some((cashbox) => cashbox.status === "OPEN") ? "OPEN" : cashboxesToday[0]?.status ?? "OPEN",
+    observations: ""
+  };
+  const dashboardSummary = calculateDailySummary({
+    cashbox: dashboardCashbox,
+    countryCode: company.countryCode,
+    loans: loansToday.map((loan) => ({
+      id: loan.id,
+      companyId: loan.companyId,
+      clientId: loan.clientId,
+      sellerId: loan.sellerId,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      interestAmount: Number(loan.interestAmount),
+      totalAmount: Number(loan.totalAmount),
+      dailyPayment: Number(loan.dailyPayment),
+      paidAmount: Number(loan.paidAmount),
+      balance: Number(loan.balance),
+      termDays: loan.termDays,
+      startDate: loan.startDate.toISOString(),
+      dueDate: loan.dueDate.toISOString(),
+      status: loan.status,
+      notes: loan.notes ?? undefined
+    })) satisfies Loan[],
+    sales: salesToday.map((sale) => ({
+      id: sale.id,
+      companyId: sale.companyId,
+      clientId: sale.clientId,
+      sellerId: sale.sellerId,
+      product: sale.concept,
+      amount: Number(sale.amount),
+      paymentMethod: sale.paymentMethod,
+      date: sale.date.toISOString(),
+      observation: sale.observation ?? undefined
+    })) satisfies Sale[],
+    collections: collectionsToday.map((collection) => ({
+      id: collection.id,
+      companyId: collection.companyId,
+      clientId: collection.clientId,
+      loanId: collection.loanId ?? undefined,
+      sellerId: collection.sellerId,
+      amount: Number(collection.amount),
+      previousBalance: Number(collection.previousBalance),
+      newBalance: Number(collection.newBalance),
+      paymentMethod: collection.paymentMethod,
+      date: collection.date.toISOString(),
+      observation: collection.observation ?? undefined
+    })) satisfies Collection[],
+    expenses: expensesToday.map((expense) => ({
+      id: expense.id,
+      companyId: expense.companyId,
+      sellerId: expense.sellerId,
+      movementKind: normalizeCashMovementKind(expense.movementKind),
+      type: expense.type,
+      amount: Number(expense.amount),
+      paymentMethod: expense.paymentMethod,
+      date: expense.date.toISOString(),
+      comment: expense.comment ?? ""
+    })) satisfies Expense[]
+  });
 
   return {
     company: toCompany(company),
@@ -132,6 +228,10 @@ export async function getDashboardData() {
       activeLoanBalance: loans.reduce((total, loan) => total + Number(loan.balance), 0),
       expectedToday: loans.reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0),
       collectedToday: collectionsToday.reduce((total, collection) => total + Number(collection.amount), 0),
+      loanDisbursementsToday: dashboardSummary.loanDisbursementsTotal,
+      cashboxExpectedToday: dashboardSummary.expectedCash,
+      cashInflowsToday: dashboardSummary.cashInflows,
+      cashOutflowsToday: dashboardSummary.cashOutflows,
       expensesToday: expensesToday
         .filter((expense) => isCashMovementOutflow(normalizeCashMovementKind(expense.movementKind)))
         .reduce((total, expense) => total + Number(expense.amount), 0),
@@ -141,7 +241,7 @@ export async function getDashboardData() {
     },
     sellerCollections: sellerCollections.length ? sellerCollections : [{ label: "Sin recaudos", value: 0 }],
     recentMovements: [
-      ...loans.slice(0, 8).map((loan) => ({
+      ...loansToday.slice(0, 8).map((loan) => ({
         id: loan.id,
         type: "Prestamo" as const,
         clientName: loan.client.name,
