@@ -4,6 +4,8 @@ import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { cashMovementKindLabels, getCashMovementImpact, isCashMovementOutflow, normalizeCashMovementKind } from "@/lib/cash-movements";
 import { demoCashbox, demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoNotifications, demoSales, demoUsers } from "@/lib/demo-data";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
+import { paymentMethodLabel } from "@/lib/formatters";
+import type { AdminAnalyticsData } from "@/components/charts/admin-analytics";
 import type { Cashbox, Collection, Company, Expense, Loan, Notification, PaymentMethod, Sale } from "@/lib/types";
 
 function toCompany(company: {
@@ -31,6 +33,76 @@ function sum(values: number[]) {
   return values.reduce((total, value) => total + value, 0);
 }
 
+type Summary = ReturnType<typeof calculateDailySummary>;
+
+function buildCashFlowAnalytics(summary: Summary) {
+  return [
+    { label: "Ventas", entrada: summary.cashSales, salida: 0 },
+    { label: "Recaudos", entrada: summary.cashCollections, salida: 0 },
+    { label: "Entradas", entrada: summary.cashIncomeMovements, salida: 0 },
+    { label: "Prestamos", entrada: 0, salida: summary.loanDisbursementsTotal },
+    { label: "Gastos", entrada: 0, salida: summary.cashExpenses },
+    { label: "Retiros", entrada: 0, salida: summary.cashWithdrawals }
+  ];
+}
+
+function buildPortfolioAnalytics(loans: { balance: unknown; principalBalance?: unknown; interestBalance?: unknown; lateFeeBalance?: unknown; interestAmount?: unknown }[]) {
+  const principal = sum(loans.map((loan) => {
+    const principalBalance = Number(loan.principalBalance ?? 0);
+    if (principalBalance > 0) return principalBalance;
+    const balance = Number(loan.balance ?? 0);
+    const interest = Math.min(Number(loan.interestAmount ?? 0), balance);
+    return Math.max(balance - interest, 0);
+  }));
+  const interest = sum(loans.map((loan) => {
+    const interestBalance = Number(loan.interestBalance ?? 0);
+    if (interestBalance > 0) return interestBalance;
+    return Math.min(Number(loan.interestAmount ?? 0), Number(loan.balance ?? 0));
+  }));
+  const lateFee = sum(loans.map((loan) => Number(loan.lateFeeBalance ?? 0)));
+  const rows = [
+    { label: "Capital pendiente", value: principal },
+    { label: "Interes pendiente", value: interest },
+    { label: "Mora pendiente", value: lateFee }
+  ].filter((row) => row.value > 0);
+
+  return rows.length ? rows : [{ label: "Sin cartera activa", value: 0 }];
+}
+
+function buildClientStatusAnalytics(clients: { status: string }[]) {
+  const labels: Record<string, string> = {
+    ACTIVE: "Activos",
+    PENDING: "Por verificar",
+    DELINQUENT: "En atraso",
+    INACTIVE: "Inactivos"
+  };
+  const rows = Object.entries(labels).map(([status, label]) => ({
+    label,
+    value: clients.filter((client) => client.status === status).length
+  }));
+
+  return rows.some((row) => row.value > 0) ? rows : [{ label: "Sin clientes", value: 0 }];
+}
+
+function buildPaymentMethodAnalytics(records: { paymentMethod: string; amount: unknown }[], countryCode: string) {
+  const totals = new Map<string, number>();
+  for (const record of records) {
+    totals.set(record.paymentMethod, (totals.get(record.paymentMethod) ?? 0) + Number(record.amount ?? 0));
+  }
+  const rows = Array.from(totals.entries())
+    .map(([method, value]) => ({ label: paymentMethodLabel(method, countryCode), value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 6);
+
+  return rows.length ? rows : [{ label: "Sin pagos", value: 0 }];
+}
+
+function fallbackCollectorRows(rows: AdminAnalyticsData["collectors"]) {
+  return rows.some((row) => row.esperado > 0 || row.cobrado > 0 || row.entregado > 0)
+    ? rows
+    : [{ label: "Sin actividad", esperado: 0, cobrado: 0, entregado: 0 }];
+}
+
 export type DashboardMovement = {
   id: string;
   type: "Prestamo" | "Recaudo" | "Gasto" | "Retiro" | "Entrada" | "Venta";
@@ -56,6 +128,36 @@ export async function getDashboardData() {
       loans: demoLoans,
       countryCode: demoCompany.countryCode
     });
+    const demoCollectors = fallbackCollectorRows(
+      demoUsers
+        .filter((item) => item.role === "SELLER" || item.role === "SUPERVISOR")
+        .map((seller) => ({
+          label: seller.name,
+          esperado: activeLoans
+            .filter((loan) => loan.sellerId === seller.id)
+            .reduce((total, loan) => total + Math.min(loan.dailyPayment, loan.balance), 0),
+          cobrado: demoCollections
+            .filter((collection) => collection.sellerId === seller.id)
+            .reduce((total, collection) => total + collection.amount, 0),
+          entregado: demoLoans
+            .filter((loan) => loan.sellerId === seller.id)
+            .reduce((total, loan) => total + loan.principalAmount, 0)
+        }))
+    );
+    const demoAnalytics = {
+      cashFlow: buildCashFlowAnalytics(demoSummary),
+      portfolio: buildPortfolioAnalytics(activeLoans),
+      collectors: demoCollectors,
+      paymentMethods: buildPaymentMethodAnalytics([
+        ...demoSales.map((sale) => ({ paymentMethod: sale.paymentMethod, amount: sale.amount })),
+        ...demoCollections.map((collection) => ({ paymentMethod: collection.paymentMethod, amount: collection.amount })),
+        ...demoExpenses
+          .filter((expense) => normalizeCashMovementKind(expense.movementKind) === "INCOME")
+          .map((expense) => ({ paymentMethod: expense.paymentMethod, amount: expense.amount }))
+      ], demoCompany.countryCode),
+      clientStatus: buildClientStatusAnalytics(demoClients)
+    } satisfies AdminAnalyticsData;
+
     return {
       company: demoCompany,
       metrics: {
@@ -78,7 +180,8 @@ export async function getDashboardData() {
         ...demoSales.map((sale) => ({ id: sale.id, type: "Venta" as const, clientName: demoClients.find((client) => client.id === sale.clientId)?.name, paymentMethod: sale.paymentMethod, amount: sale.amount })),
         ...demoExpenses.map((expense) => ({ id: expense.id, type: cashMovementKindLabels[expense.movementKind], sellerName: demoUsers.find((seller) => seller.id === expense.sellerId)?.name, paymentMethod: expense.paymentMethod, amount: getCashMovementImpact(expense.amount, expense.movementKind) }))
       ].slice(0, 8),
-      notifications: demoNotifications
+      notifications: demoNotifications,
+      analytics: demoAnalytics
     };
   }
 
@@ -234,6 +337,35 @@ export async function getDashboardData() {
       comment: expense.comment ?? ""
     })) satisfies Expense[]
   });
+  const collectorAnalytics = fallbackCollectorRows(
+    users
+      .filter((item) => item.role === "SELLER" || item.role === "SUPERVISOR")
+      .map((seller) => ({
+        label: seller.name,
+        esperado: loans
+          .filter((loan) => loan.sellerId === seller.id)
+          .reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0),
+        cobrado: collectionsToday
+          .filter((collection) => collection.sellerId === seller.id)
+          .reduce((total, collection) => total + Number(collection.amount), 0),
+        entregado: loansToday
+          .filter((loan) => loan.sellerId === seller.id)
+          .reduce((total, loan) => total + Number(loan.principalAmount), 0)
+      }))
+  );
+  const analytics = {
+    cashFlow: buildCashFlowAnalytics(dashboardSummary),
+    portfolio: buildPortfolioAnalytics(loans),
+    collectors: collectorAnalytics,
+    paymentMethods: buildPaymentMethodAnalytics([
+      ...salesToday.map((sale) => ({ paymentMethod: sale.paymentMethod, amount: sale.amount })),
+      ...collectionsToday.map((collection) => ({ paymentMethod: collection.paymentMethod, amount: collection.amount })),
+      ...expensesToday
+        .filter((expense) => normalizeCashMovementKind(expense.movementKind) === "INCOME")
+        .map((expense) => ({ paymentMethod: expense.paymentMethod, amount: expense.amount }))
+    ], company.countryCode),
+    clientStatus: buildClientStatusAnalytics(clients)
+  } satisfies AdminAnalyticsData;
 
   return {
     company: toCompany(company),
@@ -291,6 +423,7 @@ export async function getDashboardData() {
       title: notification.title,
       message: notification.message,
       severity: notification.severity as Notification["severity"]
-    }))]
+    }))],
+    analytics
   };
 }

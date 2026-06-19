@@ -3,12 +3,12 @@ import { AppShell } from "@/components/layout/app-shell";
 import { MetricCard } from "@/components/cards/metric-card";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { SimpleBars } from "@/components/charts/simple-bars";
+import { AdminAnalytics } from "@/components/charts/admin-analytics";
 import { getDashboardData } from "@/lib/dashboard-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
 export default async function DashboardPage() {
-  const { company, metrics, notifications, recentMovements, sellerCollections } = await getDashboardData();
+  const { analytics, company, metrics, notifications, recentMovements } = await getDashboardData();
   const cashNetToday = metrics.cashInflowsToday - metrics.cashOutflowsToday;
 
   return (
@@ -27,11 +27,11 @@ export default async function DashboardPage() {
         <MetricCard label="Cobradores activos" value={String(metrics.activeSellers)} icon={<Users />} />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <CardHeader title="Recaudos por cobrador" description="Cobranza registrada hoy por usuario operativo." />
-          <SimpleBars currencyConfig={company} data={sellerCollections} />
-        </Card>
+      <div className="mt-6">
+        <AdminAnalytics company={company} data={analytics} />
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
         <Card>
           <CardHeader title="Alertas" description="Eventos que requieren atencion." />
           <div className="space-y-3">
@@ -46,35 +46,35 @@ export default async function DashboardPage() {
             ))}
           </div>
         </Card>
-      </div>
 
-      <Card className="mt-6">
-        <CardHeader title="Ultimos movimientos" description="Prestamos, recaudos, ventas y movimientos de caja recientes." />
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="text-zinc-400">
-              <tr>
-                <th className="pb-3">Tipo</th>
-                <th className="pb-3">Cliente</th>
-                <th className="pb-3">Cobrador</th>
-                <th className="pb-3">Metodo</th>
-                <th className="pb-3 text-right">Monto</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/10">
-              {recentMovements.map((movement) => (
-                <tr key={`${movement.type}-${movement.id}`}>
-                  <td className="py-3"><StatusBadge tone={movementTone(movement.type)}>{movement.type}</StatusBadge></td>
-                  <td>{"clientName" in movement ? movement.clientName ?? "-" : "-"}</td>
-                  <td>{"sellerName" in movement ? movement.sellerName ?? "-" : "-"}</td>
-                  <td>{"paymentMethod" in movement && movement.paymentMethod ? paymentMethodLabel(movement.paymentMethod, company.countryCode) : "-"}</td>
-                  <td className={movement.amount < 0 ? "text-right font-semibold text-red-300" : "text-right font-semibold"}>{formatCurrency(movement.amount, company)}</td>
+        <Card>
+          <CardHeader title="Ultimos movimientos" description="Prestamos, recaudos, ventas y movimientos de caja recientes." />
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="text-zinc-400">
+                <tr>
+                  <th className="pb-3">Tipo</th>
+                  <th className="pb-3">Cliente</th>
+                  <th className="pb-3">Cobrador</th>
+                  <th className="pb-3">Metodo</th>
+                  <th className="pb-3 text-right">Monto</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {recentMovements.map((movement) => (
+                  <tr key={`${movement.type}-${movement.id}`}>
+                    <td className="py-3"><StatusBadge tone={movementTone(movement.type)}>{movement.type}</StatusBadge></td>
+                    <td>{"clientName" in movement ? movement.clientName ?? "-" : "-"}</td>
+                    <td>{"sellerName" in movement ? movement.sellerName ?? "-" : "-"}</td>
+                    <td>{"paymentMethod" in movement && movement.paymentMethod ? paymentMethodLabel(movement.paymentMethod, company.countryCode) : "-"}</td>
+                    <td className={movement.amount < 0 ? "text-right font-semibold text-red-300" : "text-right font-semibold"}>{formatCurrency(movement.amount, company)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
     </AppShell>
   );
 }
