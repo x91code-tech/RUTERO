@@ -1,9 +1,10 @@
-import type { CollectionApplication, CollectionPaymentType } from "@/lib/types";
+import type { CollectionApplication, CollectionPaymentType, PaymentAllocationOrder } from "@/lib/types";
 
 type LoanPaymentInput = {
   amount: number;
   application: CollectionApplication;
   paymentType: CollectionPaymentType;
+  allocationOrder?: PaymentAllocationOrder;
   loan: {
     balance: number;
     principalAmount: number;
@@ -56,7 +57,7 @@ export function allocateLoanPayment(input: LoanPaymentInput): LoanPaymentAllocat
     };
   }
 
-  const order = getApplicationOrder(input.application);
+  const order = getApplicationOrder(input.application, input.allocationOrder);
   const remaining = { ...balances };
   const applied = { principal: 0, interest: 0, lateFee: 0 };
   let amountLeft = amount;
@@ -122,11 +123,13 @@ function getComponentBalances(loan: LoanPaymentInput["loan"]) {
   };
 }
 
-function getApplicationOrder(application: CollectionApplication): Array<"lateFee" | "interest" | "principal"> {
+function getApplicationOrder(application: CollectionApplication, allocationOrder: PaymentAllocationOrder = "LATE_FEE_INTEREST_PRINCIPAL"): Array<"lateFee" | "interest" | "principal"> {
   if (application === "CAPITAL_ONLY") return ["principal"];
   if (application === "INTEREST_ONLY") return ["interest"];
   if (application === "LATE_FEE") return ["lateFee"];
   if (application === "CAPITAL_INTEREST") return ["interest", "principal"];
+  if (allocationOrder === "INTEREST_PRINCIPAL_LATE_FEE") return ["interest", "principal", "lateFee"];
+  if (allocationOrder === "PRINCIPAL_INTEREST_LATE_FEE") return ["principal", "interest", "lateFee"];
   return ["lateFee", "interest", "principal"];
 }
 

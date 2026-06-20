@@ -6,19 +6,22 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getFinancialPageData } from "@/lib/financial-data";
 import { formatCurrency } from "@/lib/formatters";
+import { shouldCollectOnDate } from "@/lib/loan-schedule";
 
 export default async function LoansPage() {
   const { clients, company, loans } = await getFinancialPageData();
   const activeLoans = loans.filter((loan) => loan.status === "ACTIVE");
   const activeBalance = activeLoans.reduce((total, loan) => total + loan.balance, 0);
-  const dailyExpected = activeLoans.reduce((total, loan) => total + loan.dailyPayment, 0);
+  const dailyExpected = activeLoans
+    .filter((loan) => shouldCollectOnDate({ startDate: loan.startDate, frequency: loan.paymentFrequency }))
+    .reduce((total, loan) => total + loan.dailyPayment, 0);
   const projectedInterest = loans.reduce((total, loan) => total + loan.interestAmount, 0);
 
   return (
     <AppShell title="Prestamos" subtitle="Registra el dinero entregado, calcula interes, cuotas y saldo automatico.">
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard label="Saldo activo" value={formatCurrency(activeBalance, company)} icon={<Landmark />} />
-        <MetricCard label="Cobro diario esperado" value={formatCurrency(dailyExpected, company)} />
+        <MetricCard label="Cobro esperado hoy" value={formatCurrency(dailyExpected, company)} />
         <MetricCard label="Ganancia proyectada" value={formatCurrency(projectedInterest, company)} />
       </div>
 
@@ -46,7 +49,7 @@ export default async function LoansPage() {
                     <StatusBadge tone={tone}>{loan.status}</StatusBadge>
                   </div>
                   <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                    <p><span className="text-zinc-400">Cuota diaria</span><br /><strong>{formatCurrency(loan.dailyPayment, company)}</strong></p>
+                    <p><span className="text-zinc-400">Valor cuota</span><br /><strong>{formatCurrency(loan.dailyPayment, company)}</strong></p>
                     <p><span className="text-zinc-400">Pagado</span><br /><strong>{formatCurrency(loan.paidAmount, company)}</strong></p>
                     <p><span className="text-zinc-400">Saldo</span><br /><strong>{formatCurrency(loan.balance, company)}</strong></p>
                   </div>

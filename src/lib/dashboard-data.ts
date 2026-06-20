@@ -5,6 +5,7 @@ import { cashMovementKindLabels, getCashMovementImpact, isCashMovementOutflow, n
 import { demoCashbox, demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoNotifications, demoSales, demoUsers } from "@/lib/demo-data";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import { paymentMethodLabel } from "@/lib/formatters";
+import { shouldCollectOnDate } from "@/lib/loan-schedule";
 import type { AdminAnalyticsData } from "@/components/charts/admin-analytics";
 import type { Cashbox, Collection, Company, Expense, Loan, Notification, PaymentMethod, Sale } from "@/lib/types";
 
@@ -135,6 +136,7 @@ export async function getDashboardData() {
           label: seller.name,
           esperado: activeLoans
             .filter((loan) => loan.sellerId === seller.id)
+            .filter((loan) => shouldCollectOnDate({ startDate: loan.startDate, frequency: loan.paymentFrequency }))
             .reduce((total, loan) => total + Math.min(loan.dailyPayment, loan.balance), 0),
           cobrado: demoCollections
             .filter((collection) => collection.sellerId === seller.id)
@@ -162,7 +164,9 @@ export async function getDashboardData() {
       company: demoCompany,
       metrics: {
         activeLoanBalance: activeLoans.reduce((total, loan) => total + loan.balance, 0),
-        expectedToday: activeLoans.reduce((total, loan) => total + Math.min(loan.dailyPayment, loan.balance), 0),
+        expectedToday: activeLoans
+          .filter((loan) => shouldCollectOnDate({ startDate: loan.startDate, frequency: loan.paymentFrequency }))
+          .reduce((total, loan) => total + Math.min(loan.dailyPayment, loan.balance), 0),
         collectedToday: demoCollections.reduce((total, collection) => total + collection.amount, 0),
         loanDisbursementsToday: demoSummary.loanDisbursementsTotal,
         cashboxExpectedToday: demoSummary.expectedCash,
@@ -286,6 +290,7 @@ export async function getDashboardData() {
       interestBalance: Number(loan.interestBalance),
       lateFeeBalance: Number(loan.lateFeeBalance),
       installmentsPaid: Number(loan.installmentsPaid),
+      paymentFrequency: loan.paymentFrequency,
       termDays: loan.termDays,
       startDate: loan.startDate.toISOString(),
       dueDate: loan.dueDate.toISOString(),
@@ -344,6 +349,7 @@ export async function getDashboardData() {
         label: seller.name,
         esperado: loans
           .filter((loan) => loan.sellerId === seller.id)
+          .filter((loan) => shouldCollectOnDate({ startDate: loan.startDate, targetDate: todayStart, frequency: loan.paymentFrequency }))
           .reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0),
         cobrado: collectionsToday
           .filter((collection) => collection.sellerId === seller.id)
@@ -371,7 +377,9 @@ export async function getDashboardData() {
     company: toCompany(company),
     metrics: {
       activeLoanBalance: loans.reduce((total, loan) => total + Number(loan.balance), 0),
-      expectedToday: loans.reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0),
+      expectedToday: loans
+        .filter((loan) => shouldCollectOnDate({ startDate: loan.startDate, targetDate: todayStart, frequency: loan.paymentFrequency }))
+        .reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0),
       collectedToday: collectionsToday.reduce((total, collection) => total + Number(collection.amount), 0),
       loanDisbursementsToday: dashboardSummary.loanDisbursementsTotal,
       cashboxExpectedToday: dashboardSummary.expectedCash,

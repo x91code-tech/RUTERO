@@ -174,6 +174,7 @@ export async function getCashboxPageData() {
       interestBalance: Number(loan.interestBalance),
       lateFeeBalance: Number(loan.lateFeeBalance),
       installmentsPaid: Number(loan.installmentsPaid),
+      paymentFrequency: loan.paymentFrequency,
       termDays: loan.termDays,
       startDate: loan.startDate.toISOString(),
       dueDate: loan.dueDate.toISOString(),

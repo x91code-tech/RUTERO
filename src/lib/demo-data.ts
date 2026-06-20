@@ -9,7 +9,15 @@ export const demoCompany: Company = {
   countryCode: "VE",
   currencyCode: "VES",
   locale: "es-VE",
-  timeZone: "America/Caracas"
+  timeZone: "America/Caracas",
+  defaultInterestRate: 0.2,
+  defaultTermDays: 20,
+  paymentFrequency: "DAILY",
+  lateFeeRate: 0,
+  lateFeeGraceDays: 0,
+  paymentAllocationOrder: "LATE_FEE_INTEREST_PRINCIPAL",
+  renewalPolicy: "PAID_ONLY",
+  cashboxOpeningMode: "MANUAL"
 };
 
 export const demoUsers: User[] = [
@@ -181,6 +189,7 @@ export const demoLoans: Loan[] = [
     dailyPayment: 24,
     paidAmount: 0,
     balance: 240,
+    paymentFrequency: "DAILY",
     termDays: 10,
     startDate: today,
     dueDate: "2026-06-21",
@@ -199,6 +208,7 @@ export const demoLoans: Loan[] = [
     dailyPayment: 120,
     paidAmount: 590,
     balance: 610,
+    paymentFrequency: "DAILY",
     termDays: 10,
     startDate: today,
     dueDate: "2026-06-21",

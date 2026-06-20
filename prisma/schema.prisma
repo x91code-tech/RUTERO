@@ -86,6 +86,30 @@ enum CollectionApplication {
   ADDITIONAL_NO_BALANCE
 }
 
+enum PaymentFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum PaymentAllocationOrder {
+  LATE_FEE_INTEREST_PRINCIPAL
+  INTEREST_PRINCIPAL_LATE_FEE
+  PRINCIPAL_INTEREST_LATE_FEE
+}
+
+enum RenewalPolicy {
+  PAID_ONLY
+  ADMIN_OVERRIDE
+  ALLOW_BALANCE
+}
+
+enum CashboxOpeningMode {
+  MANUAL
+  SCHEDULED
+}
+
 enum InventoryMovementType {
   IN
   OUT
@@ -106,28 +130,37 @@ enum ClientDocumentStatus {
 }
 
 model Company {
-  id            String            @id @default(cuid())
-  name          String
-  rif           String?
-  countryCode   String            @default("VE")
-  currencyCode  String            @default("VES")
-  locale        String            @default("es-VE")
-  timeZone      String            @default("America/Caracas")
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  users         User[]
-  clients       Client[]
-  routes        Route[]
-  loans         Loan[]
-  sales         Sale[]
-  collections   Collection[]
-  expenses      Expense[]
-  cashboxes     Cashbox[]
-  products      Product[]
-  reports       Report[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
-  subscription  SubscriptionPlan?
+  id                     String                  @id @default(cuid())
+  name                   String
+  rif                    String?
+  countryCode            String                  @default("VE")
+  currencyCode           String                  @default("VES")
+  locale                 String                  @default("es-VE")
+  timeZone               String                  @default("America/Caracas")
+  defaultInterestRate    Decimal                 @default(0.20) @db.Decimal(5, 4)
+  defaultTermDays        Int                     @default(20)
+  paymentFrequency       PaymentFrequency        @default(DAILY)
+  lateFeeRate            Decimal                 @default(0) @db.Decimal(5, 4)
+  lateFeeGraceDays       Int                     @default(0)
+  paymentAllocationOrder PaymentAllocationOrder  @default(LATE_FEE_INTEREST_PRINCIPAL)
+  renewalPolicy          RenewalPolicy           @default(PAID_ONLY)
+  cashboxOpeningMode     CashboxOpeningMode      @default(MANUAL)
+  cashboxAutoOpenTime    String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  users                  User[]
+  clients                Client[]
+  routes                 Route[]
+  loans                  Loan[]
+  sales                  Sale[]
+  collections            Collection[]
+  expenses               Expense[]
+  cashboxes              Cashbox[]
+  products               Product[]
+  reports                Report[]
+  notifications          Notification[]
+  auditLogs              AuditLog[]
+  subscription           SubscriptionPlan?
 }
 
 model User {
@@ -286,6 +319,7 @@ model Loan {
   interestBalance  Decimal     @default(0) @db.Decimal(12, 2)
   lateFeeBalance   Decimal     @default(0) @db.Decimal(12, 2)
   installmentsPaid Decimal     @default(0) @db.Decimal(8, 2)
+  paymentFrequency PaymentFrequency @default(DAILY)
   termDays        Int
   startDate       DateTime
   dueDate         DateTime

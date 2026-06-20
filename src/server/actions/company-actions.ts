@@ -38,7 +38,16 @@ export async function updateCompanySettingsAction(_state: CompanyFormState, form
       countryCode: countryConfig.countryCode,
       currencyCode: countryConfig.currencyCode,
       locale: countryConfig.locale,
-      timeZone: countryConfig.timeZone
+      timeZone: countryConfig.timeZone,
+      defaultInterestRate: parsed.data.defaultInterestRatePercent / 100,
+      defaultTermDays: parsed.data.defaultTermDays,
+      paymentFrequency: parsed.data.paymentFrequency,
+      lateFeeRate: parsed.data.lateFeeRatePercent / 100,
+      lateFeeGraceDays: parsed.data.lateFeeGraceDays,
+      paymentAllocationOrder: parsed.data.paymentAllocationOrder,
+      renewalPolicy: parsed.data.renewalPolicy,
+      cashboxOpeningMode: parsed.data.cashboxOpeningMode,
+      cashboxAutoOpenTime: parsed.data.cashboxOpeningMode === "SCHEDULED" ? parsed.data.cashboxAutoOpenTime || null : null
     }
   });
 
@@ -53,18 +62,39 @@ export async function updateCompanySettingsAction(_state: CompanyFormState, form
         name: previousCompany.name,
         rif: previousCompany.rif,
         countryCode: previousCompany.countryCode,
-        currencyCode: previousCompany.currencyCode
+        currencyCode: previousCompany.currencyCode,
+        defaultInterestRate: Number(previousCompany.defaultInterestRate),
+        defaultTermDays: previousCompany.defaultTermDays,
+        paymentFrequency: previousCompany.paymentFrequency,
+        lateFeeRate: Number(previousCompany.lateFeeRate),
+        lateFeeGraceDays: previousCompany.lateFeeGraceDays,
+        paymentAllocationOrder: previousCompany.paymentAllocationOrder,
+        renewalPolicy: previousCompany.renewalPolicy,
+        cashboxOpeningMode: previousCompany.cashboxOpeningMode,
+        cashboxAutoOpenTime: previousCompany.cashboxAutoOpenTime
       },
       newValue: {
         name: updatedCompany.name,
         rif: updatedCompany.rif,
         countryCode: updatedCompany.countryCode,
-        currencyCode: updatedCompany.currencyCode
+        currencyCode: updatedCompany.currencyCode,
+        defaultInterestRate: Number(updatedCompany.defaultInterestRate),
+        defaultTermDays: updatedCompany.defaultTermDays,
+        paymentFrequency: updatedCompany.paymentFrequency,
+        lateFeeRate: Number(updatedCompany.lateFeeRate),
+        lateFeeGraceDays: updatedCompany.lateFeeGraceDays,
+        paymentAllocationOrder: updatedCompany.paymentAllocationOrder,
+        renewalPolicy: updatedCompany.renewalPolicy,
+        cashboxOpeningMode: updatedCompany.cashboxOpeningMode,
+        cashboxAutoOpenTime: updatedCompany.cashboxAutoOpenTime
       }
     }
   });
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
+  revalidatePath("/loans");
+  revalidatePath("/clients");
+  revalidatePath("/cashbox");
   return { ok: true, message: "Empresa actualizada correctamente." };
 }

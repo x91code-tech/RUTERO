@@ -33,6 +33,13 @@ export type CollectionApplication =
   | "LATE_FEE"
   | "ADDITIONAL_WITH_BALANCE"
   | "ADDITIONAL_NO_BALANCE";
+export type PaymentFrequency = "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY";
+export type PaymentAllocationOrder =
+  | "LATE_FEE_INTEREST_PRINCIPAL"
+  | "INTEREST_PRINCIPAL_LATE_FEE"
+  | "PRINCIPAL_INTEREST_LATE_FEE";
+export type RenewalPolicy = "PAID_ONLY" | "ADMIN_OVERRIDE" | "ALLOW_BALANCE";
+export type CashboxOpeningMode = "MANUAL" | "SCHEDULED";
 export type ClientLocationType = "STORE" | "WAREHOUSE" | "BILLING" | "OTHER";
 export type ClientDocumentStatus = "PENDING" | "UPLOADED" | "APPROVED" | "REJECTED";
 export type CashMovementKind = "EXPENSE" | "WITHDRAWAL" | "INCOME";
@@ -47,6 +54,15 @@ export type Company = {
   locale: string;
   timeZone: string;
   fractionDigits?: number;
+  defaultInterestRate?: number;
+  defaultTermDays?: number;
+  paymentFrequency?: PaymentFrequency;
+  lateFeeRate?: number;
+  lateFeeGraceDays?: number;
+  paymentAllocationOrder?: PaymentAllocationOrder;
+  renewalPolicy?: RenewalPolicy;
+  cashboxOpeningMode?: CashboxOpeningMode;
+  cashboxAutoOpenTime?: string;
 };
 
 export type User = {
@@ -162,6 +178,7 @@ export type Loan = {
   interestBalance?: number;
   lateFeeBalance?: number;
   installmentsPaid?: number;
+  paymentFrequency?: PaymentFrequency;
   termDays: number;
   startDate: string;
   dueDate: string;

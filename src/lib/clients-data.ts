@@ -47,7 +47,16 @@ export async function getClientsPageData() {
       countryCode: company.countryCode,
       currencyCode: company.currencyCode,
       locale: company.locale,
-      timeZone: company.timeZone
+      timeZone: company.timeZone,
+      defaultInterestRate: Number(company.defaultInterestRate),
+      defaultTermDays: company.defaultTermDays,
+      paymentFrequency: company.paymentFrequency,
+      lateFeeRate: Number(company.lateFeeRate),
+      lateFeeGraceDays: company.lateFeeGraceDays,
+      paymentAllocationOrder: company.paymentAllocationOrder,
+      renewalPolicy: company.renewalPolicy,
+      cashboxOpeningMode: company.cashboxOpeningMode,
+      cashboxAutoOpenTime: company.cashboxAutoOpenTime ?? undefined
     } satisfies Company,
     clients: clients.map(toClient),
     routes: routes.map((route) => ({
@@ -135,7 +144,16 @@ export async function getClientProfileData(id: string) {
       countryCode: client.company.countryCode,
       currencyCode: client.company.currencyCode,
       locale: client.company.locale,
-      timeZone: client.company.timeZone
+      timeZone: client.company.timeZone,
+      defaultInterestRate: Number(client.company.defaultInterestRate),
+      defaultTermDays: client.company.defaultTermDays,
+      paymentFrequency: client.company.paymentFrequency,
+      lateFeeRate: Number(client.company.lateFeeRate),
+      lateFeeGraceDays: client.company.lateFeeGraceDays,
+      paymentAllocationOrder: client.company.paymentAllocationOrder,
+      renewalPolicy: client.company.renewalPolicy,
+      cashboxOpeningMode: client.company.cashboxOpeningMode,
+      cashboxAutoOpenTime: client.company.cashboxAutoOpenTime ?? undefined
     } satisfies Company,
     client: {
       ...toClient(client),
@@ -187,6 +205,7 @@ export async function getClientProfileData(id: string) {
       interestBalance: Number(loan.interestBalance),
       lateFeeBalance: Number(loan.lateFeeBalance),
       installmentsPaid: Number(loan.installmentsPaid),
+      paymentFrequency: loan.paymentFrequency,
       termDays: loan.termDays,
       startDate: loan.startDate.toISOString(),
       dueDate: loan.dueDate.toISOString(),

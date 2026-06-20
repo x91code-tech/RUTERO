@@ -36,7 +36,16 @@ export async function getFinancialPageData() {
       countryCode: company.countryCode,
       currencyCode: company.currencyCode,
       locale: company.locale,
-      timeZone: company.timeZone
+      timeZone: company.timeZone,
+      defaultInterestRate: Number(company.defaultInterestRate),
+      defaultTermDays: company.defaultTermDays,
+      paymentFrequency: company.paymentFrequency,
+      lateFeeRate: Number(company.lateFeeRate),
+      lateFeeGraceDays: company.lateFeeGraceDays,
+      paymentAllocationOrder: company.paymentAllocationOrder,
+      renewalPolicy: company.renewalPolicy,
+      cashboxOpeningMode: company.cashboxOpeningMode,
+      cashboxAutoOpenTime: company.cashboxAutoOpenTime ?? undefined
     } satisfies Company,
     clients: clients.map((client) => ({
       id: client.id,
@@ -69,6 +78,7 @@ export async function getFinancialPageData() {
       interestBalance: Number(loan.interestBalance),
       lateFeeBalance: Number(loan.lateFeeBalance),
       installmentsPaid: Number(loan.installmentsPaid),
+      paymentFrequency: loan.paymentFrequency,
       termDays: loan.termDays,
       startDate: loan.startDate.toISOString(),
       dueDate: loan.dueDate.toISOString(),

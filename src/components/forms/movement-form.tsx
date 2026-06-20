@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { CashMovementFields } from "@/components/forms/cash-movement-fields";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { getDefaultInterestPercent, getDefaultTermDays, paymentFrequencyLabels } from "@/lib/company-settings";
 import { demoClients, demoCompany } from "@/lib/demo-data";
 import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
 import { createCollectionAction, createExpenseAction, createLoanAction, createSaleAction } from "@/server/actions/financial-actions";
@@ -31,7 +32,9 @@ function getFormData(input?: MovementFormProps) {
 }
 
 export function LoanForm(props: MovementFormProps) {
-  const { clients } = getFormData(props);
+  const { clients, company } = getFormData(props);
+  const defaultInterestPercent = getDefaultInterestPercent(company.defaultInterestRate);
+  const defaultTermDays = getDefaultTermDays(company.defaultTermDays);
 
   return (
     <form action={createLoanAction} className="grid gap-4">
@@ -49,14 +52,16 @@ export function LoanForm(props: MovementFormProps) {
           <Input name="principalAmount" type="number" defaultValue="100" min="0" step="0.01" />
         </Field>
         <Field label="Dias de pago">
-          <Input name="termDays" type="number" defaultValue="10" min="1" step="1" />
+          <Input name="termDays" type="number" defaultValue={defaultTermDays} min="1" step="1" />
         </Field>
       </div>
+      <input type="hidden" name="interestRatePercent" value={defaultInterestPercent} />
+      <input type="hidden" name="paymentFrequency" value={company.paymentFrequency ?? "DAILY"} />
       <Field label="Fecha de inicio">
         <Input name="startDate" type="date" defaultValue={todayInputValue()} />
       </Field>
       <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
-        RUTERO calcula 20% de ganancia. Ejemplo: si prestas 100, el cliente debe pagar 120 dividido entre los dias indicados.
+        RUTERO calcula {defaultInterestPercent}% de ganancia en frecuencia {paymentFrequencyLabels[company.paymentFrequency ?? "DAILY"].toLowerCase()}.
       </div>
       <Field label="Notas">
         <Textarea name="notes" placeholder="Condiciones, referencia o acuerdo con el cliente" />

@@ -56,7 +56,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                 </div>
                 <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
                   <p><span className="text-zinc-400">Entregado</span><br /><strong>{formatCurrency(loan.principalAmount, company)}</strong></p>
-                  <p><span className="text-zinc-400">Cuota diaria</span><br /><strong>{formatCurrency(loan.dailyPayment, company)}</strong></p>
+                  <p><span className="text-zinc-400">Valor cuota</span><br /><strong>{formatCurrency(loan.dailyPayment, company)}</strong></p>
                   <p><span className="text-zinc-400">Saldo</span><br /><strong>{formatCurrency(loan.balance, company)}</strong></p>
                 </div>
                 {loan.status === "ACTIVE" && loan.balance > 0 ? (

@@ -5,11 +5,17 @@ import { collectionApplicationLabel, collectionPaymentTypeLabel } from "@/lib/co
 import { getFinancialPageData } from "@/lib/financial-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
-export default async function CollectionsPage() {
+const errorMessages: Record<string, string> = {
+  renewal_requires_full_payment: "La configuracion de la empresa exige pagar el saldo completo o autorizacion administrativa para renovar."
+};
+
+export default async function CollectionsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   const { clients, collections, company, loans } = await getFinancialPageData();
 
   return (
     <AppShell title="Recaudos" subtitle="Cobranza con calculo de saldo anterior, saldo nuevo e impacto de caja.">
+      {error ? <p className="mb-4 rounded-xl bg-amber-500/15 px-4 py-3 text-sm text-amber-100">{errorMessages[error] ?? "No se pudo registrar el recaudo."}</p> : null}
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
           <CardHeader title="Registrar recaudo" description="Reduce el saldo pendiente del cliente y del prestamo seleccionado." />

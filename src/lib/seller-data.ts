@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { demoClients, demoCollections, demoCompany, demoLoans } from "@/lib/demo-data";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
+import { getInstallmentNumber, shouldCollectOnDate } from "@/lib/loan-schedule";
 import type { Client, Collection, Company, Loan } from "@/lib/types";
 
 export type SellerCollectionItem = {
@@ -14,12 +15,6 @@ export type SellerCollectionItem = {
   lateAmount: number;
   isPaidToday: boolean;
 };
-
-function daysBetween(startDate: string | Date, endDate = new Date()) {
-  const start = startOfLocalDay(new Date(startDate));
-  const end = startOfLocalDay(endDate);
-  return Math.max(Math.floor((end.getTime() - start.getTime()) / 86400000) + 1, 1);
-}
 
 function toCompany(company: {
   id: string;
@@ -89,6 +84,7 @@ function toLoan(loan: {
   interestBalance: unknown;
   lateFeeBalance: unknown;
   installmentsPaid: unknown;
+  paymentFrequency: Loan["paymentFrequency"];
   termDays: number;
   startDate: Date;
   dueDate: Date;
@@ -111,6 +107,7 @@ function toLoan(loan: {
     interestBalance: Number(loan.interestBalance),
     lateFeeBalance: Number(loan.lateFeeBalance),
     installmentsPaid: Number(loan.installmentsPaid),
+    paymentFrequency: loan.paymentFrequency,
     termDays: loan.termDays,
     startDate: loan.startDate.toISOString(),
     dueDate: loan.dueDate.toISOString(),
@@ -177,9 +174,15 @@ function buildItems(clients: Client[], loans: Loan[], collections: Collection[],
       const todayCollections = collections.filter((collection) => collection.loanId === loan.id);
       const receivedToday = todayCollections.reduce((total, collection) => total + collection.amount, 0);
       const paidToday = todayCollections.reduce((total, collection) => total + (collection.balanceApplied ?? collection.amount), 0);
-      const installmentNumber = Math.min(daysBetween(loan.startDate), loan.termDays);
+      const installmentNumber = getInstallmentNumber({
+        startDate: loan.startDate,
+        frequency: loan.paymentFrequency,
+        termDays: loan.termDays
+      });
       const expectedPaidToDate = Math.min(installmentNumber * loan.dailyPayment, loan.totalAmount);
       const lateAmount = Math.max(expectedPaidToDate - loan.paidAmount, 0);
+      const shouldCollectToday = shouldCollectOnDate({ startDate: loan.startDate, frequency: loan.paymentFrequency });
+      const expectedToday = shouldCollectToday ? Math.min(loan.dailyPayment, loan.balance) : 0;
 
       return {
         client,
@@ -189,7 +192,7 @@ function buildItems(clients: Client[], loans: Loan[], collections: Collection[],
         installmentNumber,
         expectedPaidToDate,
         lateAmount,
-        isPaidToday: paidToday >= Math.min(loan.dailyPayment, loan.balance)
+        isPaidToday: expectedToday === 0 || paidToday >= expectedToday
       } satisfies SellerCollectionItem;
     })
     .filter((item): item is SellerCollectionItem => Boolean(item))
@@ -225,7 +228,10 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
       totals: {
         pendingClients: items.filter((item) => !item.isPaidToday).length,
         paidClients: items.filter((item) => item.isPaidToday).length,
-        expectedToday: items.reduce((total, item) => total + Math.min(item.loan.dailyPayment, item.loan.balance), 0),
+        expectedToday: items.reduce((total, item) => {
+          if (!shouldCollectOnDate({ startDate: item.loan.startDate, frequency: item.loan.paymentFrequency })) return total;
+          return total + Math.min(item.loan.dailyPayment, item.loan.balance);
+        }, 0),
         collectedToday: items.reduce((total, item) => total + item.receivedToday, 0),
         activeBalance: items.reduce((total, item) => total + item.loan.balance, 0)
       }
@@ -254,7 +260,10 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
     totals: {
       pendingClients: items.filter((item) => !item.isPaidToday).length,
       paidClients: items.filter((item) => item.isPaidToday).length,
-      expectedToday: items.reduce((total, item) => total + Math.min(item.loan.dailyPayment, item.loan.balance), 0),
+      expectedToday: items.reduce((total, item) => {
+        if (!shouldCollectOnDate({ startDate: item.loan.startDate, frequency: item.loan.paymentFrequency, targetDate: todayStart })) return total;
+        return total + Math.min(item.loan.dailyPayment, item.loan.balance);
+      }, 0),
       collectedToday: items.reduce((total, item) => total + item.receivedToday, 0),
       activeBalance: items.reduce((total, item) => total + item.loan.balance, 0)
     }

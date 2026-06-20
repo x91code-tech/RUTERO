@@ -7,17 +7,12 @@ import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { normalizeCashMovementKind } from "@/lib/cash-movements";
 import { endOfLocalDay, parseDateInputAsLocal, startOfLocalDay } from "@/lib/date-utils";
 import { prisma } from "@/lib/db";
+import { addPaymentPeriods } from "@/lib/loan-schedule";
 import { allocateLoanPayment, getGeneralBalanceAllocation } from "@/lib/loan-payments";
 import { getSessionUser } from "@/lib/session";
 import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
 import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema } from "@/lib/validations";
 import { createNotification } from "@/server/services/notification-service";
-
-function addDays(date: Date, days: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + days);
-  return nextDate;
-}
 
 export async function createSaleAction(formData: FormData) {
   const payload = saleSchema.parse(Object.fromEntries(formData));
@@ -90,47 +85,62 @@ export async function createCollectionAction(formData: FormData) {
       ...(user.role === "SELLER" ? { sellerId: user.id } : {})
     }
   });
+  const companySettings = await prisma.company.findUniqueOrThrow({
+    where: { id: user.companyId },
+    select: { paymentAllocationOrder: true, renewalPolicy: true }
+  });
   const previousBalance = Number(client.pendingBalance);
   const date = parseDateInputAsLocal(payload.date);
   let paidLoanNotification: { balance: number } | null = null;
 
-  await prisma.$transaction(async (tx) => {
-    const activeLoan = payload.loanId
-      ? await tx.loan.findFirstOrThrow({
-          where: {
-            id: payload.loanId,
-            clientId: client.id,
-            companyId: user.companyId,
-            ...(user.role === "SELLER" ? { sellerId: user.id } : {}),
-            status: "ACTIVE"
-          }
-        })
-      : null;
-    const allocation = activeLoan
-      ? allocateLoanPayment({
-          amount: payload.amount,
-          application: payload.application,
-          paymentType: payload.paymentType,
-          loan: {
-            balance: Number(activeLoan.balance),
-            principalAmount: Number(activeLoan.principalAmount),
-            interestAmount: Number(activeLoan.interestAmount),
-            dailyPayment: Number(activeLoan.dailyPayment),
-            termDays: activeLoan.termDays,
-            principalBalance: Number(activeLoan.principalBalance),
-            interestBalance: Number(activeLoan.interestBalance),
-            lateFeeBalance: Number(activeLoan.lateFeeBalance),
-            installmentsPaid: Number(activeLoan.installmentsPaid)
-          }
-        })
-      : null;
-    const generalAllocation = allocation
-      ? null
-      : getGeneralBalanceAllocation(payload.amount, previousBalance, payload.application);
-    const receivedAmount = allocation?.receivedAmount ?? generalAllocation?.receivedAmount ?? payload.amount;
-    const balanceApplied = allocation?.balanceApplied ?? generalAllocation?.balanceApplied ?? payload.amount;
-    const newBalance = Math.max(previousBalance - balanceApplied, 0);
+  const activeLoan = payload.loanId
+    ? await prisma.loan.findFirstOrThrow({
+        where: {
+          id: payload.loanId,
+          clientId: client.id,
+          companyId: user.companyId,
+          ...(user.role === "SELLER" ? { sellerId: user.id } : {}),
+          status: "ACTIVE"
+        }
+      })
+    : null;
+  const allocation = activeLoan
+    ? allocateLoanPayment({
+        amount: payload.amount,
+        application: payload.application,
+        paymentType: payload.paymentType,
+        allocationOrder: companySettings.paymentAllocationOrder,
+        loan: {
+          balance: Number(activeLoan.balance),
+          principalAmount: Number(activeLoan.principalAmount),
+          interestAmount: Number(activeLoan.interestAmount),
+          dailyPayment: Number(activeLoan.dailyPayment),
+          termDays: activeLoan.termDays,
+          principalBalance: Number(activeLoan.principalBalance),
+          interestBalance: Number(activeLoan.interestBalance),
+          lateFeeBalance: Number(activeLoan.lateFeeBalance),
+          installmentsPaid: Number(activeLoan.installmentsPaid)
+        }
+      })
+    : null;
+  const generalAllocation = allocation
+    ? null
+    : getGeneralBalanceAllocation(payload.amount, previousBalance, payload.application);
+  const receivedAmount = allocation?.receivedAmount ?? generalAllocation?.receivedAmount ?? payload.amount;
+  const balanceApplied = allocation?.balanceApplied ?? generalAllocation?.balanceApplied ?? payload.amount;
+  const newBalance = Math.max(previousBalance - balanceApplied, 0);
 
+  if (
+    activeLoan &&
+    payload.paymentType === "RENEWAL" &&
+    companySettings.renewalPolicy !== "ALLOW_BALANCE" &&
+    (companySettings.renewalPolicy === "PAID_ONLY" || user.role === "SELLER") &&
+    (allocation?.nextLoanBalance ?? Number(activeLoan.balance)) > 0
+  ) {
+    redirect("/collections?error=renewal_requires_full_payment");
+  }
+
+  await prisma.$transaction(async (tx) => {
     const createdCollection = await tx.collection.create({
       data: {
         companyId: user.companyId,
@@ -241,7 +251,7 @@ export async function createLoanAction(formData: FormData) {
   if (client.status !== "ACTIVE") redirect(`/clients/${client.id}?error=client_not_verified`);
 
   const startDate = parseDateInputAsLocal(payload.startDate);
-  const dueDate = addDays(startDate, payload.termDays - 1);
+  const dueDate = addPaymentPeriods(startDate, payload.termDays - 1, payload.paymentFrequency);
   const principalAmount = payload.principalAmount;
   const interestRate = payload.interestRatePercent / 100;
   const sellerId = user.role === "SELLER" ? user.id : client.sellerId;
@@ -265,6 +275,7 @@ export async function createLoanAction(formData: FormData) {
         interestBalance: interestAmount,
         lateFeeBalance: 0,
         installmentsPaid: 0,
+        paymentFrequency: payload.paymentFrequency,
         termDays: payload.termDays,
         startDate,
         dueDate,
@@ -293,7 +304,8 @@ export async function createLoanAction(formData: FormData) {
           interestRate,
           interestAmount,
           totalAmount,
-          dailyPayment
+          dailyPayment,
+          paymentFrequency: payload.paymentFrequency
         }
       }
     });
@@ -516,6 +528,7 @@ export async function closeCashboxAction(formData: FormData) {
       dailyPayment: Number(loan.dailyPayment),
       paidAmount: Number(loan.paidAmount),
       balance: Number(loan.balance),
+      paymentFrequency: loan.paymentFrequency,
       termDays: loan.termDays,
       startDate: loan.startDate.toISOString(),
       dueDate: loan.dueDate.toISOString(),

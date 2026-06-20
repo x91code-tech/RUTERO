@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { getDefaultInterestPercent, getDefaultTermDays, paymentFrequencyOptions } from "@/lib/company-settings";
 import { formatCurrency } from "@/lib/formatters";
 import type { Client, Company } from "@/lib/types";
 import { createLoanAction } from "@/server/actions/financial-actions";
@@ -20,8 +21,8 @@ function todayInputValue() {
 
 export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
   const [principalAmount, setPrincipalAmount] = useState(100);
-  const [interestRatePercent, setInterestRatePercent] = useState(20);
-  const [termDays, setTermDays] = useState(20);
+  const [interestRatePercent, setInterestRatePercent] = useState(getDefaultInterestPercent(company.defaultInterestRate));
+  const [termDays, setTermDays] = useState(getDefaultTermDays(company.defaultTermDays));
   const activeClients = clients.filter((client) => client.status === "ACTIVE");
   const selectableClients = activeClients.length ? activeClients : clients;
   const selectedClientId = defaultClientId ?? selectableClients[0]?.id ?? "";
@@ -61,17 +62,25 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-[1fr_1.4fr]">
-        <Field label="Cuotas diarias">
+        <Field label="Numero de cuotas">
           <div className="grid grid-cols-[3rem_1fr_3rem] overflow-hidden rounded-xl border border-white/10">
             <button type="button" className="bg-brand-500 text-2xl font-black text-carbon-950" onClick={() => setTermDays((value) => Math.max(value - 1, 1))}>-</button>
             <Input name="termDays" type="number" value={termDays} min="1" step="1" className="rounded-none border-0 text-center text-xl font-black" onChange={(event) => setTermDays(Number(event.target.value))} />
             <button type="button" className="bg-brand-500 text-2xl font-black text-carbon-950" onClick={() => setTermDays((value) => value + 1)}>+</button>
           </div>
         </Field>
-        <Field label="Fecha de inicio">
-          <Input name="startDate" type="date" defaultValue={todayInputValue()} />
+        <Field label="Frecuencia">
+          <Select name="paymentFrequency" defaultValue={company.paymentFrequency ?? "DAILY"}>
+            {paymentFrequencyOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </Select>
         </Field>
       </div>
+
+      <Field label="Fecha de inicio">
+        <Input name="startDate" type="date" defaultValue={todayInputValue()} />
+      </Field>
 
       <div className="grid gap-3 rounded-xl border border-brand-500/25 bg-brand-500/10 p-4 text-sm sm:grid-cols-3">
         <Preview label="Interes" value={formatCurrency(totals.interestAmount, company)} />
