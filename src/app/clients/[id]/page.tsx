@@ -19,7 +19,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
   const todayKey = new Date().toISOString().slice(0, 10);
 
   return (
-    <AppShell title={client.name} subtitle="Perfil de cliente con historial comercial y cobranza.">
+    <AppShell title={client.name} subtitle="Perfil de cliente con prestamos, recaudos y cobranza.">
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="grid gap-6">
           <Card>
@@ -35,7 +35,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
           </Card>
           <ClientVerificationForm client={client} />
           <Card>
-            <CardHeader title="Nueva venta / prestamo" description="Registra el capital entregado y calcula cuotas diarias." />
+            <CardHeader title="Nuevo prestamo" description="Registra el capital entregado y calcula cuotas segun la frecuencia configurada." />
             {client.status === "ACTIVE" ? (
               <LoanForm clients={[client]} company={company} defaultClientId={client.id} />
             ) : (
@@ -76,7 +76,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
         </Card>
 
         <Card>
-          <CardHeader title="Historial" description="Ventas y recaudos relacionados con este cliente." />
+          <CardHeader title="Historial" description="Prestamos, ingresos extra y recaudos relacionados con este cliente." />
           <div className="space-y-3">
             {[...sales, ...collections].map((movement) => (
               <div key={movement.id} className="flex items-center justify-between rounded-xl bg-white/[0.04] p-4">

@@ -28,7 +28,7 @@ export const supportedCountries: CurrencyConfig[] = [
     clientDocumentRequirements: [
       { type: "RIF", label: "RIF", required: true, description: "Registro de Información Fiscal del negocio." },
       { type: "CEDULA", label: "Cédula del responsable", required: true, description: "Documento de identidad del encargado o titular." },
-      { type: "LOCAL_PHOTO", label: "Foto del local", required: false, description: "Foto de fachada o punto de venta." }
+      { type: "LOCAL_PHOTO", label: "Foto del local", required: false, description: "Foto de fachada o local." }
     ]
   },
   {

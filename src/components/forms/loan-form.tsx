@@ -53,7 +53,7 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Valor de venta / prestamo">
+        <Field label="Capital entregado">
           <Input name="principalAmount" type="number" value={principalAmount} min="0" step="0.01" onChange={(event) => setPrincipalAmount(Number(event.target.value))} />
         </Field>
         <Field label="Interes %">
@@ -94,7 +94,7 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
 
       <Button type="submit">
         <Landmark className="h-4 w-4" />
-        Registrar venta / prestamo
+        Registrar prestamo
       </Button>
     </form>
   );

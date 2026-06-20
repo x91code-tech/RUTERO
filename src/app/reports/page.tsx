@@ -138,7 +138,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             <CardHeader title="Resumen administrativo" />
             <div className="grid gap-3 sm:grid-cols-2">
               <SummaryItem label="Prestamos entregados" value={formatCurrency(-summary.loanDisbursementsTotal, company)} />
-              <SummaryItem label="Ventas" value={formatCurrency(summary.salesTotal, company)} />
+              <SummaryItem label="Ingresos extra" value={formatCurrency(summary.salesTotal, company)} />
               <SummaryItem label="Recaudos" value={formatCurrency(summary.collectionsTotal, company)} />
               <SummaryItem label="Gastos descontados" value={formatCurrency(-summary.expensesTotal, company)} />
               <SummaryItem label="Retiros descontados" value={formatCurrency(-summary.withdrawalsTotal, company)} />
@@ -193,7 +193,7 @@ function VisualCashReport({
   visitedClients: number;
 }) {
   const inflowRows = [
-    { label: "Ventas efectivo", value: summary.cashSales },
+    { label: "Ingresos extra efectivo", value: summary.cashSales },
     { label: "Recaudos efectivo", value: summary.cashCollections },
     { label: "Entradas manuales", value: summary.cashIncomeMovements }
   ];
@@ -251,7 +251,7 @@ function VisualCashReport({
         <ReportNumber label="Prestamos creados" value={String(loansCount)} />
         <ReportNumber label="Recaudos" value={String(collectionsCount)} />
         <ReportNumber label="Movimientos de caja" value={String(expensesCount)} />
-        <ReportNumber label="Ventas" value={String(salesCount)} />
+        <ReportNumber label="Ingresos extra" value={String(salesCount)} />
       </div>
     </div>
   );

@@ -11,14 +11,14 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
     <form action={createClientAction} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nombre del cliente">
-          <Input name="name" placeholder="Nombre comercial o razón social" required />
+          <Input name="name" placeholder="Nombre comercial o razon social" required />
         </Field>
-        <Field label="Documento / Cédula / RIF">
+        <Field label="Documento / Cedula / RIF">
           <Input name="document" placeholder="J-00000000-0" required />
         </Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Teléfono">
+        <Field label="Telefono">
           <Input name="phone" placeholder="+58 412-000-0000" required />
         </Field>
         <Field label="Cobrador asignado">
@@ -37,12 +37,12 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
           ))}
         </Select>
       </Field>
-      <Field label="Dirección tienda">
-        <Textarea name="address" placeholder="Dirección exacta del local o punto de venta" required />
+      <Field label="Direccion tienda">
+        <Textarea name="address" placeholder="Direccion exacta del local" required />
       </Field>
       <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
         <div className="mb-3 flex items-center gap-2 font-semibold">
-          <MapPin className="h-4 w-4 text-brand-500" /> Ubicación tienda
+          <MapPin className="h-4 w-4 text-brand-500" /> Ubicacion tienda
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Latitud tienda">
@@ -54,9 +54,9 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
         </div>
       </div>
       <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-        <p className="mb-3 font-semibold">Segunda ubicación</p>
-        <Field label="Dirección secundaria">
-          <Input name="secondaryAddress" placeholder="Oficina, depósito o punto de facturación" />
+        <p className="mb-3 font-semibold">Segunda ubicacion</p>
+        <Field label="Direccion secundaria">
+          <Input name="secondaryAddress" placeholder="Oficina, deposito o punto administrativo" />
         </Field>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Latitud secundaria">
@@ -68,7 +68,7 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
         </div>
       </div>
       <Field label="Notas">
-        <Textarea name="notes" placeholder="Referencia, horario, condiciones de crédito o indicaciones internas" />
+        <Textarea name="notes" placeholder="Referencia, horario, condiciones de credito o indicaciones internas" />
       </Field>
       <Button type="submit">
         <Plus className="h-4 w-4" /> Crear cliente

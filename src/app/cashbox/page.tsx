@@ -64,7 +64,7 @@ export default async function CashboxPage() {
             {[
               ["Digital / wallets", summary.pixTotal],
               ["Transferencias y tarjetas", summary.transferTotal],
-              ["Ventas efectivo", summary.cashSales],
+              ["Ingresos extra efectivo", summary.cashSales],
               ["Recaudos efectivo", summary.cashCollections],
               ["Entradas manuales efectivo", summary.cashIncomeMovements],
               ["Gastos efectivo", -summary.cashExpenses],

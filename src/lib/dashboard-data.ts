@@ -38,7 +38,7 @@ type Summary = ReturnType<typeof calculateDailySummary>;
 
 function buildCashFlowAnalytics(summary: Summary) {
   return [
-    { label: "Ventas", entrada: summary.cashSales, salida: 0 },
+    { label: "Ingresos extra", entrada: summary.cashSales, salida: 0 },
     { label: "Recaudos", entrada: summary.cashCollections, salida: 0 },
     { label: "Entradas", entrada: summary.cashIncomeMovements, salida: 0 },
     { label: "Prestamos", entrada: 0, salida: summary.loanDisbursementsTotal },
@@ -106,7 +106,7 @@ function fallbackCollectorRows(rows: AdminAnalyticsData["collectors"]) {
 
 export type DashboardMovement = {
   id: string;
-  type: "Prestamo" | "Recaudo" | "Gasto" | "Retiro" | "Entrada" | "Venta";
+  type: "Prestamo" | "Recaudo" | "Gasto" | "Retiro" | "Entrada" | "Ingreso extra";
   clientName?: string;
   sellerName?: string;
   paymentMethod?: PaymentMethod;
@@ -181,7 +181,7 @@ export async function getDashboardData() {
       recentMovements: [
         ...demoLoans.map((loan) => ({ id: loan.id, type: "Prestamo" as const, clientName: demoClients.find((client) => client.id === loan.clientId)?.name, amount: loan.principalAmount })),
         ...demoCollections.map((collection) => ({ id: collection.id, type: "Recaudo" as const, clientName: demoClients.find((client) => client.id === collection.clientId)?.name, paymentMethod: collection.paymentMethod, amount: collection.amount })),
-        ...demoSales.map((sale) => ({ id: sale.id, type: "Venta" as const, clientName: demoClients.find((client) => client.id === sale.clientId)?.name, paymentMethod: sale.paymentMethod, amount: sale.amount })),
+        ...demoSales.map((sale) => ({ id: sale.id, type: "Ingreso extra" as const, clientName: demoClients.find((client) => client.id === sale.clientId)?.name, paymentMethod: sale.paymentMethod, amount: sale.amount })),
         ...demoExpenses.map((expense) => ({ id: expense.id, type: cashMovementKindLabels[expense.movementKind], sellerName: demoUsers.find((seller) => seller.id === expense.sellerId)?.name, paymentMethod: expense.paymentMethod, amount: getCashMovementImpact(expense.amount, expense.movementKind) }))
       ].slice(0, 8),
       notifications: demoNotifications,
@@ -411,7 +411,7 @@ export async function getDashboardData() {
       })),
       ...salesToday.map((sale) => ({
         id: sale.id,
-        type: "Venta" as const,
+        type: "Ingreso extra" as const,
         clientName: sale.client.name,
         sellerName: sale.seller.name,
         paymentMethod: sale.paymentMethod,

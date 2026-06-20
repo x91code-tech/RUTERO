@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "RUTERO",
-  description: "Control de rutas, ventas, recaudos y caja diaria para equipos en calle.",
+  description: "Control de prestamos, rutas, recaudos y caja diaria para equipos en calle.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [{ url: "/brand/rutero-logo.png", type: "image/png" }],

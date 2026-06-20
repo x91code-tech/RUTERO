@@ -7,7 +7,7 @@ import type { Cashbox, Collection, Company, Expense, Loan, Role, Sale, User } fr
 
 export type CashboxMovementRow = {
   id: string;
-  type: "Prestamo" | "Venta" | "Recaudo" | "Gasto" | "Retiro" | "Entrada";
+  type: "Prestamo" | "Ingreso extra" | "Recaudo" | "Gasto" | "Retiro" | "Entrada";
   description: string;
   paymentMethod: string;
   date: string;
@@ -60,7 +60,7 @@ export async function getCashboxPageData() {
         })),
         ...demoSales.map((sale) => ({
           id: sale.id,
-          type: "Venta" as const,
+          type: "Ingreso extra" as const,
           description: sale.product,
           paymentMethod: sale.paymentMethod,
           date: sale.date,
@@ -236,7 +236,7 @@ export async function getCashboxPageData() {
       })),
       ...sales.map((sale) => ({
         id: sale.id,
-        type: "Venta" as const,
+        type: "Ingreso extra" as const,
         description: `${sale.client.name} - ${sale.concept}`,
         paymentMethod: sale.paymentMethod,
         date: sale.date.toISOString(),

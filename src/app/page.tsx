@@ -11,7 +11,7 @@ export default function HomePage() {
         <RuteroLogo href="/" />
         <div className="flex items-center gap-3">
           <Link className="hidden rounded-lg px-4 py-2 text-sm text-zinc-300 hover:text-white sm:block" href="/login">
-            Iniciar sesión
+            Iniciar sesion
           </Link>
           <Link className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-carbon-950" href="/register">
             Crear empresa
@@ -29,11 +29,11 @@ export default function HomePage() {
             RUTERO
           </h1>
           <p className="mt-5 max-w-2xl text-xl leading-8 text-zinc-300">
-            Controla tus rutas, ventas, recaudos y caja diaria en tiempo real.
+            Controla prestamos, recaudos, rutas y caja diaria en tiempo real.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-4 font-bold text-carbon-950 shadow-glow" href="/login">
-              Iniciar sesión <ArrowRight className="h-5 w-5" />
+              Iniciar sesion <ArrowRight className="h-5 w-5" />
             </Link>
             <Link className="inline-flex items-center justify-center rounded-xl border border-white/15 px-6 py-4 font-semibold text-white hover:bg-white/10" href="/register">
               Crear empresa
@@ -52,7 +52,7 @@ export default function HomePage() {
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               {[
-                ["Ventas", formatCurrency(2840, demoCompany)],
+                ["Prestamos", formatCurrency(2840, demoCompany)],
                 ["Recaudos", formatCurrency(1920, demoCompany)],
                 ["Caja esperada", formatCurrency(3410, demoCompany)],
                 ["Diferencia", formatCurrency(0, demoCompany)]

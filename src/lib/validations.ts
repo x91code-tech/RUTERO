@@ -7,7 +7,7 @@ const newPasswordSchema = z.string()
   .regex(/\d/, "La contrasena debe incluir numeros");
 
 export const moneySchema = z.coerce.number().positive("El monto debe ser mayor a cero");
-const paymentMethodSchema = z.string().refine((value) => getPaymentMethodCodes().includes(value), "Método de pago inválido");
+const paymentMethodSchema = z.string().refine((value) => getPaymentMethodCodes().includes(value), "Metodo de pago invalido");
 
 export const saleSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
@@ -34,7 +34,7 @@ export const loanSchema = z.object({
   principalAmount: moneySchema,
   interestRatePercent: z.coerce.number().min(0, "El interes no puede ser negativo").max(100, "El interes maximo permitido es 100").default(20),
   paymentFrequency: z.enum(["DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY"]).default("DAILY"),
-  termDays: z.coerce.number().int().min(1, "Debe ser al menos 1 dÃ­a").max(365, "El plazo mÃ¡ximo es 365 dÃ­as"),
+  termDays: z.coerce.number().int().min(1, "Debe ser al menos 1 dia").max(365, "El plazo maximo es 365 dias"),
   startDate: z.string().optional(),
   notes: z.string().optional()
 });
@@ -60,25 +60,25 @@ export const clientLocationSchema = z.object({
   clientId: z.string().min(1, "Cliente requerido"),
   type: z.enum(["STORE", "WAREHOUSE", "BILLING", "OTHER"]).default("STORE"),
   label: z.string().min(2, "Indica una etiqueta"),
-  address: z.string().min(2, "Indica la dirección"),
-  latitude: z.coerce.number().min(-90, "Latitud inválida").max(90, "Latitud inválida"),
-  longitude: z.coerce.number().min(-180, "Longitud inválida").max(180, "Longitud inválida"),
+  address: z.string().min(2, "Indica la direccion"),
+  latitude: z.coerce.number().min(-90, "Latitud invalida").max(90, "Latitud invalida"),
+  longitude: z.coerce.number().min(-180, "Longitud invalida").max(180, "Longitud invalida"),
   isPrimary: z.coerce.boolean().default(false)
 });
 
 export const clientDocumentSchema = z.object({
   clientId: z.string().min(1, "Cliente requerido"),
-  countryCode: z.string().min(2, "País requerido"),
+  countryCode: z.string().min(2, "Pais requerido"),
   documentType: z.string().min(2, "Tipo de documento requerido"),
   label: z.string().min(2, "Etiqueta requerida"),
   required: z.coerce.boolean().default(false),
-  fileUrl: z.string().url("Archivo inválido").optional(),
+  fileUrl: z.string().url("Archivo invalido").optional(),
   notes: z.string().optional()
 });
 
 export const loginSchema = z.object({
-  email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
-  password: z.string().min(8, "La contraseña debe tener mínimo 8 caracteres")
+  email: z.string().email("Ingresa un correo valido").transform((value) => value.toLowerCase().trim()),
+  password: z.string().min(8, "La contrasena debe tener minimo 8 caracteres")
 });
 
 export const mobileLoginSchema = z.object({
@@ -89,18 +89,18 @@ export const mobileLoginSchema = z.object({
 export const registerCompanySchema = z.object({
   companyName: z.string().min(2, "Indica el nombre de la empresa"),
   rif: z.string().optional(),
-  countryCode: z.string().min(2, "Selecciona el país"),
+  countryCode: z.string().min(2, "Selecciona el pais"),
   currencyCode: z.string().min(3, "Selecciona la moneda"),
   adminName: z.string().min(2, "Indica el nombre del administrador"),
-  email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
+  email: z.string().email("Ingresa un correo valido").transform((value) => value.toLowerCase().trim()),
   password: newPasswordSchema
 });
 
 export const createClientSchema = z.object({
   name: z.string().min(2, "Indica el nombre del cliente"),
-  phone: z.string().min(7, "Indica un teléfono válido"),
-  address: z.string().min(4, "Indica la dirección principal"),
-  document: z.string().min(4, "Indica cédula, RIF o documento"),
+  phone: z.string().min(7, "Indica un telefono valido"),
+  address: z.string().min(4, "Indica la direccion principal"),
+  document: z.string().min(4, "Indica cedula, RIF o documento"),
   routeId: z.string().optional(),
   sellerId: z.string().optional(),
   notes: z.string().optional(),
@@ -113,7 +113,7 @@ export const createClientSchema = z.object({
 
 export const createUserSchema = z.object({
   name: z.string().min(2, "Indica el nombre"),
-  email: z.string().email("Ingresa un correo válido").transform((value) => value.toLowerCase().trim()),
+  email: z.string().email("Ingresa un correo valido").transform((value) => value.toLowerCase().trim()),
   role: z.enum(["ADMIN", "SUPERVISOR", "SELLER"]),
   password: newPasswordSchema
 });

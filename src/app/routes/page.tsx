@@ -123,7 +123,7 @@ export default async function RoutesPage() {
             <Insight title="GPS primero" text="Los clientes sin ubicacion quedan visibles para corregirlos antes de armar la ruta." />
             <Insight title="Por cobrar" text="Solo cuenta clientes con prestamo activo que no han pagado hoy." />
             <Insight title="Ruta optimizada" text="Ordena los puntos con GPS usando distancia aproximada; Google Maps abre la navegacion real." />
-            <Insight title="Sin inventario" text="RUTERO queda enfocado en prestamos, recaudos, caja y cartera." />
+            <Insight title="Enfoque operativo" text="RUTERO queda enfocado en prestamos, recaudos, caja y cartera." />
           </div>
         </Card>
       </div>

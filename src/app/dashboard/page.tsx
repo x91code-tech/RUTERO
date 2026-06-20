@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Ultimos movimientos" description="Prestamos, recaudos, ventas y movimientos de caja recientes." />
+          <CardHeader title="Ultimos movimientos" description="Prestamos, recaudos, ingresos extra y movimientos de caja recientes." />
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="text-zinc-400">
