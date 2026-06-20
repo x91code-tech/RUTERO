@@ -4,7 +4,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { getDefaultInterestPercent, getDefaultTermDays, paymentFrequencyLabels } from "@/lib/company-settings";
 import { demoClients, demoCompany } from "@/lib/demo-data";
 import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
-import { createCollectionAction, createExpenseAction, createLoanAction, createSaleAction } from "@/server/actions/financial-actions";
+import { createCollectionAction, createExpenseAction, createLoanAction } from "@/server/actions/financial-actions";
 import type { Client, Company, Loan } from "@/lib/types";
 
 type MovementFormProps = {
@@ -67,47 +67,6 @@ export function LoanForm(props: MovementFormProps) {
         <Textarea name="notes" placeholder="Condiciones, referencia o acuerdo con el cliente" />
       </Field>
       <Button type="submit">Crear prestamo</Button>
-    </form>
-  );
-}
-
-export function SaleForm(props: MovementFormProps) {
-  const { clients, paymentOptions } = getFormData(props);
-  const defaultPaymentMethod = paymentOptions.find((method) => method.category === "cash")?.code ?? paymentOptions[0]?.code;
-
-  return (
-    <form action={createSaleAction} className="grid gap-4">
-      <Field label="Cliente">
-        <Select name="clientId" defaultValue={clients[0]?.id}>
-          {clients.map((client) => (
-            <option key={client.id} value={client.id}>
-              {client.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label="Producto o concepto">
-        <Input name="product" defaultValue="Pedido mixto" />
-      </Field>
-      <Field label="Monto">
-        <Input name="amount" type="number" defaultValue="120" min="0" step="0.01" />
-      </Field>
-      <Field label="Metodo de pago">
-        <Select name="paymentMethod" defaultValue={defaultPaymentMethod}>
-          {paymentOptions.map((method) => (
-            <option key={method.code} value={method.code}>
-              {method.label}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label="Fecha">
-        <Input name="date" type="date" defaultValue={todayInputValue()} />
-      </Field>
-      <Field label="Observacion">
-        <Textarea name="observation" placeholder="Agrega una nota si aplica" />
-      </Field>
-      <Button type="submit">Registrar venta</Button>
     </form>
   );
 }

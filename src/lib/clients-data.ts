@@ -11,7 +11,8 @@ import {
   demoSales,
   demoUsers
 } from "@/lib/demo-data";
-import type { Client, ClientDocument, ClientLocation, Company, Loan, Route, User } from "@/lib/types";
+import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
+import type { Client, ClientDocument, ClientLocation, Collection, Company, Loan, Route, User } from "@/lib/types";
 
 export async function getClientsPageData() {
   const user = await getSessionUser();
@@ -23,19 +24,32 @@ export async function getClientsPageData() {
       users: demoUsers,
       locations: demoClientLocations,
       documents: demoClientDocuments,
+      loans: demoLoans,
+      collections: demoCollections.filter((collection) => collection.date === "2026-06-12"),
       isDemo: true
     };
   }
 
+  const todayStart = startOfLocalDay();
+  const todayEnd = endOfLocalDay();
   const clientWhere = { companyId: user.companyId, ...(user.role === "SELLER" ? { sellerId: user.id } : {}) };
   const routeWhere = { companyId: user.companyId, ...(user.role === "SELLER" ? { sellerId: user.id } : {}) };
-  const [company, clients, routes, users, locations, documents] = await Promise.all([
+  const sellerScope = user.role === "SELLER" ? { sellerId: user.id } : {};
+  const [company, clients, routes, users, locations, documents, loans, collections] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
     prisma.client.findMany({ where: clientWhere, include: { routeClients: true }, orderBy: { createdAt: "desc" } }),
     prisma.route.findMany({ where: routeWhere, include: { routeClients: true }, orderBy: { name: "asc" } }),
     prisma.user.findMany({ where: { companyId: user.companyId, active: true, ...(user.role === "SELLER" ? { id: user.id } : {}) }, orderBy: { name: "asc" } }),
     prisma.clientLocation.findMany({ where: { client: clientWhere } }),
-    prisma.clientDocument.findMany({ where: { client: clientWhere } })
+    prisma.clientDocument.findMany({ where: { client: clientWhere } }),
+    prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, status: "ACTIVE" } }),
+    prisma.collection.findMany({
+      where: {
+        companyId: user.companyId,
+        ...sellerScope,
+        OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }]
+      }
+    })
   ]);
 
   return {
@@ -98,6 +112,51 @@ export async function getClientsPageData() {
       fileUrl: document.fileUrl ?? undefined,
       notes: document.notes ?? undefined
     })) satisfies ClientDocument[],
+    loans: loans.map((loan) => ({
+      id: loan.id,
+      companyId: loan.companyId,
+      clientId: loan.clientId,
+      sellerId: loan.sellerId,
+      principalAmount: Number(loan.principalAmount),
+      interestRate: Number(loan.interestRate),
+      interestAmount: Number(loan.interestAmount),
+      totalAmount: Number(loan.totalAmount),
+      dailyPayment: Number(loan.dailyPayment),
+      paidAmount: Number(loan.paidAmount),
+      balance: Number(loan.balance),
+      principalBalance: Number(loan.principalBalance),
+      interestBalance: Number(loan.interestBalance),
+      lateFeeBalance: Number(loan.lateFeeBalance),
+      installmentsPaid: Number(loan.installmentsPaid),
+      paymentFrequency: loan.paymentFrequency,
+      termDays: loan.termDays,
+      startDate: loan.startDate.toISOString(),
+      dueDate: loan.dueDate.toISOString(),
+      status: loan.status,
+      notes: loan.notes ?? undefined
+    })) satisfies Loan[],
+    collections: collections.map((collection) => ({
+      id: collection.id,
+      companyId: collection.companyId,
+      clientId: collection.clientId,
+      loanId: collection.loanId ?? undefined,
+      sellerId: collection.sellerId,
+      amount: Number(collection.amount),
+      paymentType: collection.paymentType,
+      application: collection.application,
+      balanceApplied: Number(collection.balanceApplied),
+      principalApplied: Number(collection.principalApplied),
+      interestApplied: Number(collection.interestApplied),
+      lateFeeApplied: Number(collection.lateFeeApplied),
+      additionalApplied: Number(collection.additionalApplied),
+      overpaymentAmount: Number(collection.overpaymentAmount),
+      installmentsCovered: Number(collection.installmentsCovered),
+      previousBalance: Number(collection.previousBalance),
+      newBalance: Number(collection.newBalance),
+      paymentMethod: collection.paymentMethod,
+      date: collection.date.toISOString(),
+      observation: collection.observation ?? undefined
+    })) satisfies Collection[],
     isDemo: false
   };
 }

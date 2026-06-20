@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Bell, Boxes, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, Menu, ReceiptText, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
+import { Bell, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, Menu, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
 import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { getNotificationSummary } from "@/lib/notifications-data";
 import { canRoleAccessPath, getDefaultPathForRole } from "@/lib/permissions";
@@ -15,12 +15,10 @@ const navigation = [
   { href: "/clients", label: "Clientes", icon: Users },
   { href: "/routes", label: "Rutas", icon: Route },
   { href: "/loans", label: "Prestamos", icon: Landmark },
-  { href: "/sales", label: "Ventas", icon: ReceiptText },
   { href: "/collections", label: "Recaudos", icon: WalletCards },
   { href: "/expenses", label: "Movimientos", icon: ClipboardList },
   { href: "/cashbox", label: "Caja diaria", icon: Shield },
   { href: "/reports", label: "Reportes", icon: Map },
-  { href: "/inventory", label: "Inventario", icon: Boxes },
   { href: "/notifications", label: "Notificaciones", icon: Bell },
   { href: "/settings", label: "Configuracion", icon: Settings }
 ];
