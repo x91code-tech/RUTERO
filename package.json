@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node --max-old-space-size=1024 ./node_modules/next/dist/bin/next build",
     "start": "next start",
     "cap:init": "npx cap init --web-dir=public RUTERO com.rutero.app",
     "cap:sync": "npx cap sync",
