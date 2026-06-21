@@ -21,8 +21,7 @@ body {
   font-size: 14px;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top left, rgba(249, 115, 22, 0.16), transparent 28rem),
-    linear-gradient(135deg, #070707 0%, #111111 48%, #1b1b1b 100%);
+    linear-gradient(135deg, #070707 0%, #101010 52%, #171717 100%);
   color: #f8fafc;
 }
 
@@ -45,7 +44,7 @@ textarea {
 
 @layer components {
   .surface {
-    @apply border border-white/10 bg-white/[0.055] shadow-2xl shadow-black/20 backdrop-blur;
+    @apply border border-white/10 bg-white/[0.055] shadow-xl shadow-black/20 backdrop-blur;
   }
 
   .surface-light {
@@ -53,7 +52,11 @@ textarea {
   }
 
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-carbon-950;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-500/80 focus:ring-offset-2 focus:ring-offset-carbon-950;
+  }
+
+  .interactive-surface {
+    @apply border border-white/10 bg-white/[0.04] transition hover:border-brand-500/40 hover:bg-white/[0.065];
   }
 
   /* Bottom sheet / modal list styling */

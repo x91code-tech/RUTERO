@@ -60,7 +60,7 @@ export function LoanForm(props: MovementFormProps) {
       <Field label="Fecha de inicio">
         <Input name="startDate" type="date" defaultValue={todayInputValue()} />
       </Field>
-      <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+      <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
         RUTERO calcula {defaultInterestPercent}% de ganancia en frecuencia {paymentFrequencyLabels[company.paymentFrequency ?? "DAILY"].toLowerCase()}.
       </div>
       <Field label="Notas">

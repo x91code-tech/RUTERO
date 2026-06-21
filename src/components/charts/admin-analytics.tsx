@@ -71,7 +71,7 @@ export function AdminAnalytics({ company, data }: { company: Partial<CurrencyCon
         </div>
       </ChartFrame>
 
-      <ChartFrame title="Métodos y estado">
+      <ChartFrame title="Metodos y estado">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <p className="mb-3 text-sm font-bold text-zinc-300">Dinero recibido</p>
@@ -89,7 +89,7 @@ export function AdminAnalytics({ company, data }: { company: Partial<CurrencyCon
 
 function ChartFrame({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <section className="surface rounded-2xl p-5">
+    <section className="surface rounded-lg p-4 sm:p-5">
       <h2 className="mb-4 text-lg font-bold text-white">{title}</h2>
       {children}
     </section>
@@ -138,7 +138,7 @@ function MoneyTooltip({
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-carbon-950/95 p-3 shadow-xl">
+    <div className="rounded-lg border border-white/10 bg-carbon-950/95 p-3 shadow-xl">
       <p className="mb-2 text-sm font-bold text-white">{label ?? payload[0]?.payload?.label}</p>
       <div className="space-y-1">
         {payload.map((item) => (

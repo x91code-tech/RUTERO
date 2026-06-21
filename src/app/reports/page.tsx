@@ -209,7 +209,7 @@ function VisualCashReport({
 
   return (
     <div className="grid gap-4">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm text-zinc-400">Cierre de ruta</p>
@@ -230,7 +230,7 @@ function VisualCashReport({
         <ChartPanel title="Salidas de efectivo" total={summary.cashOutflows} rows={outflowRows} company={company} tone="red" />
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm text-zinc-400">Caja fisica</p>
@@ -274,7 +274,7 @@ function ChartPanel({
   const color = tone === "green" ? "bg-emerald-400" : tone === "red" ? "bg-red-400" : "bg-brand-500";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="font-black">{title}</p>
         <p className={tone === "red" ? "font-black text-red-300" : tone === "green" ? "font-black text-emerald-300" : "font-black text-orange-300"}>

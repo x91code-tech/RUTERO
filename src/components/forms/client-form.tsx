@@ -40,7 +40,7 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
       <Field label="Direccion tienda">
         <Textarea name="address" placeholder="Direccion exacta del local" required />
       </Field>
-      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
         <div className="mb-3 flex items-center gap-2 font-semibold">
           <MapPin className="h-4 w-4 text-brand-500" /> Ubicacion tienda
         </div>
@@ -53,7 +53,7 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
           </Field>
         </div>
       </div>
-      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
         <p className="mb-3 font-semibold">Segunda ubicacion</p>
         <Field label="Direccion secundaria">
           <Input name="secondaryAddress" placeholder="Oficina, deposito o punto administrativo" />

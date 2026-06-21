@@ -74,7 +74,7 @@ export async function createClientAction(formData: FormData) {
       await tx.clientLocation.create({
         data: {
           clientId: client.id,
-          label: "Ubicación tienda",
+          label: "Ubicacion tienda",
           type: ClientLocationType.STORE,
           address: payload.address,
           latitude: payload.storeLatitude,
@@ -92,7 +92,7 @@ export async function createClientAction(formData: FormData) {
       await tx.clientLocation.create({
         data: {
           clientId: client.id,
-          label: "Segunda ubicación",
+          label: "Segunda ubicacion",
           type: ClientLocationType.BILLING,
           address: payload.secondaryAddress,
           latitude: payload.secondaryLatitude,
@@ -148,29 +148,49 @@ export async function updateClientLocationAction(formData: FormData) {
   });
 
   await prisma.$transaction(async (tx) => {
-    await tx.clientLocation.upsert({
+    const existingLocation = await tx.clientLocation.findFirst({
       where: {
-        id: `${payload.clientId}_${payload.type.toLowerCase()}`
-      },
-      update: {
-        label: payload.label,
-        type: payload.type,
-        address: payload.address,
-        latitude: payload.latitude,
-        longitude: payload.longitude,
-        isPrimary: payload.isPrimary
-      },
-      create: {
-        id: `${payload.clientId}_${payload.type.toLowerCase()}`,
         clientId: payload.clientId,
-        label: payload.label,
-        type: payload.type,
-        address: payload.address,
-        latitude: payload.latitude,
-        longitude: payload.longitude,
-        isPrimary: payload.isPrimary
-      }
+        type: payload.type
+      },
+      orderBy: { updatedAt: "desc" }
     });
+
+    let savedLocationId = existingLocation?.id ?? "";
+
+    if (existingLocation) {
+      await tx.clientLocation.update({
+        where: { id: existingLocation.id },
+        data: {
+          label: payload.label,
+          type: payload.type,
+          address: payload.address,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          isPrimary: payload.isPrimary
+        }
+      });
+    } else {
+      const createdLocation = await tx.clientLocation.create({
+        data: {
+          clientId: payload.clientId,
+          label: payload.label,
+          type: payload.type,
+          address: payload.address,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          isPrimary: payload.isPrimary
+        }
+      });
+      savedLocationId = createdLocation.id;
+    }
+
+    if (payload.isPrimary) {
+      await tx.clientLocation.updateMany({
+        where: { clientId: payload.clientId, id: { not: savedLocationId } },
+        data: { isPrimary: false }
+      });
+    }
 
     if (payload.type === "STORE" || payload.isPrimary) {
       await tx.client.update({

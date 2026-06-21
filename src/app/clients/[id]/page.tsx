@@ -34,7 +34,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
             </div>
           </Card>
           <ClientVerificationForm client={client} />
-          <Card>
+          <Card id="prestamo">
             <CardHeader title="Nuevo prestamo" description="Registra el capital entregado y calcula cuotas segun la frecuencia configurada." />
             {client.status === "ACTIVE" ? (
               <LoanForm clients={[client]} company={company} defaultClientId={client.id} />
@@ -45,7 +45,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
           <ClientLocationCard client={client} />
           <ClientDocumentsCard documents={client.documents ?? []} />
         </div>
-        <Card>
+        <Card id="cobrar">
           <CardHeader title="Prestamos activos" description="Capital entregado, cuota diaria y saldo deudor." />
           <div className="space-y-3">
             {loans.map((loan) => (

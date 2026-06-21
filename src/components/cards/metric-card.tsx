@@ -10,12 +10,12 @@ export function MetricCard({ label, value, icon, tone = "neutral" }: { label: st
   };
 
   return (
-    <div className="surface rounded-2xl p-3">
+    <div className="surface rounded-lg p-3.5">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-zinc-400">{label}</p>
+        <p className="truncate text-sm text-zinc-400">{label}</p>
         {icon ? <span className="text-brand-500">{icon}</span> : null}
       </div>
-      <p className={cn("mt-2 text-xl font-black", tones[tone])}>{value}</p>
+      <p className={cn("mt-2 truncate text-xl font-black", tones[tone])}>{value}</p>
     </div>
   );
 }

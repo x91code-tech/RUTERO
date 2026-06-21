@@ -1,7 +1,8 @@
-import Link from "next/link";
-import { Search } from "lucide-react";
+import { FilterX, MapPin, Search, ShieldCheck, Users, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { MetricCard } from "@/components/cards/metric-card";
 import { ClientForm } from "@/components/forms/client-form";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -23,6 +24,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const { balance, error, q, routeId, sellerId, status } = await searchParams;
   const { clients, company, documents, locations, routes, users } = await getClientsPageData();
   const normalizedQuery = (q ?? "").trim().toLowerCase();
+  const clientsWithBalance = clients.filter((client) => client.pendingBalance > 0).length;
+  const pendingClients = clients.filter((client) => client.status === "PENDING").length;
+  const clientsWithoutStoreLocation = clients.filter((client) => !locations.some((location) => location.clientId === client.id && location.type === "STORE")).length;
   const filteredClients = clients.filter((client) => {
     const matchesQuery = !normalizedQuery || [client.name, client.document, client.phone, client.address]
       .join(" ")
@@ -37,8 +41,15 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
 
   return (
     <AppShell title="Clientes" subtitle="Clientes con saldo, ruta, cobrador, documentos y ubicacion.">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Clientes registrados" value={String(clients.length)} icon={<Users className="h-4 w-4" />} />
+        <MetricCard label="Con saldo activo" value={String(clientsWithBalance)} icon={<WalletCards className="h-4 w-4" />} tone={clientsWithBalance > 0 ? "orange" : "green"} />
+        <MetricCard label="Por verificar" value={String(pendingClients)} icon={<ShieldCheck className="h-4 w-4" />} tone={pendingClients > 0 ? "orange" : "green"} />
+        <MetricCard label="Sin GPS tienda" value={String(clientsWithoutStoreLocation)} icon={<MapPin className="h-4 w-4" />} tone={clientsWithoutStoreLocation > 0 ? "red" : "green"} />
+      </div>
+
       <div className="mb-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card>
+        <Card id="crear-cliente">
           <CardHeader title="Crear cliente" description="El cliente queda pendiente de verificacion y se generan sus documentos requeridos por pais." />
           {error ? <p className="mb-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{errorMessages[error] ?? "No se pudo crear el cliente."}</p> : null}
           <ClientForm routes={routes} users={users} />
@@ -89,7 +100,12 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             <option value="WITH_BALANCE">Con saldo</option>
             <option value="WITHOUT_BALANCE">Sin saldo</option>
           </Select>
-          <button className="rounded-xl bg-brand-500 px-4 py-3 font-semibold text-carbon-950 lg:col-span-5" type="submit">Aplicar filtros</button>
+          <div className="grid gap-2 sm:grid-cols-2 lg:col-span-5">
+            <Button type="submit">Aplicar filtros</Button>
+            <LinkButton href="/clients" variant="secondary">
+              <FilterX className="h-4 w-4" /> Limpiar filtros
+            </LinkButton>
+          </div>
         </form>
         <p className="mb-4 text-sm text-zinc-400">{filteredClients.length} de {clients.length} clientes</p>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -101,7 +117,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             const uploadedRequiredDocuments = requiredDocuments.filter((document) => document.status === "UPLOADED" || document.status === "APPROVED");
 
             return (
-              <Link key={client.id} href={`/clients/${client.id}`} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-brand-500/50">
+              <article key={client.id} className="interactive-surface rounded-lg p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="font-bold">{client.name}</h2>
@@ -117,7 +133,15 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                   <span className="text-zinc-400">GPS tienda</span><span className="text-right">{hasStoreLocation ? "Guardado" : "Pendiente"}</span>
                   <span className="text-zinc-400">Documentos</span><span className="text-right">{uploadedRequiredDocuments.length}/{requiredDocuments.length}</span>
                 </div>
-              </Link>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <LinkButton href={`/clients/${client.id}`} variant="secondary" className="min-h-9 px-2 text-xs">
+                    Abrir
+                  </LinkButton>
+                  <LinkButton href={client.pendingBalance > 0 ? `/clients/${client.id}#cobrar` : `/clients/${client.id}#prestamo`} className="min-h-9 px-2 text-xs">
+                    {client.pendingBalance > 0 ? "Cobrar" : "Prestamo"}
+                  </LinkButton>
+                </div>
+              </article>
             );
           })}
         </div>

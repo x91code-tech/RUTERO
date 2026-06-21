@@ -8,6 +8,9 @@ const newPasswordSchema = z.string()
 
 export const moneySchema = z.coerce.number().positive("El monto debe ser mayor a cero");
 const paymentMethodSchema = z.string().refine((value) => getPaymentMethodCodes().includes(value), "Metodo de pago invalido");
+const formBooleanSchema = z.union([z.boolean(), z.string()]).transform((value) => value === true || value === "true" || value === "1" || value === "on");
+const optionalLatitudeSchema = z.preprocess((value) => value === "" || value === null ? undefined : value, z.coerce.number().min(-90).max(90).optional());
+const optionalLongitudeSchema = z.preprocess((value) => value === "" || value === null ? undefined : value, z.coerce.number().min(-180).max(180).optional());
 
 export const saleSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
@@ -63,7 +66,7 @@ export const clientLocationSchema = z.object({
   address: z.string().min(2, "Indica la direccion"),
   latitude: z.coerce.number().min(-90, "Latitud invalida").max(90, "Latitud invalida"),
   longitude: z.coerce.number().min(-180, "Longitud invalida").max(180, "Longitud invalida"),
-  isPrimary: z.coerce.boolean().default(false)
+  isPrimary: formBooleanSchema.default(false)
 });
 
 export const clientDocumentSchema = z.object({
@@ -71,7 +74,7 @@ export const clientDocumentSchema = z.object({
   countryCode: z.string().min(2, "Pais requerido"),
   documentType: z.string().min(2, "Tipo de documento requerido"),
   label: z.string().min(2, "Etiqueta requerida"),
-  required: z.coerce.boolean().default(false),
+  required: formBooleanSchema.default(false),
   fileUrl: z.string().url("Archivo invalido").optional(),
   notes: z.string().optional()
 });
@@ -104,11 +107,11 @@ export const createClientSchema = z.object({
   routeId: z.string().optional(),
   sellerId: z.string().optional(),
   notes: z.string().optional(),
-  storeLatitude: z.coerce.number().min(-90).max(90).optional(),
-  storeLongitude: z.coerce.number().min(-180).max(180).optional(),
+  storeLatitude: optionalLatitudeSchema,
+  storeLongitude: optionalLongitudeSchema,
   secondaryAddress: z.string().optional(),
-  secondaryLatitude: z.coerce.number().min(-90).max(90).optional(),
-  secondaryLongitude: z.coerce.number().min(-180).max(180).optional()
+  secondaryLatitude: optionalLatitudeSchema,
+  secondaryLongitude: optionalLongitudeSchema
 });
 
 export const createUserSchema = z.object({
