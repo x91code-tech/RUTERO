@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Banknote, CheckCircle2, SlidersHorizontal } from "lucide-react";
+import { type FormEvent, useMemo, useRef, useState } from "react";
+import { AlertTriangle, Banknote, CheckCircle2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
@@ -17,14 +17,18 @@ type LoanPaymentFormProps = {
   company: Company;
   paidToday?: number;
   compact?: boolean;
+  disabledReason?: string;
 };
 
-export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compact = false }: LoanPaymentFormProps) {
+export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compact = false, disabledReason }: LoanPaymentFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const allowDuplicateSubmitRef = useRef(false);
   const dailyDue = Math.max(Math.min(loan.dailyPayment, loan.balance) - paidToday, 0);
   const advanceAmount = Math.min(loan.dailyPayment * 2, loan.balance);
   const [mode, setMode] = useState<PaymentMode>("daily");
   const [customAmount, setCustomAmount] = useState(dailyDue || Math.min(loan.dailyPayment, loan.balance));
   const [paymentMethod, setPaymentMethod] = useState(getPaymentMethodsForCountry(company.countryCode)[0]?.code ?? "CASH_LOCAL");
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 
   const selectedAmount = useMemo(() => {
     if (mode === "daily") return dailyDue || Math.min(loan.dailyPayment, loan.balance);
@@ -36,16 +40,30 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
   const paymentType = mode === "advance" ? "ADVANCE" : mode === "full" ? "SETTLEMENT" : mode === "custom" ? "MANUAL" : "INSTALLMENT";
   const submitLabel = mode === "full" ? (compact ? "Liquidar" : "Liquidar prestamo") : compact ? "Cobrar" : `Cobrar ${formatCurrency(safeAmount, company)}`;
   const isDailyPaymentAlreadyCovered = paidToday >= Math.min(loan.dailyPayment, loan.balance);
+  const submitDisabled = safeAmount <= 0 || Boolean(disabledReason);
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (disabledReason) {
+      event.preventDefault();
+      return;
+    }
+    if (allowDuplicateSubmitRef.current) {
+      allowDuplicateSubmitRef.current = false;
+      return;
+    }
+    if (mode === "daily" && isDailyPaymentAlreadyCovered) {
+      event.preventDefault();
+      setShowDuplicateModal(true);
+    }
+  };
   const confirmDuplicatePayment = () => {
-    if (mode !== "daily" || !isDailyPaymentAlreadyCovered) return true;
-    return window.confirm("La cuota de hoy ya esta marcada como pagada. Quieres agregar otro pago de todos modos?");
+    allowDuplicateSubmitRef.current = true;
+    setShowDuplicateModal(false);
+    formRef.current?.requestSubmit();
   };
 
   if (compact) {
     return (
-      <form action={createCollectionAction} onSubmit={(event) => {
-        if (!confirmDuplicatePayment()) event.preventDefault();
-      }} className="grid gap-2 rounded-lg border border-white/10 bg-carbon-950/35 p-2">
+      <form ref={formRef} action={createCollectionAction} onSubmit={handleSubmit} className="relative grid gap-2 rounded-lg border border-white/10 bg-carbon-950/35 p-2">
         <input type="hidden" name="clientId" value={clientId} />
         <input type="hidden" name="loanId" value={loan.id} />
         <input type="hidden" name="amount" value={safeAmount.toFixed(2)} />
@@ -65,11 +83,12 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
             <p className="truncate text-[0.62rem] font-semibold uppercase leading-3 text-zinc-500">Monto a cobrar</p>
             <p className="mt-0.5 truncate text-base font-black text-brand-300">{formatCurrency(safeAmount, company)}</p>
           </div>
-          <Button className="min-h-10 px-2 text-xs" type="submit" disabled={safeAmount <= 0}>
+          <Button className="min-h-10 px-2 text-xs" type="submit" disabled={submitDisabled}>
             {mode === "full" ? <CheckCircle2 className="h-4 w-4" /> : <Banknote className="h-4 w-4" />}
-            {submitLabel}
+            {disabledReason ? "Caja cerrada" : submitLabel}
           </Button>
         </div>
+        {disabledReason ? <p className="rounded-md bg-amber-400/10 px-2 py-1 text-xs text-amber-100">{disabledReason}</p> : null}
 
         {mode === "custom" ? (
           <Input className="h-9" type="number" value={customAmount} min="0" step="0.01" onChange={(event) => setCustomAmount(Number(event.target.value))} />
@@ -93,14 +112,19 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
             <Input name="observation" className="h-9" placeholder="Nota opcional" />
           </div>
         </details>
+        <DuplicatePaymentModal
+          amount={safeAmount}
+          company={company}
+          open={showDuplicateModal}
+          onCancel={() => setShowDuplicateModal(false)}
+          onConfirm={confirmDuplicatePayment}
+        />
       </form>
     );
   }
 
   return (
-    <form action={createCollectionAction} onSubmit={(event) => {
-      if (!confirmDuplicatePayment()) event.preventDefault();
-    }} className="grid gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+    <form ref={formRef} action={createCollectionAction} onSubmit={handleSubmit} className="relative grid gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="loanId" value={loan.id} />
       <input type="hidden" name="amount" value={safeAmount.toFixed(2)} />
@@ -133,11 +157,61 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
 
       <Textarea name="observation" placeholder="Nota del pago, adelanto o liquidacion" />
 
-      <Button type="submit" disabled={safeAmount <= 0}>
+      {disabledReason ? <p className="rounded-md bg-amber-400/10 px-3 py-2 text-sm text-amber-100">{disabledReason}</p> : null}
+
+      <Button type="submit" disabled={submitDisabled}>
         {mode === "full" ? <CheckCircle2 className="h-4 w-4" /> : <Banknote className="h-4 w-4" />}
-        {submitLabel}
+        {disabledReason ? "Caja cerrada" : submitLabel}
       </Button>
+      <DuplicatePaymentModal
+        amount={safeAmount}
+        company={company}
+        open={showDuplicateModal}
+        onCancel={() => setShowDuplicateModal(false)}
+        onConfirm={confirmDuplicatePayment}
+      />
     </form>
+  );
+}
+
+function DuplicatePaymentModal({
+  amount,
+  company,
+  onCancel,
+  onConfirm,
+  open
+}: {
+  amount: number;
+  company: Company;
+  onCancel: () => void;
+  onConfirm: () => void;
+  open: boolean;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-carbon-950 p-4 shadow-2xl">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-400/15 text-amber-300">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-white">Cuota ya pagada</h2>
+            <p className="mt-1 text-sm text-zinc-300">
+              Esta cuota ya aparece como pagada hoy. Puedes agregar otro pago si el cliente esta adelantando o abonando extra.
+            </p>
+            <p className="mt-3 rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-zinc-300">
+              Nuevo pago: <span className="font-black text-brand-300">{formatCurrency(amount, company)}</span>
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
+          <Button type="button" onClick={onConfirm}>Agregar pago</Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -14,10 +14,31 @@ import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
 import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema } from "@/lib/validations";
 import { createNotification } from "@/server/services/notification-service";
 
+async function ensureCollectorCashboxIsOpen(user: { id: string; companyId: string; role: string }) {
+  if (user.role !== "SELLER") return;
+
+  const todayStart = startOfLocalDay();
+  const todayEnd = endOfLocalDay();
+  const cashbox = await prisma.cashbox.findFirst({
+    where: {
+      companyId: user.companyId,
+      sellerId: user.id,
+      date: {
+        gte: todayStart,
+        lt: todayEnd
+      }
+    },
+    select: { status: true }
+  });
+
+  if (!cashbox || cashbox.status !== "OPEN") redirect("/cashbox?error=cashbox_closed");
+}
+
 export async function createSaleAction(formData: FormData) {
   const payload = saleSchema.parse(Object.fromEntries(formData));
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  await ensureCollectorCashboxIsOpen(user);
 
   const client = await prisma.client.findFirstOrThrow({
     where: {
@@ -77,6 +98,7 @@ export async function createCollectionAction(formData: FormData) {
   const payload = collectionSchema.parse(Object.fromEntries(formData));
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  await ensureCollectorCashboxIsOpen(user);
 
   const client = await prisma.client.findFirstOrThrow({
     where: {
@@ -239,6 +261,7 @@ export async function createLoanAction(formData: FormData) {
   const payload = loanSchema.parse(Object.fromEntries(formData));
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  await ensureCollectorCashboxIsOpen(user);
 
   const client = await prisma.client.findFirstOrThrow({
     where: {
@@ -335,6 +358,7 @@ export async function createExpenseAction(formData: FormData) {
   const payload = expenseSchema.parse(Object.fromEntries(formData));
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  await ensureCollectorCashboxIsOpen(user);
   const date = parseDateInputAsLocal(payload.date);
 
   const expense = await prisma.expense.create({

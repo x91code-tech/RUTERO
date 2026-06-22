@@ -229,6 +229,8 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
 
     return {
       company: demoCompany,
+      canCollect: true,
+      cashboxStatus: "OPEN",
       items,
       totals: {
         pendingClients: allItems.filter((item) => !item.isPaidToday).length,
@@ -242,7 +244,7 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
-  const [company, clients, loans, collections] = await Promise.all([
+  const [company, clients, loans, collections, cashbox] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
     prisma.client.findMany({ where: { companyId: user.companyId, sellerId: user.id }, orderBy: { name: "asc" } }),
     prisma.loan.findMany({ where: { companyId: user.companyId, sellerId: user.id, status: "ACTIVE" }, orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }] }),
@@ -252,6 +254,17 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
         sellerId: user.id,
         OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }]
       }
+    }),
+    prisma.cashbox.findFirst({
+      where: {
+        companyId: user.companyId,
+        sellerId: user.id,
+        date: {
+          gte: todayStart,
+          lt: todayEnd
+        }
+      },
+      select: { status: true }
     })
   ]);
   const mappedClients = clients.map(toClient);
@@ -262,6 +275,8 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
 
   return {
     company: toCompany(company),
+    canCollect: cashbox?.status === "OPEN",
+    cashboxStatus: cashbox?.status ?? "NOT_OPEN",
     items,
     totals: {
       pendingClients: allItems.filter((item) => !item.isPaidToday).length,

@@ -10,7 +10,8 @@ import { formatCurrency, formatShortDate } from "@/lib/formatters";
 
 export default async function SellerPage({ searchParams }: { searchParams: Promise<{ q?: string; estado?: string }> }) {
   const { estado, q } = await searchParams;
-  const { company, items, totals } = await getSellerDailyCollectionData(q ?? "", estado ?? "todos");
+  const { canCollect, cashboxStatus, company, items, totals } = await getSellerDailyCollectionData(q ?? "", estado ?? "todos");
+  const disabledReason = canCollect ? undefined : cashboxStatus === "NOT_OPEN" ? "La caja de hoy no esta abierta." : "La caja de hoy ya fue cerrada.";
 
   return (
     <AppShell title="Ruta de cobro" subtitle="Clientes con prestamos activos, pago diario, atraso y saldo deudor.">
@@ -34,6 +35,12 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
           <LinkButton href="/expenses" variant="secondary" className="px-2 text-xs sm:text-sm"><Banknote className="h-4 w-4" /> Movimiento</LinkButton>
         </div>
       </div>
+
+      {!canCollect ? (
+        <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+          {disabledReason} Puedes consultar la ruta, pero no registrar cobros ni movimientos hasta que el administrador abra una caja nueva.
+        </div>
+      ) : null}
 
       <div className="mt-3 flex gap-2 overflow-x-auto">
         {[
@@ -100,7 +107,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
                   Prestado {formatCurrency(item.loan.principalAmount, company)} - total {formatCurrency(item.loan.totalAmount, company)} - ganancia {formatCurrency(item.loan.interestAmount, company)}
                   {item.lateAmount > 0 ? <span className="ml-2 font-bold text-red-300">Atraso {formatCurrency(item.lateAmount, company)}</span> : null}
                 </div>
-                <LoanPaymentForm clientId={item.client.id} loan={item.loan} company={company} paidToday={item.paidToday} compact />
+                <LoanPaymentForm clientId={item.client.id} loan={item.loan} company={company} paidToday={item.paidToday} compact disabledReason={disabledReason} />
               </div>
             </article>
           );
