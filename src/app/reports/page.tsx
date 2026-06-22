@@ -16,7 +16,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const data = await getReportsPageData(filterInput);
   if (!data) redirect("/login");
 
-  const { cashbox, clients, collections, company, currentUser, expenses, filters, loans, routes, sales, users } = data;
+  const { cashbox, cashboxes, clients, collections, company, currentUser, expenses, filters, loans, routes, sales, users } = data;
   const reportingAllCollectors = currentUser.role !== "SELLER" && !filters.sellerId;
   const seller = reportingAllCollectors
     ? { ...currentUser, name: "Todos los cobradores" }
@@ -35,6 +35,23 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     loans,
     countryCode: company.countryCode
   });
+  const collectionBreakdown = {
+    principalApplied: sum(collections.map((collection) => collection.principalApplied)),
+    interestApplied: sum(collections.map((collection) => collection.interestApplied)),
+    lateFeeApplied: sum(collections.map((collection) => collection.lateFeeApplied)),
+    additionalApplied: sum(collections.map((collection) => collection.additionalApplied)),
+    overpaymentAmount: sum(collections.map((collection) => collection.overpaymentAmount)),
+    installmentsCovered: sum(collections.map((collection) => collection.installmentsCovered))
+  };
+  const cashboxAudit = {
+    open: cashboxes.filter((item) => item.status === "OPEN").length,
+    closed: cashboxes.filter((item) => item.closedAt).length,
+    unbalanced: cashboxes.filter((item) => item.status === "UNBALANCED" || Math.abs(item.difference) > 0.009).length
+  };
+  const clientBalanceTotal = sum(clients.map((client) => client.pendingBalance));
+  const carryForwardNextDay = cashboxes.length > 0
+    ? sum(cashboxes.map((item) => (item.closedAt ? item.reportedCash : item.expectedCash)))
+    : summary.expectedCash;
   const report = generateWhatsAppReport({
     seller,
     cashbox,
@@ -45,7 +62,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     loans,
     visitedClients,
     dateLabel,
-    currencyConfig: company
+    currencyConfig: company,
+    carryForwardNextDay,
+    collectionBreakdown,
+    clientBalanceTotal,
+    cashboxAudit
   });
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(report)}`;
   const usersForSelect = users.length > 0 ? users : [currentUser];
@@ -62,6 +83,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             collectionsCount={collections.length}
             dateLabel={dateLabel ?? formatInputDateLabel(filters.from)}
             expensesCount={expenses.length}
+            cashboxAudit={cashboxAudit}
+            carryForwardNextDay={carryForwardNextDay}
+            clientBalanceTotal={clientBalanceTotal}
+            collectionBreakdown={collectionBreakdown}
             loansCount={loans.length}
             salesCount={sales.length}
             sellerName={seller.name}
@@ -145,8 +170,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <SummaryItem label="Entradas manuales" value={formatCurrency(summary.incomeMovementsTotal, company)} />
               <SummaryItem label="Caja fisica esperada" value={formatCurrency(summary.expectedCash, company)} />
               <SummaryItem label="Efectivo final reportado" value={formatCurrency(cashbox.reportedCash, company)} />
+              <SummaryItem label="Arrastre proximo dia" value={formatCurrency(carryForwardNextDay, company)} />
+              <SummaryItem label="Saldo pendiente clientes" value={formatCurrency(clientBalanceTotal, company)} />
+              <SummaryItem label="Capital recuperado" value={formatCurrency(collectionBreakdown.principalApplied, company)} />
+              <SummaryItem label="Interes recuperado" value={formatCurrency(collectionBreakdown.interestApplied, company)} />
               <SummaryItem label="Diferencia fisica" value={formatCurrency(summary.difference, company)} />
               <SummaryItem label="Estado de caja" value={summary.statusMessage} />
+              <SummaryItem label="Cajas abiertas" value={String(cashboxAudit.open)} />
+              <SummaryItem label="Cajas cerradas" value={String(cashboxAudit.closed)} />
             </div>
           </Card>
         </div>
@@ -169,8 +200,16 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+function sum(values: number[]) {
+  return values.reduce((total, value) => total + value, 0);
+}
+
 function VisualCashReport({
   cashbox,
+  cashboxAudit,
+  carryForwardNextDay,
+  clientBalanceTotal,
+  collectionBreakdown,
   collectionsCount,
   company,
   dateLabel,
@@ -182,6 +221,17 @@ function VisualCashReport({
   visitedClients
 }: {
   cashbox: { initialCash: number; reportedCash: number };
+  cashboxAudit: { open: number; closed: number; unbalanced: number };
+  carryForwardNextDay: number;
+  clientBalanceTotal: number;
+  collectionBreakdown: {
+    principalApplied: number;
+    interestApplied: number;
+    lateFeeApplied: number;
+    additionalApplied: number;
+    overpaymentAmount: number;
+    installmentsCovered: number;
+  };
   collectionsCount: number;
   company: Parameters<typeof formatCurrency>[1];
   dateLabel: string;
@@ -222,6 +272,9 @@ function VisualCashReport({
           <ReportNumber label="Caja inicial" value={formatCurrency(cashbox.initialCash, company)} />
           <ReportNumber label="Caja esperada" value={formatCurrency(summary.expectedCash, company)} tone={summary.expectedCash < 0 ? "red" : "green"} />
           <ReportNumber label="Diferencia" value={formatCurrency(summary.difference, company)} tone={summary.difference === 0 ? "green" : "red"} />
+          <ReportNumber label="Arrastre manana" value={formatCurrency(carryForwardNextDay, company)} tone={carryForwardNextDay < 0 ? "red" : "green"} />
+          <ReportNumber label="Cajas abiertas" value={String(cashboxAudit.open)} tone={cashboxAudit.open > 0 ? "red" : "green"} />
+          <ReportNumber label="Cajas cerradas" value={String(cashboxAudit.closed)} />
         </div>
       </div>
 
@@ -242,6 +295,31 @@ function VisualCashReport({
           </div>
         </div>
         <BalanceBar difference={summary.difference} expectedCash={summary.expectedCash} reportedCash={cashbox.reportedCash} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartPanel
+          title="Aplicacion de recaudos"
+          total={summary.collectionsTotal}
+          rows={[
+            { label: "Capital recuperado", value: collectionBreakdown.principalApplied },
+            { label: "Interes recuperado", value: collectionBreakdown.interestApplied },
+            { label: "Mora recuperada", value: collectionBreakdown.lateFeeApplied },
+            { label: "Adicionales", value: collectionBreakdown.additionalApplied },
+            { label: "Sobrantes / adelantos", value: collectionBreakdown.overpaymentAmount }
+          ]}
+          company={company}
+          tone="green"
+        />
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+          <p className="font-black">Cartera y control</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <ReportNumber label="Saldo pendiente" value={formatCurrency(clientBalanceTotal, company)} tone={clientBalanceTotal > 0 ? "red" : "green"} />
+            <ReportNumber label="Cuotas cubiertas" value={String(collectionBreakdown.installmentsCovered)} />
+            <ReportNumber label="Cajas descuadradas" value={String(cashboxAudit.unbalanced)} tone={cashboxAudit.unbalanced > 0 ? "red" : "green"} />
+            <ReportNumber label="Movimiento neto" value={formatCurrency(summary.expectedCash - cashbox.initialCash, company)} tone={summary.expectedCash - cashbox.initialCash < 0 ? "red" : "green"} />
+          </div>
+        </div>
       </div>
 
       <ChartPanel title="Dinero digital declarado" total={summary.digitalTotal} rows={digitalRows} company={company} tone="orange" />

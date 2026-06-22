@@ -14,6 +14,21 @@ export type ReportFilters = {
   paymentMethod?: string;
 };
 
+export type ReportCashboxRow = {
+  id: string;
+  sellerId: string;
+  date: string;
+  initialCash: number;
+  reportedCash: number;
+  reportedTransfer: number;
+  reportedPix: number;
+  expectedCash: number;
+  difference: number;
+  status: CashboxStatus;
+  closedAt?: string;
+  observations: string;
+};
+
 type ClientIdWhere = {
   clientId?: string | { in: string[] };
 };
@@ -282,7 +297,21 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       date: expense.date.toISOString(),
       comment: expense.comment ?? ""
     })) satisfies Expense[],
-    cashbox
+    cashbox,
+    cashboxes: cashboxes.map((cashbox) => ({
+      id: cashbox.id,
+      sellerId: cashbox.sellerId,
+      date: cashbox.date.toISOString(),
+      initialCash: Number(cashbox.initialCash),
+      reportedCash: Number(cashbox.reportedCash),
+      reportedTransfer: Number(cashbox.reportedTransfer),
+      reportedPix: Number(cashbox.reportedPix),
+      expectedCash: Number(cashbox.expectedCash),
+      difference: Number(cashbox.difference),
+      status: cashbox.status,
+      closedAt: cashbox.closedAt?.toISOString(),
+      observations: cashbox.observations ?? ""
+    })) satisfies ReportCashboxRow[]
   };
 }
 
@@ -296,7 +325,10 @@ function buildReportCashbox(input: {
     reportedCash: Prisma.Decimal;
     reportedTransfer: Prisma.Decimal;
     reportedPix: Prisma.Decimal;
+    expectedCash: Prisma.Decimal;
+    difference: Prisma.Decimal;
     status: CashboxStatus;
+    closedAt: Date | null;
     observations: string | null;
   }[];
   companyId: string;

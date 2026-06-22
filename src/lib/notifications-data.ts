@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { demoNotifications } from "@/lib/demo-data";
 import type { Notification } from "@/lib/types";
+import { ensureCashboxCloseReminder } from "@/lib/cashbox-alerts";
 
 function toNotification(notification: {
   id: string;
@@ -32,6 +33,8 @@ export async function getNotificationsData() {
     };
   }
 
+  await ensureCashboxCloseReminder(user.companyId);
+
   const [notifications, unreadCount] = await Promise.all([
     prisma.notification.findMany({
       where: { companyId: user.companyId },
@@ -55,6 +58,8 @@ export async function getNotificationsData() {
 export async function getNotificationSummary() {
   const user = await getSessionUser();
   if (!user) return { unreadCount: demoNotifications.length };
+
+  await ensureCashboxCloseReminder(user.companyId);
 
   const unreadCount = await prisma.notification.count({
     where: {

@@ -13,6 +13,7 @@ export default async function CashboxPage() {
   const { cashbox, canOpenCashboxes, collectorCount, collections, company, currentUser, expenses, loans, movements, openedCashboxes, sales } = await getCashboxPageData();
   const summary = calculateDailySummary({ cashbox, sales, collections, expenses, loans, countryCode: company.countryCode });
   const isCollector = currentUser?.role === "SELLER";
+  const projectedClosingCash = cashbox.status === "OPEN" ? summary.expectedCash : cashbox.reportedCash;
 
   return (
     <AppShell title="Caja diaria" subtitle="Movimientos automaticos, cierre y diferencias del dia.">
@@ -25,6 +26,7 @@ export default async function CashboxPage() {
         <MetricCard label="Efectivo final reportado" value={formatCurrency(cashbox.reportedCash, company)} tone={cashbox.reportedCash < 0 ? "red" : "green"} />
         <MetricCard label="Diferencia fisica" value={formatCurrency(summary.difference, company)} tone={summary.difference === 0 ? "green" : "red"} />
         <MetricCard label="Digital declarado" value={formatCurrency(summary.digitalTotal, company)} />
+        <MetricCard label="Arrastre manana" value={formatCurrency(projectedClosingCash, company)} tone={projectedClosingCash < 0 ? "red" : "green"} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -34,7 +36,7 @@ export default async function CashboxPage() {
               <CardHeader title="Cerrar caja" description="La caja fisica puede quedar en negativo si se entrego dinero que no estaba en caja." />
               <form action={closeCashboxAction} className="grid gap-4">
                 <Field label="Caja inicial"><Input name="initialCash" type="number" defaultValue={cashbox.initialCash} step="0.01" /></Field>
-                <Field label="Efectivo final reportado"><Input name="reportedCash" type="number" defaultValue={cashbox.reportedCash || summary.expectedCash} step="0.01" /></Field>
+                <Field label="Efectivo final reportado"><Input name="reportedCash" type="number" defaultValue={projectedClosingCash} step="0.01" /></Field>
                 <Field label="Transferencia reportada"><Input name="reportedTransfer" type="number" defaultValue={cashbox.reportedTransfer || summary.transferTotal} min="0" step="0.01" /></Field>
                 <Field label="Digital / wallet reportado"><Input name="reportedPix" type="number" defaultValue={cashbox.reportedPix || summary.pixTotal} min="0" step="0.01" /></Field>
                 <Field label="Observaciones"><Textarea name="observations" defaultValue={cashbox.observations} placeholder="Notas del cierre de caja" /></Field>
@@ -73,6 +75,7 @@ export default async function CashboxPage() {
               ["Entradas efectivo total", summary.cashInflows],
               ["Salidas efectivo total", -summary.cashOutflows],
               ["Movimiento neto fisico", summary.expectedCash - cashbox.initialCash],
+              ["Arrastre proximo dia", projectedClosingCash],
               ["Gastos totales", -summary.expensesTotal],
               ["Retiros totales", -summary.withdrawalsTotal],
               ["Entradas manuales", summary.incomeMovementsTotal],

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { cashMovementKindLabels, getCashMovementImpact, normalizeCashMovementKind } from "@/lib/cash-movements";
 import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
+import { ensureCashboxCloseReminder } from "@/lib/cashbox-alerts";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import type { Cashbox, Collection, Company, Expense, Loan, Role, Sale, User } from "@/lib/types";
 
@@ -85,6 +86,8 @@ export async function getCashboxPageData() {
       ] satisfies CashboxMovementRow[]
     };
   }
+
+  await ensureCashboxCloseReminder(user.companyId);
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();

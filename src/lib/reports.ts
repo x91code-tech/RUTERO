@@ -14,6 +14,21 @@ export function generateWhatsAppReport(input: {
   visitedClients: number;
   dateLabel?: string;
   currencyConfig?: Partial<CurrencyConfig>;
+  carryForwardNextDay?: number;
+  collectionBreakdown?: {
+    principalApplied: number;
+    interestApplied: number;
+    lateFeeApplied: number;
+    additionalApplied: number;
+    overpaymentAmount: number;
+    installmentsCovered: number;
+  };
+  clientBalanceTotal?: number;
+  cashboxAudit?: {
+    open: number;
+    closed: number;
+    unbalanced: number;
+  };
 }) {
   const { seller, cashbox, summary, sales, collections, expenses, visitedClients } = input;
   const loans = input.loans ?? [];
@@ -33,6 +48,7 @@ export function generateWhatsAppReport(input: {
     "",
     `Caja fisica esperada: ${money(summary.expectedCash)}`,
     `Efectivo final reportado: ${money(cashbox.reportedCash)}`,
+    `Arrastre proximo dia: ${money(input.carryForwardNextDay ?? summary.expectedCash)}`,
     `Digital / wallets: ${money(summary.pixTotal)}`,
     `Transferencia: ${money(summary.transferTotal)}`,
     "",
@@ -43,9 +59,19 @@ export function generateWhatsAppReport(input: {
     `Prestamos creados: ${loans.length}`,
     `Ingresos extra: ${sales.length}`,
     `Recaudos realizados: ${collections.length}`,
+    `Capital recuperado: ${money(input.collectionBreakdown?.principalApplied ?? 0)}`,
+    `Interes recuperado: ${money(input.collectionBreakdown?.interestApplied ?? 0)}`,
+    `Mora recuperada: ${money(input.collectionBreakdown?.lateFeeApplied ?? 0)}`,
+    `Adicionales: ${money(input.collectionBreakdown?.additionalApplied ?? 0)}`,
+    `Sobrantes/adelantos: ${money(input.collectionBreakdown?.overpaymentAmount ?? 0)}`,
+    `Cuotas cubiertas: ${input.collectionBreakdown?.installmentsCovered ?? 0}`,
+    `Saldo pendiente clientes: ${money(input.clientBalanceTotal ?? 0)}`,
     `Movimientos de caja: ${expenses.length}`,
     `Entradas manuales: ${money(summary.incomeMovementsTotal)}`,
     `Retiros: ${money(summary.withdrawalsTotal)}`,
+    `Cajas abiertas: ${input.cashboxAudit?.open ?? 0}`,
+    `Cajas cerradas: ${input.cashboxAudit?.closed ?? 0}`,
+    `Cajas descuadradas: ${input.cashboxAudit?.unbalanced ?? 0}`,
     "",
     "Observacion:",
     cashbox.observations || "Sin observaciones"
