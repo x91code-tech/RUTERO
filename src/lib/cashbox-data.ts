@@ -4,6 +4,7 @@ import { cashMovementKindLabels, getCashMovementImpact, normalizeCashMovementKin
 import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
 import { ensureCashboxCloseReminder } from "@/lib/cashbox-alerts";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
+import { shouldCollectOnDate } from "@/lib/loan-schedule";
 import type { Cashbox, Collection, Company, Expense, Loan, Role, Sale, User } from "@/lib/types";
 
 export type CashboxMovementRow = {
@@ -38,6 +39,7 @@ function toCompany(company: {
 
 export async function getCashboxPageData() {
   const user = await getSessionUser();
+  const todayStart = startOfLocalDay();
   if (!user) {
     return {
       company: demoCompany,
@@ -50,6 +52,11 @@ export async function getCashboxPageData() {
       openedCashboxes: 1,
       collectorCount: 1,
       canOpenCashboxes: false,
+      expectedCollectionToday: demoLoans
+        .filter((loan) => loan.status === "ACTIVE")
+        .filter((loan) => shouldCollectOnDate({ startDate: loan.startDate, targetDate: todayStart, frequency: loan.paymentFrequency }))
+        .reduce((total, loan) => total + Math.min(loan.dailyPayment, loan.balance), 0),
+      collectableClientsToday: new Set(demoLoans.filter((loan) => loan.status === "ACTIVE").map((loan) => loan.clientId)).size,
       movements: [
         ...demoLoans.map((loan) => ({
           id: loan.id,
@@ -89,16 +96,19 @@ export async function getCashboxPageData() {
 
   await ensureCashboxCloseReminder(user.companyId);
 
-  const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
   const sellerScope = user.role === "SELLER" ? { sellerId: user.id } : {};
   const movementDateScope = { OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }] };
-  const [company, cashboxes, loans, sales, collections, expenses, collectors] = await Promise.all([
+  const [company, cashboxes, loans, activeLoans, sales, collections, expenses, collectors] = await Promise.all([
     prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
     prisma.cashbox.findMany({
       where: { companyId: user.companyId, ...sellerScope, date: { gte: todayStart, lt: todayEnd } }
     }),
     prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, createdAt: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
+    prisma.loan.findMany({
+      where: { companyId: user.companyId, ...sellerScope, status: "ACTIVE" },
+      select: { clientId: true, dailyPayment: true, balance: true, startDate: true, paymentFrequency: true }
+    }),
     prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope }, include: { client: { select: { name: true } } } }),
     prisma.collection.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope }, include: { client: { select: { name: true } } } }),
     prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
@@ -135,6 +145,9 @@ export async function getCashboxPageData() {
   const currentCashbox = cashboxes.find((item) => item.sellerId === user.id) ?? cashboxes[0];
   const sumCashboxes = (selector: (cashbox: (typeof cashboxes)[number]) => unknown) =>
     cashboxes.reduce((total, item) => total + Number(selector(item) ?? 0), 0);
+  const collectableLoansToday = activeLoans.filter((loan) =>
+    shouldCollectOnDate({ startDate: loan.startDate, targetDate: todayStart, frequency: loan.paymentFrequency })
+  );
 
   return {
     company: toCompany(company),
@@ -161,6 +174,8 @@ export async function getCashboxPageData() {
     openedCashboxes: cashboxes.length,
     collectorCount: collectors.length,
     canOpenCashboxes: user.role !== "SELLER",
+    expectedCollectionToday: collectableLoansToday.reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0),
+    collectableClientsToday: new Set(collectableLoansToday.map((loan) => loan.clientId)).size,
     loans: loans.map((loan) => ({
       id: loan.id,
       companyId: loan.companyId,

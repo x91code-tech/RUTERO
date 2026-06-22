@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { Banknote, Landmark, TrendingDown, TrendingUp, Users, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MetricCard } from "@/components/cards/metric-card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +12,16 @@ import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 import { closeCashboxAction, openTodayCashboxesAction } from "@/server/actions/financial-actions";
 
 export default async function CashboxPage() {
-  const { cashbox, canOpenCashboxes, collectorCount, collections, company, currentUser, expenses, loans, movements, openedCashboxes, sales } = await getCashboxPageData();
+  const { cashbox, canOpenCashboxes, collectableClientsToday, collectorCount, collections, company, currentUser, expectedCollectionToday, expenses, loans, movements, openedCashboxes, sales } = await getCashboxPageData();
   const summary = calculateDailySummary({ cashbox, sales, collections, expenses, loans, countryCode: company.countryCode });
   const isCollector = currentUser?.role === "SELLER";
   const projectedClosingCash = cashbox.status === "OPEN" ? summary.expectedCash : cashbox.reportedCash;
+  const cashboxIsOpen = cashbox.status === "OPEN";
+  const visitedClients = new Set([
+    ...collections.map((collection) => collection.clientId),
+    ...loans.map((loan) => loan.clientId),
+    ...sales.map((sale) => sale.clientId)
+  ]).size;
 
   return (
     <AppShell title="Caja diaria" subtitle="Movimientos automaticos, cierre y diferencias del dia.">
@@ -33,21 +41,34 @@ export default async function CashboxPage() {
         <Card>
           {isCollector ? (
             <>
-              <CardHeader title="Cerrar caja" description="La caja fisica puede quedar en negativo si se entrego dinero que no estaba en caja." />
-              <form action={closeCashboxAction} className="grid gap-4">
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-sm text-zinc-400">Caja inicial fija</p>
-                  <p className={cashbox.initialCash < 0 ? "mt-2 text-2xl font-black text-red-300" : "mt-2 text-2xl font-black text-white"}>
-                    {formatCurrency(cashbox.initialCash, company)}
-                  </p>
-                  <p className="mt-2 text-xs text-zinc-500">Viene del cierre anterior y no se edita al cerrar.</p>
+              <CardHeader title="Resumen de caja" description={cashboxIsOpen ? "Revisa el efectivo antes de cerrar." : "La caja de hoy ya fue cerrada."} />
+              <CashboxCloseSummary
+                cashbox={cashbox}
+                collectableClientsToday={collectableClientsToday}
+                company={company}
+                expectedCollectionToday={expectedCollectionToday}
+                projectedClosingCash={projectedClosingCash}
+                summary={summary}
+                visitedClients={visitedClients}
+              />
+              {cashboxIsOpen ? (
+                <form action={closeCashboxAction} className="mt-4 grid gap-3">
+                  <Field label="Efectivo final reportado"><Input name="reportedCash" type="number" defaultValue={projectedClosingCash} step="0.01" /></Field>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Transferencia reportada"><Input name="reportedTransfer" type="number" defaultValue={cashbox.reportedTransfer || summary.transferTotal} min="0" step="0.01" /></Field>
+                    <Field label="Digital / wallet reportado"><Input name="reportedPix" type="number" defaultValue={cashbox.reportedPix || summary.pixTotal} min="0" step="0.01" /></Field>
+                  </div>
+                  <Field label="Observaciones"><Textarea name="observations" defaultValue={cashbox.observations} placeholder="Notas del cierre de caja" /></Field>
+                  <Button type="submit">Cerrar caja</Button>
+                </form>
+              ) : (
+                <div className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+                  <StatusBadge tone={summary.difference === 0 ? "green" : "orange"}>
+                    {summary.difference === 0 ? "Caja cerrada" : "Cerrada con diferencia"}
+                  </StatusBadge>
+                  <p className="mt-2 text-sm text-zinc-300">Para abrir otra caja debe iniciar un nuevo dia desde administracion.</p>
                 </div>
-                <Field label="Efectivo final reportado"><Input name="reportedCash" type="number" defaultValue={projectedClosingCash} step="0.01" /></Field>
-                <Field label="Transferencia reportada"><Input name="reportedTransfer" type="number" defaultValue={cashbox.reportedTransfer || summary.transferTotal} min="0" step="0.01" /></Field>
-                <Field label="Digital / wallet reportado"><Input name="reportedPix" type="number" defaultValue={cashbox.reportedPix || summary.pixTotal} min="0" step="0.01" /></Field>
-                <Field label="Observaciones"><Textarea name="observations" defaultValue={cashbox.observations} placeholder="Notas del cierre de caja" /></Field>
-                <Button type="submit">Cerrar caja</Button>
-              </form>
+              )}
             </>
           ) : (
             <>
@@ -139,6 +160,78 @@ export default async function CashboxPage() {
         </div>
       </Card>
     </AppShell>
+  );
+}
+
+function CashboxCloseSummary({
+  cashbox,
+  collectableClientsToday,
+  company,
+  expectedCollectionToday,
+  projectedClosingCash,
+  summary,
+  visitedClients
+}: {
+  cashbox: { initialCash: number };
+  collectableClientsToday: number;
+  company: Parameters<typeof formatCurrency>[1];
+  expectedCollectionToday: number;
+  projectedClosingCash: number;
+  summary: ReturnType<typeof calculateDailySummary>;
+  visitedClients: number;
+}) {
+  const progress = collectableClientsToday > 0 ? Math.min((visitedClients / collectableClientsToday) * 100, 100) : 0;
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="flex items-center gap-4">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-brand-500/30 bg-brand-500/10 text-brand-400">
+            <Banknote className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-zinc-400">Caja actual</p>
+            <p className={projectedClosingCash < 0 ? "truncate text-3xl font-black text-red-300" : "truncate text-3xl font-black text-white"}>
+              {formatCurrency(projectedClosingCash, company)}
+            </p>
+            <p className="truncate text-sm text-zinc-400">Recaudo pretendido: {formatCurrency(expectedCollectionToday, company)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+          <p className="font-semibold text-zinc-300">Clientes visitados</p>
+          <p className="font-black text-white">{visitedClients} de {collectableClientsToday}</p>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full rounded-full bg-brand-500" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <CashboxMiniTile icon={<Banknote className="h-5 w-5" />} label="Caja inicial" value={formatCurrency(cashbox.initialCash, company)} tone={cashbox.initialCash < 0 ? "red" : "neutral"} />
+        <CashboxMiniTile icon={<TrendingUp className="h-5 w-5" />} label="Entradas" value={formatCurrency(summary.cashIncomeMovements, company)} />
+        <CashboxMiniTile icon={<WalletCards className="h-5 w-5" />} label="Recaudos" value={formatCurrency(summary.cashCollections, company)} tone="green" />
+        <CashboxMiniTile icon={<Landmark className="h-5 w-5" />} label="Prestamos" value={formatCurrency(-summary.loanDisbursementsTotal, company)} tone="red" />
+        <CashboxMiniTile icon={<TrendingDown className="h-5 w-5" />} label="Gastos" value={formatCurrency(-summary.cashExpenses, company)} tone="red" />
+        <CashboxMiniTile icon={<Users className="h-5 w-5" />} label="Retiros" value={formatCurrency(-summary.cashWithdrawals, company)} tone="red" />
+      </div>
+    </div>
+  );
+}
+
+function CashboxMiniTile({ icon, label, tone = "neutral", value }: { icon: ReactNode; label: string; tone?: "neutral" | "green" | "red"; value: string }) {
+  const toneClass = tone === "green" ? "text-emerald-300" : tone === "red" ? "text-red-300" : "text-white";
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+      <div className="flex items-center gap-2 text-brand-400">
+        {icon}
+        <p className="truncate text-sm font-semibold text-zinc-300">{label}</p>
+      </div>
+      <p className={`mt-2 truncate text-xl font-black ${toneClass}`}>{value}</p>
+    </div>
   );
 }
 
