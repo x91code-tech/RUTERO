@@ -35,10 +35,17 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
   const safeAmount = Math.max(selectedAmount, 0);
   const paymentType = mode === "advance" ? "ADVANCE" : mode === "full" ? "SETTLEMENT" : mode === "custom" ? "MANUAL" : "INSTALLMENT";
   const submitLabel = mode === "full" ? (compact ? "Liquidar" : "Liquidar prestamo") : compact ? "Cobrar" : `Cobrar ${formatCurrency(safeAmount, company)}`;
+  const isDailyPaymentAlreadyCovered = paidToday >= Math.min(loan.dailyPayment, loan.balance);
+  const confirmDuplicatePayment = () => {
+    if (mode !== "daily" || !isDailyPaymentAlreadyCovered) return true;
+    return window.confirm("La cuota de hoy ya esta marcada como pagada. Quieres agregar otro pago de todos modos?");
+  };
 
   if (compact) {
     return (
-      <form action={createCollectionAction} className="grid gap-2 rounded-lg border border-white/10 bg-carbon-950/35 p-2">
+      <form action={createCollectionAction} onSubmit={(event) => {
+        if (!confirmDuplicatePayment()) event.preventDefault();
+      }} className="grid gap-2 rounded-lg border border-white/10 bg-carbon-950/35 p-2">
         <input type="hidden" name="clientId" value={clientId} />
         <input type="hidden" name="loanId" value={loan.id} />
         <input type="hidden" name="amount" value={safeAmount.toFixed(2)} />
@@ -91,7 +98,9 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
   }
 
   return (
-    <form action={createCollectionAction} className="grid gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+    <form action={createCollectionAction} onSubmit={(event) => {
+      if (!confirmDuplicatePayment()) event.preventDefault();
+    }} className="grid gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="loanId" value={loan.id} />
       <input type="hidden" name="amount" value={safeAmount.toFixed(2)} />
