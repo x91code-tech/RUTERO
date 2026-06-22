@@ -250,7 +250,10 @@ export async function createLoanAction(formData: FormData) {
 
   if (client.status !== "ACTIVE") redirect(`/clients/${client.id}?error=client_not_verified`);
 
-  const startDate = parseDateInputAsLocal(payload.startDate);
+  const requestedStartDate = parseDateInputAsLocal(payload.startDate);
+  const tomorrowStart = startOfLocalDay();
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const startDate = requestedStartDate < tomorrowStart ? tomorrowStart : requestedStartDate;
   const dueDate = addPaymentPeriods(startDate, payload.termDays - 1, payload.paymentFrequency);
   const principalAmount = payload.principalAmount;
   const interestRate = payload.interestRatePercent / 100;

@@ -15,8 +15,11 @@ type LoanFormProps = {
   defaultClientId?: string;
 };
 
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
+function tomorrowInputValue() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
 }
 
 export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
@@ -79,7 +82,7 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
       </div>
 
       <Field label="Fecha de inicio">
-        <Input name="startDate" type="date" defaultValue={todayInputValue()} />
+        <Input name="startDate" type="date" defaultValue={tomorrowInputValue()} />
       </Field>
 
       <div className="grid gap-3 rounded-lg border border-brand-500/25 bg-brand-500/10 p-4 text-sm sm:grid-cols-3">

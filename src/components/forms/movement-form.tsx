@@ -20,6 +20,13 @@ function todayInputValue() {
   return localDate.toISOString().slice(0, 10);
 }
 
+function tomorrowInputValue() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const localDate = new Date(tomorrow.getTime() - tomorrow.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+}
+
 function getFormData(input?: MovementFormProps) {
   const company = input?.company ?? demoCompany;
   const clients = input?.clients?.length ? input.clients : demoClients;
@@ -58,7 +65,7 @@ export function LoanForm(props: MovementFormProps) {
       <input type="hidden" name="interestRatePercent" value={defaultInterestPercent} />
       <input type="hidden" name="paymentFrequency" value={company.paymentFrequency ?? "DAILY"} />
       <Field label="Fecha de inicio">
-        <Input name="startDate" type="date" defaultValue={todayInputValue()} />
+        <Input name="startDate" type="date" defaultValue={tomorrowInputValue()} />
       </Field>
       <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
         RUTERO calcula {defaultInterestPercent}% de ganancia en frecuencia {paymentFrequencyLabels[company.paymentFrequency ?? "DAILY"].toLowerCase()}.

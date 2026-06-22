@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Banknote, Landmark, TrendingDown, TrendingUp, Users, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MetricCard } from "@/components/cards/metric-card";
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -17,6 +17,7 @@ export default async function CashboxPage() {
   const isCollector = currentUser?.role === "SELLER";
   const projectedClosingCash = cashbox.status === "OPEN" ? summary.expectedCash : cashbox.reportedCash;
   const cashboxIsOpen = cashbox.status === "OPEN";
+  const pendingCashboxesToOpen = Math.max(collectorCount - openedCashboxes, 0);
   const visitedClients = new Set([
     ...collections.map((collection) => collection.clientId),
     ...loans.map((loan) => loan.clientId),
@@ -66,7 +67,11 @@ export default async function CashboxPage() {
                   <StatusBadge tone={summary.difference === 0 ? "green" : "orange"}>
                     {summary.difference === 0 ? "Caja cerrada" : "Cerrada con diferencia"}
                   </StatusBadge>
-                  <p className="mt-2 text-sm text-zinc-300">Para abrir otra caja debe iniciar un nuevo dia desde administracion.</p>
+                  <p className="mt-2 text-sm text-zinc-300">El cierre de hoy ya quedo guardado. Puedes seguir revisando tu ruta, clientes y movimientos; manana se abre una nueva caja.</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <LinkButton href="/seller" variant="secondary">Volver a ruta</LinkButton>
+                    <LinkButton href="/dashboard" variant="secondary">Ver dashboard</LinkButton>
+                  </div>
                 </div>
               )}
             </>
@@ -76,13 +81,16 @@ export default async function CashboxPage() {
               <div className="grid gap-4">
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-300">
                   <p>Cajas abiertas hoy: <span className="font-bold text-white">{openedCashboxes}</span> / {collectorCount}</p>
+                  <p className="mt-1">Pendientes por abrir: <span className="font-bold text-white">{pendingCashboxesToOpen}</span></p>
                   <p className="mt-2 text-zinc-500">La apertura automatica por hora requiere un programador en la VPS; por ahora queda control manual desde aqui.</p>
                 </div>
-                {canOpenCashboxes ? (
+                {canOpenCashboxes && pendingCashboxesToOpen > 0 ? (
                   <form action={openTodayCashboxesAction}>
                     <Button type="submit">Abrir cajas pendientes</Button>
                   </form>
-                ) : null}
+                ) : (
+                  <Button type="button" variant="secondary" disabled>Todas las cajas estan abiertas</Button>
+                )}
               </div>
             </>
           )}

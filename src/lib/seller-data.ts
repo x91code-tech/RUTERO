@@ -162,7 +162,7 @@ function toCollection(collection: {
   };
 }
 
-function buildItems(clients: Client[], loans: Loan[], collections: Collection[], search = "", statusFilter = "todos") {
+function buildItems(clients: Client[], loans: Loan[], collections: Collection[], search = "", statusFilter = "todos", targetDate: Date | string = new Date()) {
   const normalizedSearch = search.trim().toLowerCase();
 
   return loans
@@ -174,15 +174,18 @@ function buildItems(clients: Client[], loans: Loan[], collections: Collection[],
       const todayCollections = collections.filter((collection) => collection.loanId === loan.id);
       const receivedToday = todayCollections.reduce((total, collection) => total + collection.amount, 0);
       const paidToday = todayCollections.reduce((total, collection) => total + (collection.balanceApplied ?? collection.amount), 0);
+      const shouldCollectToday = shouldCollectOnDate({ startDate: loan.startDate, targetDate, frequency: loan.paymentFrequency });
+      if (!shouldCollectToday) return null;
+
       const installmentNumber = getInstallmentNumber({
         startDate: loan.startDate,
+        targetDate,
         frequency: loan.paymentFrequency,
         termDays: loan.termDays
       });
       const expectedPaidToDate = Math.min(installmentNumber * loan.dailyPayment, loan.totalAmount);
       const lateAmount = Math.max(expectedPaidToDate - loan.paidAmount, 0);
-      const shouldCollectToday = shouldCollectOnDate({ startDate: loan.startDate, frequency: loan.paymentFrequency });
-      const expectedToday = shouldCollectToday ? Math.min(loan.dailyPayment, loan.balance) : 0;
+      const expectedToday = Math.min(loan.dailyPayment, loan.balance);
 
       return {
         client,
@@ -220,20 +223,19 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
 
   if (!user) {
     const collectionsToday = demoCollections.filter((collection) => collection.date === "2026-06-12");
-    const items = buildItems(demoClients, demoLoans, collectionsToday, search, statusFilter);
+    const targetDate = new Date("2026-06-12T00:00:00");
+    const allItems = buildItems(demoClients, demoLoans, collectionsToday, search, "todos", targetDate);
+    const items = statusFilter === "todos" ? allItems : buildItems(demoClients, demoLoans, collectionsToday, search, statusFilter, targetDate);
 
     return {
       company: demoCompany,
       items,
       totals: {
-        pendingClients: items.filter((item) => !item.isPaidToday).length,
-        paidClients: items.filter((item) => item.isPaidToday).length,
-        expectedToday: items.reduce((total, item) => {
-          if (!shouldCollectOnDate({ startDate: item.loan.startDate, frequency: item.loan.paymentFrequency })) return total;
-          return total + Math.min(item.loan.dailyPayment, item.loan.balance);
-        }, 0),
-        collectedToday: items.reduce((total, item) => total + item.receivedToday, 0),
-        activeBalance: items.reduce((total, item) => total + item.loan.balance, 0)
+        pendingClients: allItems.filter((item) => !item.isPaidToday).length,
+        paidClients: allItems.filter((item) => item.isPaidToday).length,
+        expectedToday: allItems.reduce((total, item) => total + Math.min(item.loan.dailyPayment, item.loan.balance), 0),
+        collectedToday: allItems.reduce((total, item) => total + item.receivedToday, 0),
+        activeBalance: allItems.reduce((total, item) => total + item.loan.balance, 0)
       }
     };
   }
@@ -252,20 +254,21 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
       }
     })
   ]);
-  const items = buildItems(clients.map(toClient), loans.map(toLoan), collections.map(toCollection), search, statusFilter);
+  const mappedClients = clients.map(toClient);
+  const mappedLoans = loans.map(toLoan);
+  const mappedCollections = collections.map(toCollection);
+  const allItems = buildItems(mappedClients, mappedLoans, mappedCollections, search, "todos", todayStart);
+  const items = statusFilter === "todos" ? allItems : buildItems(mappedClients, mappedLoans, mappedCollections, search, statusFilter, todayStart);
 
   return {
     company: toCompany(company),
     items,
     totals: {
-      pendingClients: items.filter((item) => !item.isPaidToday).length,
-      paidClients: items.filter((item) => item.isPaidToday).length,
-      expectedToday: items.reduce((total, item) => {
-        if (!shouldCollectOnDate({ startDate: item.loan.startDate, frequency: item.loan.paymentFrequency, targetDate: todayStart })) return total;
-        return total + Math.min(item.loan.dailyPayment, item.loan.balance);
-      }, 0),
-      collectedToday: items.reduce((total, item) => total + item.receivedToday, 0),
-      activeBalance: items.reduce((total, item) => total + item.loan.balance, 0)
+      pendingClients: allItems.filter((item) => !item.isPaidToday).length,
+      paidClients: allItems.filter((item) => item.isPaidToday).length,
+      expectedToday: allItems.reduce((total, item) => total + Math.min(item.loan.dailyPayment, item.loan.balance), 0),
+      collectedToday: allItems.reduce((total, item) => total + item.receivedToday, 0),
+      activeBalance: allItems.reduce((total, item) => total + item.loan.balance, 0)
     }
   };
 }
