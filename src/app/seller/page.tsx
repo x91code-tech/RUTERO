@@ -52,7 +52,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
         })}
       </div>
 
-      <div className="mt-4 grid gap-3">
+      <div className="mt-4 grid gap-2.5">
         {items.map((item) => {
           const stateClasses = item.isPaidToday
             ? "border-l-4 border-l-emerald-400"
@@ -64,15 +64,15 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
           const statusBorder = item.isPaidToday ? "border-emerald-400 text-emerald-300" : item.lateAmount > 0 ? "border-red-400 text-red-300" : "border-amber-400 text-amber-300";
 
           return (
-            <article key={item.loan.id} className={`rounded-lg border border-white/10 bg-white/[0.04] p-3 shadow-sm ${stateClasses}`}>
-              <div className="flex items-start justify-between gap-3">
+            <article key={item.loan.id} className={`rounded-lg border border-white/10 bg-white/[0.04] p-2.5 shadow-sm ${stateClasses}`}>
+              <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-black ${statusBorder}`}>
+                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border text-[0.7rem] font-black ${statusBorder}`}>
                       {item.client.name.charAt(0).toUpperCase()}
                     </span>
                     <div className="min-w-0">
-                      <h2 className="truncate text-base font-black leading-tight">{item.client.name}</h2>
+                      <h2 className="truncate text-sm font-black leading-tight sm:text-base">{item.client.name}</h2>
                       <p className="truncate text-xs text-zinc-400">{item.client.document || "Sin documento"} - {item.client.phone || "Sin telefono"}</p>
                     </div>
                   </div>
@@ -82,12 +82,12 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
                   </p>
                 </div>
 
-                <div className={`shrink-0 rounded-full bg-white/[0.06] px-2.5 py-1 text-xs font-semibold ${statusColor}`}>
+                <div className={`shrink-0 rounded-full bg-white/[0.06] px-2 py-1 text-[0.68rem] font-semibold ${statusColor}`}>
                   {statusText}
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-2 lg:grid-cols-5">
+              <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
                 <Info label="Vr. cuota" value={formatCurrency(item.loan.dailyPayment, company)} />
                 <Info label="Cuota No." value={`${item.installmentNumber} / ${item.loan.termDays}`} />
                 <Info label="Pago hoy" value={formatCurrency(item.receivedToday, company)} strongClass={item.isPaidToday ? "text-emerald-300" : "text-zinc-100"} />
@@ -95,8 +95,8 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
                 <Info label="Vence" value={formatShortDate(item.loan.dueDate)} />
               </div>
 
-              <div className="mt-3 grid gap-2 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-start">
-                <div className="rounded-lg bg-carbon-900/70 p-2 text-xs leading-5 text-zinc-300">
+              <div className="mt-2.5 grid gap-2 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+                <div className="rounded-lg bg-carbon-900/70 px-2 py-1.5 text-[0.72rem] leading-5 text-zinc-300">
                   Prestado {formatCurrency(item.loan.principalAmount, company)} - total {formatCurrency(item.loan.totalAmount, company)} - ganancia {formatCurrency(item.loan.interestAmount, company)}
                   {item.lateAmount > 0 ? <span className="ml-2 font-bold text-red-300">Atraso {formatCurrency(item.lateAmount, company)}</span> : null}
                 </div>
@@ -132,9 +132,9 @@ function SummaryTile({ className = "", icon, label, tone = "neutral", value }: {
 
 function Info({ label, value, strongClass = "text-zinc-100" }: { label: string; value: string; strongClass?: string }) {
   return (
-    <div className="rounded-lg bg-white/[0.04] p-2">
+    <div className="rounded-md bg-white/[0.04] px-2 py-1.5">
       <p className="truncate text-[0.65rem] font-semibold uppercase leading-3 text-zinc-500">{label}</p>
-      <p className={`mt-1 truncate text-sm font-black sm:text-base ${strongClass}`}>{value}</p>
+      <p className={`mt-0.5 truncate text-sm font-black ${strongClass}`}>{value}</p>
     </div>
   );
 }
