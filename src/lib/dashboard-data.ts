@@ -104,6 +104,11 @@ function fallbackCollectorRows(rows: AdminAnalyticsData["collectors"]) {
     : [{ label: "Sin actividad", esperado: 0, cobrado: 0, entregado: 0 }];
 }
 
+function percentage(value: number, total: number) {
+  if (total <= 0) return value > 0 ? 100 : 0;
+  return Math.round((value / total) * 100);
+}
+
 export type DashboardMovement = {
   id: string;
   type: "Prestamo" | "Recaudo" | "Gasto" | "Retiro" | "Entrada" | "Ingreso extra";
@@ -169,7 +174,17 @@ export async function getDashboardData() {
           .reduce((total, loan) => total + Math.min(loan.dailyPayment, loan.balance), 0),
         collectedToday: demoCollections.reduce((total, collection) => total + collection.amount, 0),
         loanDisbursementsToday: demoSummary.loanDisbursementsTotal,
+        principalCollectedToday: demoCollections.reduce((total, collection) => total + (collection.principalApplied ?? 0), 0),
+        interestCollectedToday: demoCollections.reduce((total, collection) => total + (collection.interestApplied ?? 0), 0),
+        lateFeeCollectedToday: demoCollections.reduce((total, collection) => total + (collection.lateFeeApplied ?? 0), 0),
+        activePrincipalBalance: activeLoans.reduce((total, loan) => total + (loan.principalBalance ?? 0), 0),
+        activeInterestBalance: activeLoans.reduce((total, loan) => total + (loan.interestBalance ?? 0), 0),
+        activeLateFeeBalance: activeLoans.reduce((total, loan) => total + (loan.lateFeeBalance ?? 0), 0),
         cashboxExpectedToday: demoSummary.expectedCash,
+        cashboxReportedToday: demoCashbox.reportedCash,
+        cashboxDifferenceToday: demoSummary.difference,
+        openCashboxesToday: demoCashbox.status === "OPEN" ? 1 : 0,
+        unbalancedCashboxesToday: demoSummary.difference === 0 ? 0 : 1,
         cashInflowsToday: demoSummary.cashInflows,
         cashOutflowsToday: demoSummary.cashOutflows,
         expensesToday: demoExpenses.filter((expense) => isCashMovementOutflow(expense.movementKind)).reduce((total, expense) => total + expense.amount, 0),
@@ -178,6 +193,20 @@ export async function getDashboardData() {
         activeSellers: demoUsers.filter((item) => item.role === "SELLER").length
       },
       sellerCollections: [{ label: "Cobrador Demo", value: demoCollections.reduce((total, collection) => total + collection.amount, 0) }],
+      collectorPerformance: demoCollectors.map((collector) => ({
+        id: collector.label,
+        name: collector.label,
+        expected: collector.esperado,
+        collected: collector.cobrado,
+        delivered: collector.entregado,
+        recoveryRate: percentage(collector.cobrado, collector.esperado),
+        visitedClients: demoCollections.length,
+        expectedCash: demoSummary.expectedCash,
+        reportedCash: demoCashbox.reportedCash,
+        difference: demoSummary.difference,
+        openCashboxes: demoCashbox.status === "OPEN" ? 1 : 0,
+        unbalancedCashboxes: demoSummary.difference === 0 ? 0 : 1
+      })),
       recentMovements: [
         ...demoLoans.map((loan) => ({ id: loan.id, type: "Prestamo" as const, clientName: demoClients.find((client) => client.id === loan.clientId)?.name, amount: loan.principalAmount })),
         ...demoCollections.map((collection) => ({ id: collection.id, type: "Recaudo" as const, clientName: demoClients.find((client) => client.id === collection.clientId)?.name, paymentMethod: collection.paymentMethod, amount: collection.amount })),
@@ -359,6 +388,45 @@ export async function getDashboardData() {
           .reduce((total, loan) => total + Number(loan.principalAmount), 0)
       }))
   );
+  const collectorPerformance = users
+    .filter((item) => item.role === "SELLER" || item.role === "SUPERVISOR")
+    .map((seller) => {
+      const expected = loans
+        .filter((loan) => loan.sellerId === seller.id)
+        .filter((loan) => shouldCollectOnDate({ startDate: loan.startDate, targetDate: todayStart, frequency: loan.paymentFrequency }))
+        .reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0);
+      const collected = collectionsToday
+        .filter((collection) => collection.sellerId === seller.id)
+        .reduce((total, collection) => total + Number(collection.amount), 0);
+      const delivered = loansToday
+        .filter((loan) => loan.sellerId === seller.id)
+        .reduce((total, loan) => total + Number(loan.principalAmount), 0);
+      const collectorCashboxes = cashboxesToday.filter((cashbox) => cashbox.sellerId === seller.id);
+      const expectedCash = collectorCashboxes.reduce((total, cashbox) => total + Number(cashbox.expectedCash), 0);
+      const reportedCash = collectorCashboxes.reduce((total, cashbox) => total + Number(cashbox.reportedCash), 0);
+      const difference = collectorCashboxes.reduce((total, cashbox) => total + Number(cashbox.difference), 0);
+      const visitedClients = new Set([
+        ...collectionsToday.filter((collection) => collection.sellerId === seller.id).map((collection) => collection.clientId),
+        ...loansToday.filter((loan) => loan.sellerId === seller.id).map((loan) => loan.clientId),
+        ...salesToday.filter((sale) => sale.sellerId === seller.id).map((sale) => sale.clientId)
+      ]).size;
+
+      return {
+        id: seller.id,
+        name: seller.name,
+        expected,
+        collected,
+        delivered,
+        recoveryRate: percentage(collected, expected),
+        visitedClients,
+        expectedCash,
+        reportedCash,
+        difference,
+        openCashboxes: collectorCashboxes.filter((cashbox) => cashbox.status === "OPEN").length,
+        unbalancedCashboxes: collectorCashboxes.filter((cashbox) => cashbox.status === "UNBALANCED" || Math.abs(Number(cashbox.difference)) > 0.009).length
+      };
+    })
+    .sort((a, b) => b.expected - a.expected || b.collected - a.collected);
   const analytics = {
     cashFlow: buildCashFlowAnalytics(dashboardSummary),
     portfolio: buildPortfolioAnalytics(loans),
@@ -382,7 +450,17 @@ export async function getDashboardData() {
         .reduce((total, loan) => total + Math.min(Number(loan.dailyPayment), Number(loan.balance)), 0),
       collectedToday: collectionsToday.reduce((total, collection) => total + Number(collection.amount), 0),
       loanDisbursementsToday: dashboardSummary.loanDisbursementsTotal,
+      principalCollectedToday: collectionsToday.reduce((total, collection) => total + Number(collection.principalApplied), 0),
+      interestCollectedToday: collectionsToday.reduce((total, collection) => total + Number(collection.interestApplied), 0),
+      lateFeeCollectedToday: collectionsToday.reduce((total, collection) => total + Number(collection.lateFeeApplied), 0),
+      activePrincipalBalance: loans.reduce((total, loan) => total + Number(loan.principalBalance), 0),
+      activeInterestBalance: loans.reduce((total, loan) => total + Number(loan.interestBalance), 0),
+      activeLateFeeBalance: loans.reduce((total, loan) => total + Number(loan.lateFeeBalance), 0),
       cashboxExpectedToday: dashboardSummary.expectedCash,
+      cashboxReportedToday: dashboardCashbox.reportedCash,
+      cashboxDifferenceToday: dashboardSummary.difference,
+      openCashboxesToday: cashboxesToday.filter((cashbox) => cashbox.status === "OPEN").length,
+      unbalancedCashboxesToday: cashboxesToday.filter((cashbox) => cashbox.status === "UNBALANCED" || Math.abs(Number(cashbox.difference)) > 0.009).length,
       cashInflowsToday: dashboardSummary.cashInflows,
       cashOutflowsToday: dashboardSummary.cashOutflows,
       expensesToday: expensesToday
@@ -393,6 +471,7 @@ export async function getDashboardData() {
       activeSellers: users.filter((item) => item.role === "SELLER").length
     },
     sellerCollections: sellerCollections.length ? sellerCollections : [{ label: "Sin recaudos", value: 0 }],
+    collectorPerformance,
     recentMovements: [
       ...loansToday.slice(0, 8).map((loan) => ({
         id: loan.id,

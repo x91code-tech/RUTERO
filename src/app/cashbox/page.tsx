@@ -35,7 +35,13 @@ export default async function CashboxPage() {
             <>
               <CardHeader title="Cerrar caja" description="La caja fisica puede quedar en negativo si se entrego dinero que no estaba en caja." />
               <form action={closeCashboxAction} className="grid gap-4">
-                <Field label="Caja inicial"><Input name="initialCash" type="number" defaultValue={cashbox.initialCash} step="0.01" /></Field>
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                  <p className="text-sm text-zinc-400">Caja inicial fija</p>
+                  <p className={cashbox.initialCash < 0 ? "mt-2 text-2xl font-black text-red-300" : "mt-2 text-2xl font-black text-white"}>
+                    {formatCurrency(cashbox.initialCash, company)}
+                  </p>
+                  <p className="mt-2 text-xs text-zinc-500">Viene del cierre anterior y no se edita al cerrar.</p>
+                </div>
                 <Field label="Efectivo final reportado"><Input name="reportedCash" type="number" defaultValue={projectedClosingCash} step="0.01" /></Field>
                 <Field label="Transferencia reportada"><Input name="reportedTransfer" type="number" defaultValue={cashbox.reportedTransfer || summary.transferTotal} min="0" step="0.01" /></Field>
                 <Field label="Digital / wallet reportado"><Input name="reportedPix" type="number" defaultValue={cashbox.reportedPix || summary.pixTotal} min="0" step="0.01" /></Field>

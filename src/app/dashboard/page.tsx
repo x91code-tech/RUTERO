@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, Landmark, TrendingDown, TrendingUp, Users, Wallet } from "lucide-react";
+import { AlertTriangle, Banknote, Gauge, Landmark, TrendingDown, TrendingUp, Users, Wallet } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MetricCard } from "@/components/cards/metric-card";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -8,21 +8,29 @@ import { getDashboardData } from "@/lib/dashboard-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
 export default async function DashboardPage() {
-  const { analytics, company, metrics, notifications, recentMovements } = await getDashboardData();
+  const { analytics, collectorPerformance, company, metrics, notifications, recentMovements } = await getDashboardData();
   const cashNetToday = metrics.cashInflowsToday - metrics.cashOutflowsToday;
 
   return (
     <AppShell title="Dashboard administrador" subtitle="Vista ejecutiva de prestamos, recaudos, caja y alertas de hoy.">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Deuda activa" value={formatCurrency(metrics.activeLoanBalance, company)} icon={<Landmark />} />
+        <MetricCard label="Capital en calle" value={formatCurrency(metrics.activePrincipalBalance, company)} icon={<Landmark />} />
+        <MetricCard label="Interes pendiente" value={formatCurrency(metrics.activeInterestBalance, company)} icon={<TrendingUp />} tone="orange" />
         <MetricCard label="Cuotas esperadas hoy" value={formatCurrency(metrics.expectedToday, company)} icon={<Wallet />} />
         <MetricCard label="Cobrado hoy" value={formatCurrency(metrics.collectedToday, company)} icon={<Wallet />} tone="green" />
+        <MetricCard label="Capital recuperado" value={formatCurrency(metrics.principalCollectedToday, company)} icon={<Wallet />} />
+        <MetricCard label="Ganancia cobrada" value={formatCurrency(metrics.interestCollectedToday + metrics.lateFeeCollectedToday, company)} icon={<TrendingUp />} tone="green" />
         <MetricCard label="Prestamos entregados hoy" value={formatCurrency(-metrics.loanDisbursementsToday, company)} icon={<TrendingDown />} tone="red" />
         <MetricCard label="Caja esperada hoy" value={formatCurrency(metrics.cashboxExpectedToday, company)} icon={<Banknote />} tone={metrics.cashboxExpectedToday < 0 ? "red" : "green"} />
+        <MetricCard label="Caja reportada" value={formatCurrency(metrics.cashboxReportedToday, company)} icon={<Banknote />} tone={metrics.cashboxReportedToday < 0 ? "red" : "green"} />
+        <MetricCard label="Diferencia caja" value={formatCurrency(metrics.cashboxDifferenceToday, company)} icon={<Gauge />} tone={metrics.cashboxDifferenceToday === 0 ? "green" : "red"} />
         <MetricCard label="Entradas caja" value={formatCurrency(metrics.cashInflowsToday, company)} icon={<TrendingUp />} tone="green" />
         <MetricCard label="Salidas caja" value={formatCurrency(-metrics.cashOutflowsToday, company)} icon={<TrendingDown />} tone="orange" />
         <MetricCard label="Movimiento neto caja" value={formatCurrency(cashNetToday, company)} tone={cashNetToday >= 0 ? "green" : "red"} />
         <MetricCard label="Prestamos vencidos" value={String(metrics.overdueLoans)} icon={<AlertTriangle />} tone={metrics.overdueLoans > 0 ? "red" : "green"} />
+        <MetricCard label="Cajas abiertas" value={String(metrics.openCashboxesToday)} icon={<AlertTriangle />} tone={metrics.openCashboxesToday > 0 ? "orange" : "green"} />
+        <MetricCard label="Cajas descuadradas" value={String(metrics.unbalancedCashboxesToday)} icon={<AlertTriangle />} tone={metrics.unbalancedCashboxesToday > 0 ? "red" : "green"} />
         <MetricCard label="Clientes pendientes" value={String(metrics.pendingClients)} tone={metrics.pendingClients > 0 ? "orange" : "green"} />
         <MetricCard label="Cobradores activos" value={String(metrics.activeSellers)} icon={<Users />} />
       </div>
@@ -30,6 +38,48 @@ export default async function DashboardPage() {
       <div className="mt-6">
         <AdminAnalytics company={company} data={analytics} />
       </div>
+
+      <Card className="mt-6">
+        <CardHeader title="Rendimiento por cobrador" description="Recuperacion, caja y diferencias del dia." />
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="text-zinc-400">
+              <tr>
+                <th className="pb-3">Cobrador</th>
+                <th className="pb-3 text-right">Esperado</th>
+                <th className="pb-3 text-right">Cobrado</th>
+                <th className="pb-3 text-right">%</th>
+                <th className="pb-3 text-right">Prestado</th>
+                <th className="pb-3 text-right">Caja esperada</th>
+                <th className="pb-3 text-right">Reportada</th>
+                <th className="pb-3 text-right">Diferencia</th>
+                <th className="pb-3 text-right">Clientes</th>
+                <th className="pb-3">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {collectorPerformance.map((collector) => (
+                <tr key={collector.id}>
+                  <td className="py-3 font-semibold">{collector.name}</td>
+                  <td className="py-3 text-right">{formatCurrency(collector.expected, company)}</td>
+                  <td className="py-3 text-right font-semibold text-emerald-300">{formatCurrency(collector.collected, company)}</td>
+                  <td className="py-3 text-right font-black">{collector.recoveryRate}%</td>
+                  <td className="py-3 text-right text-red-300">{formatCurrency(-collector.delivered, company)}</td>
+                  <td className={collector.expectedCash < 0 ? "py-3 text-right text-red-300" : "py-3 text-right text-emerald-300"}>{formatCurrency(collector.expectedCash, company)}</td>
+                  <td className={collector.reportedCash < 0 ? "py-3 text-right text-red-300" : "py-3 text-right"}>{formatCurrency(collector.reportedCash, company)}</td>
+                  <td className={collector.difference === 0 ? "py-3 text-right text-emerald-300" : "py-3 text-right text-red-300"}>{formatCurrency(collector.difference, company)}</td>
+                  <td className="py-3 text-right">{collector.visitedClients}</td>
+                  <td className="py-3">
+                    <StatusBadge tone={collector.unbalancedCashboxes > 0 ? "red" : collector.openCashboxes > 0 ? "orange" : "green"}>
+                      {collector.unbalancedCashboxes > 0 ? "Descuadre" : collector.openCashboxes > 0 ? "Abierta" : "Ok"}
+                    </StatusBadge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
         <Card>

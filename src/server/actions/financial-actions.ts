@@ -461,18 +461,36 @@ export async function closeCashboxAction(formData: FormData) {
   const todayEnd = endOfLocalDay();
   const sellerScope = { sellerId: user.id };
   const movementDateScope = { OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }] };
-  const [sales, collections, expenses, loans] = await Promise.all([
+  const [sales, collections, expenses, loans, todayCashbox, previousCashbox] = await Promise.all([
     prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
     prisma.collection.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
     prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
-    prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, createdAt: { gte: todayStart, lt: todayEnd } } })
+    prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, createdAt: { gte: todayStart, lt: todayEnd } } }),
+    prisma.cashbox.findUnique({
+      where: {
+        sellerId_date: {
+          sellerId: user.id,
+          date: todayStart
+        }
+      }
+    }),
+    prisma.cashbox.findFirst({
+      where: {
+        companyId: user.companyId,
+        sellerId: user.id,
+        date: { lt: todayStart },
+        closedAt: { not: null }
+      },
+      orderBy: { date: "desc" }
+    })
   ]);
+  const fixedInitialCash = Number(todayCashbox?.initialCash ?? previousCashbox?.reportedCash ?? 0);
   const cashboxInput: Cashbox = {
     id: "cashbox_close",
     companyId: user.companyId,
     sellerId: user.id,
     date: todayStart.toISOString(),
-    initialCash: payload.initialCash,
+    initialCash: fixedInitialCash,
     reportedCash: payload.reportedCash,
     reportedTransfer: payload.reportedTransfer,
     reportedPix: payload.reportedPix,
@@ -546,7 +564,6 @@ export async function closeCashboxAction(formData: FormData) {
       }
     },
     update: {
-      initialCash: payload.initialCash,
       reportedCash: payload.reportedCash,
       reportedTransfer: payload.reportedTransfer,
       reportedPix: payload.reportedPix,
@@ -560,7 +577,7 @@ export async function closeCashboxAction(formData: FormData) {
       companyId: user.companyId,
       sellerId: user.id,
       date: todayStart,
-      initialCash: payload.initialCash,
+      initialCash: fixedInitialCash,
       reportedCash: payload.reportedCash,
       reportedTransfer: payload.reportedTransfer,
       reportedPix: payload.reportedPix,
@@ -579,7 +596,7 @@ export async function closeCashboxAction(formData: FormData) {
       action: "CASHBOX_CLOSED",
       entity: "Cashbox",
       entityId: cashbox.id,
-      newValue: { ...payload, expectedCash: summary.expectedCash, difference: summary.difference, status }
+      newValue: { ...payload, initialCash: fixedInitialCash, expectedCash: summary.expectedCash, difference: summary.difference, status }
     }
   });
 
