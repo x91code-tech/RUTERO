@@ -236,6 +236,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       clientId: loan.clientId,
       sellerId: loan.sellerId,
       principalAmount: Number(loan.principalAmount),
+      disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
       interestRate: Number(loan.interestRate),
       interestAmount: Number(loan.interestAmount),
       totalAmount: Number(loan.totalAmount),

@@ -44,7 +44,7 @@ export default async function LoansPage() {
                     <div>
                       <p className="font-semibold">{client?.name}</p>
                       <p className="text-sm text-zinc-400">
-                        Entregado {formatCurrency(loan.principalAmount, company)} - Total {formatCurrency(loan.totalAmount, company)}
+                        Entregado {formatCurrency(loan.disbursedAmount ?? loan.principalAmount, company)} - Capital {formatCurrency(loan.principalAmount, company)} - Total {formatCurrency(loan.totalAmount, company)}
                       </p>
                     </div>
                     <StatusBadge tone={tone}>{loan.status}</StatusBadge>

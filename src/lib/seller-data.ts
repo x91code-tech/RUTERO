@@ -74,6 +74,7 @@ function toLoan(loan: {
   clientId: string;
   sellerId: string;
   principalAmount: unknown;
+  disbursedAmount?: unknown;
   interestRate: unknown;
   interestAmount: unknown;
   totalAmount: unknown;
@@ -97,6 +98,7 @@ function toLoan(loan: {
     clientId: loan.clientId,
     sellerId: loan.sellerId,
     principalAmount: Number(loan.principalAmount),
+    disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
     interestRate: Number(loan.interestRate),
     interestAmount: Number(loan.interestAmount),
     totalAmount: Number(loan.totalAmount),

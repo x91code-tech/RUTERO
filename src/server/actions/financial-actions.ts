@@ -11,7 +11,7 @@ import { addPaymentPeriods } from "@/lib/loan-schedule";
 import { allocateLoanPayment, getGeneralBalanceAllocation } from "@/lib/loan-payments";
 import { getSessionUser } from "@/lib/session";
 import type { Cashbox, Collection, Expense, Sale } from "@/lib/types";
-import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema } from "@/lib/validations";
+import { saleSchema, collectionSchema, expenseSchema, cashboxCloseSchema, loanSchema, renewalLoanSchema } from "@/lib/validations";
 import { createNotification } from "@/server/services/notification-service";
 
 async function ensureCollectorCashboxIsOpen(user: { id: string; companyId: string; role: string }) {
@@ -292,6 +292,7 @@ export async function createLoanAction(formData: FormData) {
         sellerId,
         clientId: client.id,
         principalAmount,
+        disbursedAmount: principalAmount,
         interestRate,
         interestAmount,
         totalAmount,
@@ -341,6 +342,152 @@ export async function createLoanAction(formData: FormData) {
     companyId: user.companyId,
     title: "Prestamo creado",
     message: `${client.name} recibio un prestamo por ${principalAmount}. Total a cobrar: ${totalAmount}.`,
+    severity: "info"
+  });
+
+  revalidatePath("/loans");
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${client.id}`);
+  revalidatePath("/collections");
+  revalidatePath("/seller");
+  revalidatePath("/dashboard");
+  revalidatePath("/cashbox");
+  revalidatePath("/reports");
+}
+
+export async function createRenewalLoanAction(formData: FormData) {
+  const payload = renewalLoanSchema.parse(Object.fromEntries(formData));
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  await ensureCollectorCashboxIsOpen(user);
+
+  const [client, activeLoan, companySettings] = await Promise.all([
+    prisma.client.findFirstOrThrow({
+      where: {
+        id: payload.clientId,
+        companyId: user.companyId,
+        ...(user.role === "SELLER" ? { sellerId: user.id } : {})
+      }
+    }),
+    prisma.loan.findFirstOrThrow({
+      where: {
+        id: payload.loanId,
+        clientId: payload.clientId,
+        companyId: user.companyId,
+        ...(user.role === "SELLER" ? { sellerId: user.id } : {}),
+        status: "ACTIVE"
+      }
+    }),
+    prisma.company.findUniqueOrThrow({
+      where: { id: user.companyId },
+      select: { renewalPolicy: true }
+    })
+  ]);
+
+  const previousBalance = Number(client.pendingBalance);
+  const oldLoanBalance = Number(activeLoan.balance);
+  const canRenewWithBalance = companySettings.renewalPolicy === "ALLOW_BALANCE" || (companySettings.renewalPolicy === "ADMIN_OVERRIDE" && user.role !== "SELLER");
+  if (oldLoanBalance > 0 && !canRenewWithBalance) redirect(`/clients/${client.id}?error=renewal_requires_full_payment`);
+
+  const requestedStartDate = parseDateInputAsLocal(payload.startDate);
+  const tomorrowStart = startOfLocalDay();
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const startDate = requestedStartDate < tomorrowStart ? tomorrowStart : requestedStartDate;
+  const dueDate = addPaymentPeriods(startDate, payload.termDays - 1, payload.paymentFrequency);
+  const principalAmount = payload.principalAmount;
+  const interestRate = payload.interestRatePercent / 100;
+  const interestAmount = Number((principalAmount * interestRate).toFixed(2));
+  const totalAmount = Number((principalAmount + interestAmount).toFixed(2));
+  const dailyPayment = Number((totalAmount / payload.termDays).toFixed(2));
+  const disbursedAmount = Number(Math.max(principalAmount - oldLoanBalance, 0).toFixed(2));
+  const sellerId = user.role === "SELLER" ? user.id : client.sellerId;
+
+  await prisma.$transaction(async (tx) => {
+    const renewalCollection = await tx.collection.create({
+      data: {
+        companyId: user.companyId,
+        sellerId,
+        clientId: client.id,
+        loanId: activeLoan.id,
+        amount: oldLoanBalance,
+        paymentType: "RENEWAL",
+        application: "NORMAL",
+        balanceApplied: oldLoanBalance,
+        principalApplied: Number(activeLoan.principalBalance),
+        interestApplied: Number(activeLoan.interestBalance),
+        lateFeeApplied: Number(activeLoan.lateFeeBalance),
+        additionalApplied: 0,
+        overpaymentAmount: 0,
+        installmentsCovered: Number(activeLoan.dailyPayment) > 0 ? Number((oldLoanBalance / Number(activeLoan.dailyPayment)).toFixed(2)) : 0,
+        previousBalance,
+        newBalance: Math.max(previousBalance - oldLoanBalance, 0),
+        paymentMethod: "CREDIT",
+        date: new Date(),
+        observation: `Renovacion: saldo anterior descontado del nuevo prestamo.`
+      }
+    });
+
+    await tx.loan.update({
+      where: { id: activeLoan.id },
+      data: {
+        paidAmount: Number(activeLoan.paidAmount) + oldLoanBalance,
+        balance: 0,
+        principalBalance: 0,
+        interestBalance: 0,
+        lateFeeBalance: 0,
+        installmentsPaid: activeLoan.termDays,
+        status: "PAID"
+      }
+    });
+
+    const newLoan = await tx.loan.create({
+      data: {
+        companyId: user.companyId,
+        sellerId,
+        clientId: client.id,
+        principalAmount,
+        disbursedAmount,
+        interestRate,
+        interestAmount,
+        totalAmount,
+        dailyPayment,
+        balance: totalAmount,
+        principalBalance: principalAmount,
+        interestBalance: interestAmount,
+        lateFeeBalance: 0,
+        installmentsPaid: 0,
+        paymentFrequency: payload.paymentFrequency,
+        termDays: payload.termDays,
+        startDate,
+        dueDate,
+        notes: payload.notes ? `${payload.notes}\nRenovacion del prestamo ${activeLoan.id}` : `Renovacion del prestamo ${activeLoan.id}`
+      }
+    });
+
+    await tx.client.update({
+      where: { id: client.id },
+      data: {
+        pendingBalance: Math.max(previousBalance - oldLoanBalance, 0) + totalAmount
+      }
+    });
+
+    await tx.auditLog.create({
+      data: {
+        companyId: user.companyId,
+        userId: user.id,
+        action: "LOAN_RENEWED",
+        entity: "Loan",
+        entityId: newLoan.id,
+        oldValue: { loanId: activeLoan.id, oldLoanBalance, renewalCollectionId: renewalCollection.id },
+        newValue: { ...payload, principalAmount, disbursedAmount, totalAmount, dailyPayment, interestAmount }
+      }
+    });
+  });
+
+  await createNotification({
+    companyId: user.companyId,
+    title: "Prestamo renovado",
+    message: `${client.name} renovo prestamo. Entregado neto: ${disbursedAmount}. Total nuevo: ${totalAmount}.`,
     severity: "info"
   });
 
@@ -567,6 +714,7 @@ export async function closeCashboxAction(formData: FormData) {
       clientId: loan.clientId,
       sellerId: loan.sellerId,
       principalAmount: Number(loan.principalAmount),
+      disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
       interestRate: Number(loan.interestRate),
       interestAmount: Number(loan.interestAmount),
       totalAmount: Number(loan.totalAmount),

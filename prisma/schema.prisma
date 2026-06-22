@@ -309,6 +309,7 @@ model Loan {
   sellerId        String
   seller          User         @relation(fields: [sellerId], references: [id])
   principalAmount Decimal      @db.Decimal(12, 2)
+  disbursedAmount Decimal      @default(0) @db.Decimal(12, 2)
   interestRate    Decimal      @default(0.20) @db.Decimal(5, 4)
   interestAmount  Decimal      @db.Decimal(12, 2)
   totalAmount     Decimal      @db.Decimal(12, 2)

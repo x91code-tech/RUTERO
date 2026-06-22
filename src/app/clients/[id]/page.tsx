@@ -5,6 +5,7 @@ import { ClientLocationCard } from "@/components/clients/client-location-card";
 import { ClientVerificationForm } from "@/components/forms/client-verification-form";
 import { LoanForm } from "@/components/forms/loan-form";
 import { LoanPaymentForm } from "@/components/forms/loan-payment-form";
+import { LoanRenewalForm } from "@/components/forms/loan-renewal-form";
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { collectionPaymentTypeLabel } from "@/lib/collection-payments";
@@ -55,18 +56,19 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                   <StatusBadge tone={loan.status === "PAID" ? "green" : loan.status === "OVERDUE" ? "red" : "orange"}>{loan.status}</StatusBadge>
                 </div>
                 <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
-                  <p><span className="text-zinc-400">Entregado</span><br /><strong>{formatCurrency(loan.principalAmount, company)}</strong></p>
+                  <p><span className="text-zinc-400">Entregado</span><br /><strong>{formatCurrency(loan.disbursedAmount ?? loan.principalAmount, company)}</strong></p>
                   <p><span className="text-zinc-400">Valor cuota</span><br /><strong>{formatCurrency(loan.dailyPayment, company)}</strong></p>
                   <p><span className="text-zinc-400">Saldo</span><br /><strong>{formatCurrency(loan.balance, company)}</strong></p>
                 </div>
                 {loan.status === "ACTIVE" && loan.balance > 0 ? (
-                  <div className="mt-4">
+                  <div className="mt-4 grid gap-4">
                     <LoanPaymentForm
                       clientId={client.id}
                       loan={loan}
                       company={company}
                       paidToday={collections.filter((collection) => collection.loanId === loan.id && collection.date.startsWith(todayKey)).reduce((total, collection) => total + (collection.balanceApplied ?? collection.amount), 0)}
                     />
+                    <LoanRenewalForm client={client} company={company} loan={loan} />
                   </div>
                 ) : null}
               </div>

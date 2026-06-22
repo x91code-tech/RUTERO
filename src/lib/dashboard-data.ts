@@ -148,7 +148,7 @@ export async function getDashboardData() {
             .reduce((total, collection) => total + collection.amount, 0),
           entregado: demoLoans
             .filter((loan) => loan.sellerId === seller.id)
-            .reduce((total, loan) => total + loan.principalAmount, 0)
+            .reduce((total, loan) => total + (loan.disbursedAmount ?? loan.principalAmount), 0)
         }))
     );
     const demoAnalytics = {
@@ -208,7 +208,7 @@ export async function getDashboardData() {
         unbalancedCashboxes: demoSummary.difference === 0 ? 0 : 1
       })),
       recentMovements: [
-        ...demoLoans.map((loan) => ({ id: loan.id, type: "Prestamo" as const, clientName: demoClients.find((client) => client.id === loan.clientId)?.name, amount: loan.principalAmount })),
+        ...demoLoans.map((loan) => ({ id: loan.id, type: "Prestamo" as const, clientName: demoClients.find((client) => client.id === loan.clientId)?.name, amount: loan.disbursedAmount ?? loan.principalAmount })),
         ...demoCollections.map((collection) => ({ id: collection.id, type: "Recaudo" as const, clientName: demoClients.find((client) => client.id === collection.clientId)?.name, paymentMethod: collection.paymentMethod, amount: collection.amount })),
         ...demoSales.map((sale) => ({ id: sale.id, type: "Ingreso extra" as const, clientName: demoClients.find((client) => client.id === sale.clientId)?.name, paymentMethod: sale.paymentMethod, amount: sale.amount })),
         ...demoExpenses.map((expense) => ({ id: expense.id, type: cashMovementKindLabels[expense.movementKind], sellerName: demoUsers.find((seller) => seller.id === expense.sellerId)?.name, paymentMethod: expense.paymentMethod, amount: getCashMovementImpact(expense.amount, expense.movementKind) }))
@@ -309,6 +309,7 @@ export async function getDashboardData() {
       clientId: loan.clientId,
       sellerId: loan.sellerId,
       principalAmount: Number(loan.principalAmount),
+      disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
       interestRate: Number(loan.interestRate),
       interestAmount: Number(loan.interestAmount),
       totalAmount: Number(loan.totalAmount),
@@ -385,7 +386,7 @@ export async function getDashboardData() {
           .reduce((total, collection) => total + Number(collection.amount), 0),
         entregado: loansToday
           .filter((loan) => loan.sellerId === seller.id)
-          .reduce((total, loan) => total + Number(loan.principalAmount), 0)
+          .reduce((total, loan) => total + Number(loan.disbursedAmount ?? loan.principalAmount), 0)
       }))
   );
   const collectorPerformance = users
@@ -400,7 +401,7 @@ export async function getDashboardData() {
         .reduce((total, collection) => total + Number(collection.amount), 0);
       const delivered = loansToday
         .filter((loan) => loan.sellerId === seller.id)
-        .reduce((total, loan) => total + Number(loan.principalAmount), 0);
+        .reduce((total, loan) => total + Number(loan.disbursedAmount ?? loan.principalAmount), 0);
       const collectorCashboxes = cashboxesToday.filter((cashbox) => cashbox.sellerId === seller.id);
       const expectedCash = collectorCashboxes.reduce((total, cashbox) => total + Number(cashbox.expectedCash), 0);
       const reportedCash = collectorCashboxes.reduce((total, cashbox) => total + Number(cashbox.reportedCash), 0);
@@ -478,7 +479,7 @@ export async function getDashboardData() {
         type: "Prestamo" as const,
         clientName: loan.client.name,
         sellerName: loan.seller.name,
-        amount: Number(loan.principalAmount)
+        amount: Number(loan.disbursedAmount ?? loan.principalAmount)
       })),
       ...collectionsToday.map((collection) => ({
         id: collection.id,

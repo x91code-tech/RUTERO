@@ -104,7 +104,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
 
               <div className="mt-2.5 grid gap-2 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
                 <div className="rounded-lg bg-carbon-900/70 px-2 py-1.5 text-[0.72rem] leading-5 text-zinc-300">
-                  Prestado {formatCurrency(item.loan.principalAmount, company)} - total {formatCurrency(item.loan.totalAmount, company)} - ganancia {formatCurrency(item.loan.interestAmount, company)}
+                  Entregado {formatCurrency(item.loan.disbursedAmount ?? item.loan.principalAmount, company)} - total {formatCurrency(item.loan.totalAmount, company)} - ganancia {formatCurrency(item.loan.interestAmount, company)}
                   {item.lateAmount > 0 ? <span className="ml-2 font-bold text-red-300">Atraso {formatCurrency(item.lateAmount, company)}</span> : null}
                 </div>
                 <LoanPaymentForm clientId={item.client.id} loan={item.loan} company={company} paidToday={item.paidToday} compact disabledReason={disabledReason} />

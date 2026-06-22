@@ -42,6 +42,17 @@ export const loanSchema = z.object({
   notes: z.string().optional()
 });
 
+export const renewalLoanSchema = z.object({
+  clientId: z.string().min(1, "Selecciona un cliente"),
+  loanId: z.string().min(1, "Selecciona el prestamo a renovar"),
+  principalAmount: moneySchema,
+  interestRatePercent: z.coerce.number().min(0, "El interes no puede ser negativo").max(100, "El interes maximo permitido es 100").default(20),
+  paymentFrequency: z.enum(["DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY"]).default("DAILY"),
+  termDays: z.coerce.number().int().min(1, "Debe ser al menos 1 dia").max(365, "El plazo maximo es 365 dias"),
+  startDate: z.string().optional(),
+  notes: z.string().optional()
+});
+
 export const expenseSchema = z.object({
   movementKind: z.enum(["EXPENSE", "WITHDRAWAL", "INCOME"]).default("EXPENSE"),
   type: z.string().min(2, "Selecciona el tipo de gasto"),

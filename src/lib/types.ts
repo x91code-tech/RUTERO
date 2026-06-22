@@ -168,6 +168,7 @@ export type Loan = {
   clientId: string;
   sellerId: string;
   principalAmount: number;
+  disbursedAmount?: number;
   interestRate: number;
   interestAmount: number;
   totalAmount: number;

@@ -68,7 +68,7 @@ export function calculateDailySummary(input: {
   const expensesTotal = sum(expenseOutflows.map((expense) => expense.amount));
   const withdrawalsTotal = sum(withdrawals.map((expense) => expense.amount));
   const incomeMovementsTotal = sum(incomeMovements.map((expense) => expense.amount));
-  const loanDisbursementsTotal = sum(loans.map((loan) => loan.principalAmount));
+  const loanDisbursementsTotal = sum(loans.map((loan) => loan.disbursedAmount ?? loan.principalAmount));
   const isCashMethod = (method: string) => getPaymentMethodCategory(method, countryCode) === "cash" || method === "CASH";
   const isTransferLikeMethod = (method: string) => ["bank", "card"].includes(getPaymentMethodCategory(method, countryCode)) || method === "TRANSFER";
   const isWalletMethod = (method: string) => getPaymentMethodCategory(method, countryCode) === "wallet" || method === "PIX";
