@@ -60,9 +60,23 @@ async function callGemini(parts: GeminiPart[]) {
   );
 
   if (!response.ok) {
-    const details = await response.text();
+    await response.text();
+    if (response.status === 429) {
+      return {
+        error: "Gemini no pudo leer el documento porque la API esta sin cuota disponible. Revisa el plan, billing o limite del proyecto en Google AI Studio.",
+        status: 429
+      };
+    }
+
+    if (response.status === 400 || response.status === 403) {
+      return {
+        error: "Gemini rechazo la solicitud. Revisa que la API key sea valida y tenga permisos activos.",
+        status: response.status
+      };
+    }
+
     return {
-      error: `Gemini respondio con error ${response.status}. ${details.slice(0, 240)}`,
+      error: `Gemini no pudo procesar la imagen. Error ${response.status}.`,
       status: 502
     };
   }

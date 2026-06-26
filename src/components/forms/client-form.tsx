@@ -143,7 +143,7 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
           </div>
           <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={isScanning}>
             {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileScan className="h-4 w-4" />}
-            Escanear documento
+            ESCANEA DOCUMENTO
           </Button>
         </div>
         <input
