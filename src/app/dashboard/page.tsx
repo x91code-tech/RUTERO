@@ -1,4 +1,5 @@
-import { AlertTriangle, Banknote, Gauge, Landmark, TrendingDown, TrendingUp, Users, Wallet } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Banknote, Gauge, Landmark, RefreshCw, TrendingDown, TrendingUp, Users, Wallet } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { MetricCard } from "@/components/cards/metric-card";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { getDashboardData } from "@/lib/dashboard-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
 export default async function DashboardPage() {
-  const { analytics, collectorPerformance, company, metrics, notifications, recentMovements } = await getDashboardData();
+  const { analytics, cashboxRows, collectorPerformance, company, metrics, notifications, overdueLoanRows, recentMovements, renewalCandidateRows } = await getDashboardData();
   const cashNetToday = metrics.cashInflowsToday - metrics.cashOutflowsToday;
 
   return (
@@ -29,6 +30,7 @@ export default async function DashboardPage() {
         <MetricCard label="Salidas caja" value={formatCurrency(-metrics.cashOutflowsToday, company)} icon={<TrendingDown />} tone="orange" />
         <MetricCard label="Movimiento neto caja" value={formatCurrency(cashNetToday, company)} tone={cashNetToday >= 0 ? "green" : "red"} />
         <MetricCard label="Prestamos vencidos" value={String(metrics.overdueLoans)} icon={<AlertTriangle />} tone={metrics.overdueLoans > 0 ? "red" : "green"} />
+        <MetricCard label="Listos para renovar" value={String(metrics.renewalCandidates)} icon={<RefreshCw />} tone={metrics.renewalCandidates > 0 ? "orange" : "green"} />
         <MetricCard label="Cajas abiertas" value={String(metrics.openCashboxesToday)} icon={<AlertTriangle />} tone={metrics.openCashboxesToday > 0 ? "orange" : "green"} />
         <MetricCard label="Cajas descuadradas" value={String(metrics.unbalancedCashboxesToday)} icon={<AlertTriangle />} tone={metrics.unbalancedCashboxesToday > 0 ? "red" : "green"} />
         <MetricCard label="Clientes pendientes" value={String(metrics.pendingClients)} tone={metrics.pendingClients > 0 ? "orange" : "green"} />
@@ -80,6 +82,70 @@ export default async function DashboardPage() {
           </table>
         </div>
       </Card>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+        <Card>
+          <CardHeader title="Cajas por cobrador" description="Estado operativo del dia." />
+          <div className="space-y-3">
+            {cashboxRows.map((row) => (
+              <div key={row.id} className="rounded-xl bg-white/[0.04] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-bold">{row.sellerName}</p>
+                    <p className="mt-1 text-xs text-zinc-500">Inicial {formatCurrency(row.initialCash, company)}</p>
+                  </div>
+                  <StatusBadge tone={cashboxTone(row.status, row.difference)}>
+                    {cashboxLabel(row.status)}
+                  </StatusBadge>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                  <Mini label="Esperada" value={formatCurrency(row.expectedCash, company)} />
+                  <Mini label="Reportada" value={formatCurrency(row.reportedCash, company)} />
+                  <Mini label="Diferencia" value={formatCurrency(row.difference, company)} tone={row.difference === 0 ? "green" : "red"} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="Cartera vencida" description="Clientes que requieren seguimiento." />
+          <div className="space-y-3">
+            {overdueLoanRows.length > 0 ? overdueLoanRows.map((loan) => (
+              <Link key={loan.id} href={`/clients/${loan.clientId}`} className="block rounded-xl bg-white/[0.04] p-4 transition hover:bg-white/[0.07]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-bold">{loan.clientName}</p>
+                    <p className="mt-1 text-xs text-zinc-500">{loan.sellerName} - vence {new Date(loan.dueDate).toLocaleDateString(company.locale)}</p>
+                  </div>
+                  <p className="shrink-0 font-black text-red-300">{formatCurrency(loan.balance, company)}</p>
+                </div>
+              </Link>
+            )) : (
+              <p className="rounded-xl bg-white/[0.04] p-4 text-sm text-zinc-400">No hay prestamos vencidos activos.</p>
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="Renovaciones cercanas" description="Clientes casi listos para nuevo prestamo." />
+          <div className="space-y-3">
+            {renewalCandidateRows.length > 0 ? renewalCandidateRows.map((loan) => (
+              <Link key={loan.id} href={`/clients/${loan.clientId}#cobrar`} className="block rounded-xl bg-white/[0.04] p-4 transition hover:bg-white/[0.07]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-bold">{loan.clientName}</p>
+                    <p className="mt-1 text-xs text-zinc-500">{loan.sellerName} - avance {loan.progress}%</p>
+                  </div>
+                  <p className="shrink-0 font-black text-orange-300">{formatCurrency(loan.balance, company)}</p>
+                </div>
+              </Link>
+            )) : (
+              <p className="rounded-xl bg-white/[0.04] p-4 text-sm text-zinc-400">Aun no hay prestamos cercanos a renovar.</p>
+            )}
+          </div>
+        </Card>
+      </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
         <Card>
@@ -133,5 +199,31 @@ function movementTone(type: string): "green" | "red" | "orange" | "gray" | "blue
   if (type === "Prestamo") return "orange";
   if (type === "Recaudo") return "blue";
   if (type === "Gasto" || type === "Retiro") return "red";
+  return "green";
+}
+
+function Mini({ label, tone = "neutral", value }: { label: string; tone?: "neutral" | "green" | "red"; value: string }) {
+  const toneClass = tone === "green" ? "text-emerald-300" : tone === "red" ? "text-red-300" : "text-white";
+
+  return (
+    <div className="rounded-lg bg-carbon-950/45 p-2">
+      <p className="truncate text-[0.65rem] text-zinc-500">{label}</p>
+      <p className={`mt-1 truncate font-black ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
+
+function cashboxLabel(status: string) {
+  if (status === "NOT_OPEN") return "Sin abrir";
+  if (status === "OPEN") return "Abierta";
+  if (status === "BALANCED" || status === "CLOSED") return "Cerrada";
+  if (status === "UNBALANCED") return "Descuadre";
+  return "Revision";
+}
+
+function cashboxTone(status: string, difference: number): "green" | "red" | "orange" | "gray" | "blue" {
+  if (status === "NOT_OPEN") return "gray";
+  if (status === "OPEN") return "orange";
+  if (status === "UNBALANCED" || Math.abs(difference) > 0.009) return "red";
   return "green";
 }

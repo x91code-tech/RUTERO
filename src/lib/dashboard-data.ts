@@ -189,10 +189,21 @@ export async function getDashboardData() {
         cashOutflowsToday: demoSummary.cashOutflows,
         expensesToday: demoExpenses.filter((expense) => isCashMovementOutflow(expense.movementKind)).reduce((total, expense) => total + expense.amount, 0),
         overdueLoans: activeLoans.filter((loan) => new Date(loan.dueDate) < new Date()).length,
+        renewalCandidates: activeLoans.filter((loan) => loan.balance <= loan.dailyPayment * 3 || (loan.installmentsPaid ?? 0) / Math.max(loan.termDays, 1) >= 0.8).length,
         pendingClients: demoClients.filter((client) => client.status === "PENDING").length,
         activeSellers: demoUsers.filter((item) => item.role === "SELLER").length
       },
       sellerCollections: [{ label: "Cobrador Demo", value: demoCollections.reduce((total, collection) => total + collection.amount, 0) }],
+      cashboxRows: [{
+        id: "demo-cashbox",
+        sellerName: "Cobrador Demo",
+        status: demoCashbox.status,
+        initialCash: demoCashbox.initialCash,
+        expectedCash: demoSummary.expectedCash,
+        reportedCash: demoCashbox.reportedCash,
+        difference: demoSummary.difference,
+        closedAt: undefined
+      }],
       collectorPerformance: demoCollectors.map((collector) => ({
         id: collector.label,
         name: collector.label,
@@ -207,6 +218,28 @@ export async function getDashboardData() {
         openCashboxes: demoCashbox.status === "OPEN" ? 1 : 0,
         unbalancedCashboxes: demoSummary.difference === 0 ? 0 : 1
       })),
+      overdueLoanRows: activeLoans
+        .filter((loan) => new Date(loan.dueDate) < new Date() && loan.balance > 0)
+        .slice(0, 8)
+        .map((loan) => ({
+          id: loan.id,
+          clientId: loan.clientId,
+          clientName: demoClients.find((client) => client.id === loan.clientId)?.name ?? "Cliente",
+          sellerName: demoUsers.find((seller) => seller.id === loan.sellerId)?.name ?? "Cobrador",
+          balance: loan.balance,
+          dueDate: loan.dueDate
+        })),
+      renewalCandidateRows: activeLoans
+        .filter((loan) => loan.balance <= loan.dailyPayment * 3 || (loan.installmentsPaid ?? 0) / Math.max(loan.termDays, 1) >= 0.8)
+        .slice(0, 8)
+        .map((loan) => ({
+          id: loan.id,
+          clientId: loan.clientId,
+          clientName: demoClients.find((client) => client.id === loan.clientId)?.name ?? "Cliente",
+          sellerName: demoUsers.find((seller) => seller.id === loan.sellerId)?.name ?? "Cobrador",
+          balance: loan.balance,
+          progress: percentage(loan.paidAmount, loan.totalAmount)
+        })),
       recentMovements: [
         ...demoLoans.map((loan) => ({ id: loan.id, type: "Prestamo" as const, clientName: demoClients.find((client) => client.id === loan.clientId)?.name, amount: loan.disbursedAmount ?? loan.principalAmount })),
         ...demoCollections.map((collection) => ({ id: collection.id, type: "Recaudo" as const, clientName: demoClients.find((client) => client.id === collection.clientId)?.name, paymentMethod: collection.paymentMethod, amount: collection.amount })),
@@ -428,6 +461,45 @@ export async function getDashboardData() {
       };
     })
     .sort((a, b) => b.expected - a.expected || b.collected - a.collected);
+  const sellerUsers = users.filter((item) => item.role === "SELLER" || item.role === "SUPERVISOR");
+  const cashboxRows = sellerUsers.map((seller) => {
+    const cashbox = cashboxesToday.find((item) => item.sellerId === seller.id);
+    return {
+      id: cashbox?.id ?? seller.id,
+      sellerName: seller.name,
+      status: cashbox?.status ?? "NOT_OPEN",
+      initialCash: Number(cashbox?.initialCash ?? 0),
+      expectedCash: Number(cashbox?.expectedCash ?? 0),
+      reportedCash: Number(cashbox?.reportedCash ?? 0),
+      difference: Number(cashbox?.difference ?? 0),
+      closedAt: cashbox?.closedAt?.toISOString()
+    };
+  });
+  const overdueLoanRows = loans
+    .filter((loan) => loan.dueDate < todayStart && Number(loan.balance) > 0)
+    .sort((a, b) => b.dueDate.getTime() - a.dueDate.getTime())
+    .slice(0, 8)
+    .map((loan) => ({
+      id: loan.id,
+      clientId: loan.clientId,
+      clientName: loan.client.name,
+      sellerName: loan.seller.name,
+      balance: Number(loan.balance),
+      dueDate: loan.dueDate.toISOString()
+    }));
+  const renewalCandidateRows = loans
+    .filter((loan) => Number(loan.balance) > 0)
+    .filter((loan) => Number(loan.balance) <= Number(loan.dailyPayment) * 3 || Number(loan.installmentsPaid) / Math.max(loan.termDays, 1) >= 0.8)
+    .sort((a, b) => Number(a.balance) - Number(b.balance))
+    .slice(0, 8)
+    .map((loan) => ({
+      id: loan.id,
+      clientId: loan.clientId,
+      clientName: loan.client.name,
+      sellerName: loan.seller.name,
+      balance: Number(loan.balance),
+      progress: percentage(Number(loan.paidAmount), Number(loan.totalAmount))
+    }));
   const analytics = {
     cashFlow: buildCashFlowAnalytics(dashboardSummary),
     portfolio: buildPortfolioAnalytics(loans),
@@ -468,11 +540,15 @@ export async function getDashboardData() {
         .filter((expense) => isCashMovementOutflow(normalizeCashMovementKind(expense.movementKind)))
         .reduce((total, expense) => total + Number(expense.amount), 0),
       overdueLoans: loans.filter((loan) => loan.dueDate < todayStart && Number(loan.balance) > 0).length,
+      renewalCandidates: renewalCandidateRows.length,
       pendingClients: clients.filter((client) => client.status === "PENDING").length,
       activeSellers: users.filter((item) => item.role === "SELLER").length
     },
     sellerCollections: sellerCollections.length ? sellerCollections : [{ label: "Sin recaudos", value: 0 }],
+    cashboxRows,
     collectorPerformance,
+    overdueLoanRows,
+    renewalCandidateRows,
     recentMovements: [
       ...loansToday.slice(0, 8).map((loan) => ({
         id: loan.id,
