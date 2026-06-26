@@ -9,6 +9,9 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 * {
@@ -17,12 +20,18 @@ html {
 
 body {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   font-size: 14px;
   overflow-x: hidden;
   background:
     linear-gradient(135deg, #070707 0%, #101010 52%, #171717 100%);
   color: #f8fafc;
+}
+
+body > * {
+  max-width: 100%;
 }
 
 a {
@@ -43,6 +52,11 @@ textarea {
 }
 
 @layer components {
+  .overflow-x-auto {
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .surface {
     @apply border border-white/10 bg-white/[0.055] shadow-xl shadow-black/20 backdrop-blur;
   }

@@ -46,7 +46,7 @@ export async function AppShell({ children, title, subtitle }: { children: React.
   const { unreadCount } = await getNotificationSummary();
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">
+    <div className="min-h-screen max-w-full overflow-x-hidden lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
       <aside className="hidden border-r border-white/10 bg-carbon-950/85 p-5 lg:block">
         <RuteroLogo href={homeHref} size="sm" className="mb-8" aria-label="Ir al inicio" />
         <nav className="grid gap-1">
@@ -70,8 +70,8 @@ export async function AppShell({ children, title, subtitle }: { children: React.
           })}
         </nav>
       </aside>
-      <div>
-        <header className="sticky top-0 z-20 border-b border-white/10 bg-carbon-950/80 px-3 py-3 backdrop-blur sm:px-5 lg:px-8 lg:py-4">
+      <div className="min-w-0 max-w-full overflow-x-hidden">
+        <header className="sticky top-0 z-20 max-w-full overflow-x-hidden border-b border-white/10 bg-carbon-950/80 px-3 py-3 backdrop-blur sm:px-5 lg:px-8 lg:py-4">
           <div className="flex items-center justify-between gap-4">
             <RuteroLogo href={homeHref} size="sm" showText={false} className="lg:hidden" aria-label="Ir al inicio" />
             <div className="min-w-0">
@@ -149,7 +149,7 @@ export async function AppShell({ children, title, subtitle }: { children: React.
             </nav>
           </details>
         </header>
-        <main className="px-3 py-4 sm:px-5 lg:px-8 lg:py-6">{children}</main>
+        <main className="min-w-0 max-w-full overflow-x-hidden px-3 py-4 sm:px-5 lg:px-8 lg:py-6">{children}</main>
       </div>
     </div>
   );

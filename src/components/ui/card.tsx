@@ -6,7 +6,7 @@ type CardProps = ComponentPropsWithoutRef<"section"> & {
 };
 
 export function Card({ children, className, ...props }: CardProps) {
-  return <section className={cn("surface rounded-lg p-4 sm:p-5", className)} {...props}>{children}</section>;
+  return <section className={cn("surface min-w-0 max-w-full rounded-lg p-4 sm:p-5", className)} {...props}>{children}</section>;
 }
 
 export function CardHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
