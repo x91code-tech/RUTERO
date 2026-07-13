@@ -43,11 +43,14 @@ export async function AppShell({ children, title, subtitle }: { children: React.
 
   const allowedNavigation = navigation.filter((item) => canRoleAccessPath(user.role, item.href));
   const allowedQuickActions = quickActions.filter((item) => canRoleAccessPath(user.role, item.href));
+  const bottomNavigation = allowedNavigation
+    .filter((item) => ["/dashboard", "/seller", "/clients", "/loans", "/cashbox"].includes(item.href))
+    .slice(0, 5);
   const { unreadCount } = await getNotificationSummary();
 
   return (
     <div className="min-h-screen max-w-full overflow-x-hidden lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
-      <aside className="hidden border-r border-white/10 bg-carbon-950/85 p-5 lg:block">
+      <aside className="hidden border-r border-white/10 bg-carbon-950/75 p-5 shadow-app backdrop-blur-xl lg:block">
         <RuteroLogo href={homeHref} size="sm" className="mb-8" aria-label="Ir al inicio" />
         <nav className="grid gap-1">
           {allowedNavigation.map((item) => {
@@ -59,7 +62,7 @@ export async function AppShell({ children, title, subtitle }: { children: React.
                 key={item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition",
-                  isActive ? "bg-brand-500 text-carbon-950" : "text-zinc-300 hover:bg-white/[0.07] hover:text-white"
+                  isActive ? "bg-brand-500 text-white shadow-glow" : "text-zinc-300 hover:bg-white/[0.07] hover:text-white"
                 )}
                 href={item.href}
               >
@@ -71,12 +74,12 @@ export async function AppShell({ children, title, subtitle }: { children: React.
         </nav>
       </aside>
       <div className="min-w-0 max-w-full overflow-x-hidden">
-        <header className="sticky top-0 z-20 max-w-full overflow-x-hidden border-b border-white/10 bg-carbon-950/80 px-3 py-3 backdrop-blur sm:px-5 lg:px-8 lg:py-4">
+        <header className="sticky top-0 z-20 max-w-full overflow-x-hidden border-b border-white/10 bg-carbon-950/82 px-3 py-3 backdrop-blur-xl sm:px-5 lg:px-8 lg:py-4">
           <div className="flex items-center justify-between gap-4">
             <RuteroLogo href={homeHref} size="sm" showText={false} className="lg:hidden" aria-label="Ir al inicio" />
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-black tracking-normal sm:text-2xl">{title}</h1>
-              <p className="truncate text-sm text-zinc-400">{subtitle}</p>
+              <h1 className="truncate text-lg font-black tracking-normal sm:text-2xl">{title}</h1>
+              <p className="truncate text-xs text-zinc-400 sm:text-sm">{subtitle}</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden text-right text-sm md:block">
@@ -84,14 +87,14 @@ export async function AppShell({ children, title, subtitle }: { children: React.
                 <p className="text-xs text-zinc-500">{roleLabel(user.role)}</p>
               </div>
               <div className="hidden rounded-full bg-emerald-500/15 px-3 py-1 text-sm text-emerald-300 sm:block">En linea</div>
-              <Link href="/notifications" className="relative grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-white/[0.06] transition hover:bg-white/[0.1] sm:h-11 sm:w-11" aria-label="Ver notificaciones">
+              <Link href="/notifications" className="relative grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.07] transition hover:bg-white/[0.11] sm:h-11 sm:w-11" aria-label="Ver notificaciones">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-xs font-black text-carbon-950">{unreadCount}</span>
+                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent-400 px-1 text-xs font-black text-carbon-950">{unreadCount}</span>
                 ) : null}
               </Link>
               <form action={logoutAction}>
-                <button className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-white/[0.06] text-zinc-200 transition hover:bg-white/[0.1] sm:h-11 sm:w-11" aria-label="Cerrar sesion">
+                <button className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.07] text-zinc-200 transition hover:bg-white/[0.11] sm:h-11 sm:w-11" aria-label="Cerrar sesion">
                   <LogOut className="h-5 w-5" />
                 </button>
               </form>
@@ -109,7 +112,7 @@ export async function AppShell({ children, title, subtitle }: { children: React.
                     href={item.href}
                     className={cn(
                       "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition",
-                      isActive ? "border-brand-500 bg-brand-500 text-carbon-950" : "border-white/10 bg-white/[0.04] text-zinc-200 hover:bg-white/[0.08]"
+                      isActive ? "border-brand-500 bg-brand-500 text-white shadow-glow" : "border-white/10 bg-white/[0.045] text-zinc-200 hover:bg-white/[0.08]"
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -137,11 +140,11 @@ export async function AppShell({ children, title, subtitle }: { children: React.
                     key={item.href}
                     className={cn(
                       "flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition",
-                      isActive ? "border-brand-500 bg-brand-500 text-carbon-950" : "border-white/10 bg-white/[0.04] text-zinc-300"
+                      isActive ? "border-brand-500 bg-brand-500 text-white" : "border-white/10 bg-white/[0.04] text-zinc-300"
                     )}
                     href={item.href}
                   >
-                    <Icon className={cn("h-4 w-4", isActive ? "text-carbon-950" : "text-brand-500")} />
+                    <Icon className={cn("h-4 w-4", isActive ? "text-white" : "text-brand-400")} />
                     <span className="truncate">{item.label}</span>
                   </Link>
                 );
@@ -149,7 +152,31 @@ export async function AppShell({ children, title, subtitle }: { children: React.
             </nav>
           </details>
         </header>
-        <main className="min-w-0 max-w-full overflow-x-hidden px-3 py-4 sm:px-5 lg:px-8 lg:py-6">{children}</main>
+        <main className="min-w-0 max-w-full overflow-x-hidden px-3 pb-28 pt-4 sm:px-5 lg:px-8 lg:py-6">{children}</main>
+        {bottomNavigation.length > 0 ? (
+          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-carbon-950/90 px-2 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2 shadow-app backdrop-blur-xl lg:hidden">
+            <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+              {bottomNavigation.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPath === item.href || currentPath.startsWith(`${item.href}/`);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "grid min-h-[3.65rem] place-items-center rounded-2xl px-1 py-1 text-[0.66rem] font-black transition",
+                      isActive ? "bg-brand-500 text-white shadow-glow" : "text-zinc-400 active:bg-white/[0.08]"
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="mt-0.5 max-w-full truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        ) : null}
       </div>
     </div>
   );

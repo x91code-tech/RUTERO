@@ -11,13 +11,13 @@ export function Field({ label, children }: { label: string; children: React.Reac
 }
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn("focus-ring min-h-10 rounded-lg border border-white/10 bg-white/[0.06] px-3 text-sm text-white placeholder:text-zinc-500 disabled:opacity-50", className)} {...props} />;
+  return <input className={cn("focus-ring min-h-11 rounded-xl border border-white/10 bg-white/[0.07] px-3 text-sm text-white placeholder:text-zinc-500 disabled:opacity-50", className)} {...props} />;
 }
 
 export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn("focus-ring min-h-10 rounded-lg border border-white/10 bg-carbon-900 px-3 text-sm text-white disabled:opacity-50", className)} {...props} />;
+  return <select className={cn("focus-ring min-h-11 rounded-xl border border-white/10 bg-carbon-900 px-3 text-sm text-white disabled:opacity-50", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn("focus-ring min-h-24 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 disabled:opacity-50", className)} {...props} />;
+  return <textarea className={cn("focus-ring min-h-24 rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 disabled:opacity-50", className)} {...props} />;
 }

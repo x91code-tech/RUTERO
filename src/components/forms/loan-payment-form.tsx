@@ -63,7 +63,7 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
 
   if (compact) {
     return (
-      <form ref={formRef} action={createCollectionAction} onSubmit={handleSubmit} className="relative grid gap-2 rounded-lg border border-white/10 bg-carbon-950/35 p-2">
+      <form ref={formRef} action={createCollectionAction} onSubmit={handleSubmit} className="relative grid gap-2 rounded-2xl border border-white/10 bg-carbon-950/35 p-2">
         <input type="hidden" name="clientId" value={clientId} />
         <input type="hidden" name="loanId" value={loan.id} />
         <input type="hidden" name="amount" value={safeAmount.toFixed(2)} />
@@ -94,10 +94,10 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
           <Input className="h-9" type="number" value={customAmount} min="0" step="0.01" onChange={(event) => setCustomAmount(Number(event.target.value))} />
         ) : null}
 
-        <details className="group rounded-lg border border-white/10 bg-white/[0.03]">
+        <details className="group rounded-xl border border-white/10 bg-white/[0.035]">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2 py-1.5 text-xs font-semibold text-zinc-300">
             <span className="flex min-w-0 items-center gap-1.5">
-              <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-brand-400" />
+              <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-brand-300" />
               <span className="truncate">{paymentMethodLabel(paymentMethod, company.countryCode)}</span>
             </span>
             <span className="text-zinc-500 group-open:hidden">Opciones</span>
@@ -124,7 +124,7 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
   }
 
   return (
-    <form ref={formRef} action={createCollectionAction} onSubmit={handleSubmit} className="relative grid gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+    <form ref={formRef} action={createCollectionAction} onSubmit={handleSubmit} className="relative grid gap-4 rounded-2xl border border-white/10 bg-white/[0.055] p-4 shadow-app">
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="loanId" value={loan.id} />
       <input type="hidden" name="amount" value={safeAmount.toFixed(2)} />
@@ -140,7 +140,7 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
-        <div className="rounded-lg bg-carbon-900/70 p-3">
+        <div className="rounded-2xl bg-carbon-900/70 p-3">
           <p className="truncate text-[0.65rem] font-semibold uppercase leading-3 text-zinc-500">Monto</p>
           <p className="mt-1 text-xl font-black text-brand-300">{formatCurrency(safeAmount, company)}</p>
         </div>
@@ -190,10 +190,11 @@ function DuplicatePaymentModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-carbon-950 p-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end bg-black/70 px-3 pb-3 backdrop-blur-sm sm:grid sm:place-items-center sm:p-4">
+      <div className="w-full max-w-md rounded-[1.75rem] border border-white/10 bg-carbon-900 p-4 shadow-app sm:rounded-3xl sm:p-5">
+        <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/15 sm:hidden" />
         <div className="flex items-start gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-400/15 text-amber-300">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-400/15 text-amber-200">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
@@ -201,12 +202,12 @@ function DuplicatePaymentModal({
             <p className="mt-1 text-sm text-zinc-300">
               Esta cuota ya aparece como pagada hoy. Puedes agregar otro pago si el cliente esta adelantando o abonando extra.
             </p>
-            <p className="mt-3 rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-zinc-300">
+            <p className="mt-3 rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2 text-sm text-zinc-300">
               Nuevo pago: <span className="font-black text-brand-300">{formatCurrency(amount, company)}</span>
             </p>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="mt-5 grid grid-cols-2 gap-2">
           <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
           <Button type="button" onClick={onConfirm}>Agregar pago</Button>
         </div>
@@ -219,7 +220,7 @@ function ModeButton({ active, compact = false, label, onClick }: { active: boole
   return (
     <button
       type="button"
-      className={`${compact ? "rounded-md px-1.5 py-1 text-[0.68rem]" : "rounded-lg px-3 py-2 text-sm"} border font-semibold transition ${active ? "border-brand-500 bg-brand-500 text-carbon-950" : "border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.08]"}`}
+      className={`${compact ? "rounded-xl px-1.5 py-1 text-[0.68rem]" : "rounded-xl px-3 py-2 text-sm"} border font-semibold transition active:scale-[0.99] ${active ? "border-brand-500 bg-brand-500 text-white shadow-glow" : "border-white/10 bg-white/[0.045] text-zinc-300 hover:bg-white/[0.08]"}`}
       onClick={onClick}
     >
       {label}
