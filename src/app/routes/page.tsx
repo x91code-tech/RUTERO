@@ -15,7 +15,7 @@ export default async function RoutesPage() {
   const { clients: allClients, collections, company, loans, locations, routes, users } = await getClientsPageData();
 
   return (
-    <AppShell title="Rutas del dia" subtitle="Clientes por cobrar, GPS y estado real de la ruta.">
+    <AppShell title="Rutas del dia" subtitle="Clientes pendientes de recaudo, GPS y estado real de la ruta.">
       <div className="grid gap-6 xl:grid-cols-[1fr_0.7fr]">
         <div className="grid gap-4">
           <Card>
@@ -56,9 +56,9 @@ export default async function RoutesPage() {
 
                 <div className="mb-4 grid gap-3 sm:grid-cols-4">
                   <RouteStat label="Clientes" value={String(clients.length)} />
-                  <RouteStat label="Por cobrar" value={String(pendingCount)} tone={pendingCount > 0 ? "orange" : "green"} />
-                  <RouteStat label="Cobrados hoy" value={String(collectedCount)} tone="green" />
-                  <RouteStat label="Saldo activo" value={formatCurrency(activeBalance, company)} />
+                  <RouteStat label="Pendientes" value={String(pendingCount)} tone={pendingCount > 0 ? "orange" : "green"} />
+                  <RouteStat label="Recaudados" value={String(collectedCount)} tone="green" />
+                  <RouteStat label="Saldo cartera" value={formatCurrency(activeBalance, company)} />
                 </div>
 
                 <div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -118,10 +118,10 @@ export default async function RoutesPage() {
         </div>
 
         <Card>
-          <CardHeader title="Lectura operativa" description="Lo importante para salir a cobrar sin ruido." />
+          <CardHeader title="Lectura operativa" description="Lo importante para salir a recaudar sin ruido." />
           <div className="grid gap-3 text-sm text-zinc-300">
             <Insight title="GPS primero" text="Los clientes sin ubicacion quedan visibles para corregirlos antes de armar la ruta." />
-            <Insight title="Por cobrar" text="Solo cuenta clientes con prestamo activo que no han pagado hoy." />
+            <Insight title="Pendientes" text="Solo cuenta clientes con prestamo activo que no han pagado hoy." />
             <Insight title="Ruta optimizada" text="Ordena los puntos con GPS usando distancia aproximada; Google Maps abre la navegacion real." />
             <Insight title="Enfoque operativo" text="RUTERO queda enfocado en prestamos, recaudos, caja y cartera." />
           </div>
@@ -134,9 +134,9 @@ export default async function RoutesPage() {
 function getRouteClientStatus(client: Client, activeLoan?: Loan, paidToday?: boolean): { label: string; tone: "green" | "red" | "orange" | "gray" | "blue" } {
   if (client.status === "PENDING") return { label: "Por verificar", tone: "orange" };
   if (!activeLoan) return { label: "Sin prestamo", tone: "gray" };
-  if (paidToday) return { label: "Cobrado hoy", tone: "green" };
+  if (paidToday) return { label: "Recaudado hoy", tone: "green" };
   if (new Date(activeLoan.dueDate) < new Date()) return { label: "Vencido", tone: "red" };
-  return { label: "Por cobrar", tone: "orange" };
+  return { label: "Pendiente", tone: "orange" };
 }
 
 function RouteStat({ label, tone = "neutral", value }: { label: string; tone?: "neutral" | "green" | "orange"; value: string }) {

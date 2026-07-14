@@ -306,7 +306,7 @@ export async function getDashboardData() {
       ? [{
           id: "generated_overdue_loans",
           companyId: user.companyId,
-          title: "Prestamos vencidos",
+          title: "Cartera vencida",
           message: "Hay prestamos activos con fecha vencida y saldo pendiente.",
           severity: "warning" as const
         }]

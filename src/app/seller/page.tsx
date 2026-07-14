@@ -16,11 +16,11 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
   return (
     <AppShell title="Ruta de cobro" subtitle="Clientes con prestamos activos, pago diario, atraso y saldo deudor.">
       <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
-        <SummaryTile label="Por cobrar" value={String(totals.pendingClients)} icon={<Clock3 className="h-4 w-4" />} tone={totals.pendingClients > 0 ? "orange" : "green"} />
-        <SummaryTile label="Ya pagaron" value={String(totals.paidClients)} icon={<CheckCircle2 className="h-4 w-4" />} tone="green" />
-        <SummaryTile label="Esperado" value={formatCurrency(totals.expectedToday, company)} />
-        <SummaryTile label="Cobrado" value={formatCurrency(totals.collectedToday, company)} tone="green" />
-        <SummaryTile className="col-span-2 xl:col-span-1" label="Saldo activo" value={formatCurrency(totals.activeBalance, company)} />
+        <SummaryTile label="Pendientes" value={String(totals.pendingClients)} icon={<Clock3 className="h-4 w-4" />} tone={totals.pendingClients > 0 ? "orange" : "green"} />
+        <SummaryTile label="Pagados" value={String(totals.paidClients)} icon={<CheckCircle2 className="h-4 w-4" />} tone="green" />
+        <SummaryTile label="Recaudo esperado" value={formatCurrency(totals.expectedToday, company)} />
+        <SummaryTile label="Recaudo" value={formatCurrency(totals.collectedToday, company)} tone="green" />
+        <SummaryTile className="col-span-2 xl:col-span-1" label="Saldo cartera" value={formatCurrency(totals.activeBalance, company)} />
       </div>
 
       <div className="mt-4 grid gap-2 lg:grid-cols-[1fr_auto_auto_auto]">
@@ -38,7 +38,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
 
       {!canCollect ? (
         <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
-          {disabledReason} Puedes consultar la ruta, pero no registrar cobros ni movimientos hasta que el administrador abra una caja nueva.
+          {disabledReason} Puedes consultar la ruta, pero no registrar recaudos ni movimientos hasta que el administrador abra una caja nueva.
         </div>
       ) : null}
 
@@ -66,7 +66,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
             : item.lateAmount > 0
               ? "border-l-4 border-l-red-400"
               : "border-l-4 border-l-amber-400";
-          const statusText = item.isPaidToday ? "Pagado hoy" : item.lateAmount > 0 ? "Atrasado" : "Pendiente";
+          const statusText = item.isPaidToday ? "Recaudado hoy" : item.lateAmount > 0 ? "Atrasado" : "Pendiente";
           const statusColor = item.isPaidToday ? "text-emerald-300" : item.lateAmount > 0 ? "text-red-300" : "text-amber-300";
           const statusBorder = item.isPaidToday ? "border-emerald-400 text-emerald-300" : item.lateAmount > 0 ? "border-red-400 text-red-300" : "border-amber-400 text-amber-300";
 
@@ -97,7 +97,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
               <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
                 <Info label="Vr. cuota" value={formatCurrency(item.loan.dailyPayment, company)} />
                 <Info label="Cuota No." value={`${item.installmentNumber} / ${item.loan.termDays}`} />
-                <Info label="Pago hoy" value={formatCurrency(item.receivedToday, company)} strongClass={item.isPaidToday ? "text-emerald-300" : "text-zinc-100"} />
+                <Info label="Recaudo hoy" value={formatCurrency(item.receivedToday, company)} strongClass={item.isPaidToday ? "text-emerald-300" : "text-zinc-100"} />
                 <Info label="Saldo deudor" value={formatCurrency(item.loan.balance, company)} />
                 <Info label="Vence" value={formatShortDate(item.loan.dueDate)} />
               </div>

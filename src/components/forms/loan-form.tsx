@@ -87,7 +87,7 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
 
       <div className="grid gap-3 rounded-lg border border-brand-500/25 bg-brand-500/10 p-4 text-sm sm:grid-cols-3">
         <Preview label="Interes" value={formatCurrency(totals.interestAmount, company)} />
-        <Preview label="Total a cobrar" value={formatCurrency(totals.totalAmount, company)} />
+        <Preview label="Total a recuperar" value={formatCurrency(totals.totalAmount, company)} />
         <Preview label="Valor cuota" value={formatCurrency(totals.dailyPayment, company)} highlight />
       </div>
 

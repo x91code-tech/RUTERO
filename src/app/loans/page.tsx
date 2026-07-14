@@ -21,14 +21,14 @@ export default async function LoansPage() {
   return (
     <AppShell title="Prestamos" subtitle="Registra el dinero entregado, calcula interes, cuotas y saldo automatico.">
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard label="Saldo activo" value={formatCurrency(activeBalance, company)} icon={<Landmark />} />
-        <MetricCard label="Cobro esperado hoy" value={formatCurrency(dailyExpected, company)} />
+        <MetricCard label="Saldo cartera" value={formatCurrency(activeBalance, company)} icon={<Landmark />} />
+        <MetricCard label="Recaudo esperado hoy" value={formatCurrency(dailyExpected, company)} />
         <MetricCard label="Ganancia proyectada" value={formatCurrency(projectedInterest, company)} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card id="nuevo-prestamo">
-          <CardHeader title="Nuevo prestamo" description="Capital entregado + interes = total a cobrar en cuotas diarias." />
+          <CardHeader title="Nuevo prestamo" description="Capital entregado + interes = total a recuperar en cuotas diarias." />
           <LoanForm clients={clients} company={company} />
         </Card>
         <Card>
@@ -64,7 +64,7 @@ export default async function LoansPage() {
                       <ExternalLink className="h-4 w-4" /> Abrir cliente
                     </LinkButton>
                     <LinkButton href={`/clients/${loan.clientId}#cobrar`} className="min-h-9 text-xs">
-                      <WalletCards className="h-4 w-4" /> Cobrar
+                      <WalletCards className="h-4 w-4" /> Recaudar
                     </LinkButton>
                   </div>
                 </div>

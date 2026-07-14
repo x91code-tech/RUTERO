@@ -138,7 +138,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                     Abrir
                   </LinkButton>
                   <LinkButton href={client.pendingBalance > 0 ? `/clients/${client.id}#cobrar` : `/clients/${client.id}#prestamo`} className="min-h-9 px-2 text-xs">
-                    {client.pendingBalance > 0 ? "Cobrar" : "Prestamo"}
+                    {client.pendingBalance > 0 ? "Recaudar" : "Prestamo"}
                   </LinkButton>
                 </div>
               </article>

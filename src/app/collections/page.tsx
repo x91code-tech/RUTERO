@@ -20,7 +20,7 @@ export default async function CollectionsPage({ searchParams }: { searchParams: 
   const overpaymentTotal = collections.reduce((total, collection) => total + (collection.overpaymentAmount ?? 0), 0);
 
   return (
-    <AppShell title="Recaudos" subtitle="Cobranza con calculo de saldo anterior, saldo nuevo e impacto de caja.">
+    <AppShell title="Recaudos" subtitle="Registro de pagos con saldo anterior, saldo nuevo e impacto de caja.">
       {error ? <p className="mb-4 rounded-xl bg-amber-500/15 px-4 py-3 text-sm text-amber-100">{errorMessages[error] ?? "No se pudo registrar el recaudo."}</p> : null}
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Recaudos" value={String(collections.length)} icon={<WalletCards className="h-4 w-4" />} />

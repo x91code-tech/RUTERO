@@ -27,7 +27,7 @@ const navigation = [
 const quickActions = [
   { href: "/clients", label: "Cliente", icon: Users },
   { href: "/loans", label: "Prestamo", icon: Landmark },
-  { href: "/collections", label: "Cobrar", icon: WalletCards },
+  { href: "/collections", label: "Recaudo", icon: WalletCards },
   { href: "/expenses", label: "Movimiento", icon: ClipboardList },
   { href: "/cashbox", label: "Caja", icon: Shield }
 ];

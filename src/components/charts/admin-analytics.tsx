@@ -49,7 +49,7 @@ export function AdminAnalytics({ company, data }: { company: Partial<CurrencyCon
             <YAxis type="category" dataKey="label" stroke="#a1a1aa" tickLine={false} axisLine={false} fontSize={12} width={96} />
             <Tooltip content={<MoneyTooltip company={company} />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
             <Bar dataKey="esperado" name="Esperado" radius={[0, 6, 6, 0]} fill="#f59e0b" />
-            <Bar dataKey="cobrado" name="Cobrado" radius={[0, 6, 6, 0]} fill="#34d399" />
+            <Bar dataKey="cobrado" name="Recaudo" radius={[0, 6, 6, 0]} fill="#34d399" />
             <Bar dataKey="entregado" name="Entregado" radius={[0, 6, 6, 0]} fill="#60a5fa" />
           </BarChart>
         </ResponsiveContainer>

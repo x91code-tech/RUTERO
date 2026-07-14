@@ -18,7 +18,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
           </p>
         </div>
         <div className="grid gap-3 text-sm">
-          {["Moneda y metodos de pago por pais", "Admin crea cobradores y supervisores", "Clientes con documentos y GPS", "Prestamos con cobro diario"].map((item) => (
+          {["Moneda y metodos de pago por pais", "Admin crea cobradores y supervisores", "Clientes con documentos y GPS", "Prestamos con recaudo diario"].map((item) => (
             <div key={item} className="flex items-center gap-3 rounded-xl bg-carbon-900/80 p-4">
               <CheckCircle2 className="h-5 w-5 text-emerald-300" />
               <span className="font-semibold text-white">{item}</span>

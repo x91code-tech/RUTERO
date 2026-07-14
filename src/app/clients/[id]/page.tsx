@@ -20,7 +20,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
   const todayKey = new Date().toISOString().slice(0, 10);
 
   return (
-    <AppShell title={client.name} subtitle="Perfil de cliente con prestamos, recaudos y cobranza.">
+    <AppShell title={client.name} subtitle="Perfil de cliente con prestamos, recaudos y cartera.">
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="grid gap-6">
           <Card>

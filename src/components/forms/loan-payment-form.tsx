@@ -38,7 +38,7 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
   }, [advanceAmount, customAmount, dailyDue, loan.balance, loan.dailyPayment, mode]);
   const safeAmount = Math.max(selectedAmount, 0);
   const paymentType = mode === "advance" ? "ADVANCE" : mode === "full" ? "SETTLEMENT" : mode === "custom" ? "MANUAL" : "INSTALLMENT";
-  const submitLabel = mode === "full" ? (compact ? "Liquidar" : "Liquidar prestamo") : compact ? "Cobrar" : `Cobrar ${formatCurrency(safeAmount, company)}`;
+  const submitLabel = mode === "full" ? (compact ? "Liquidar" : "Liquidar prestamo") : compact ? "Recaudar" : `Recaudar ${formatCurrency(safeAmount, company)}`;
   const isDailyPaymentAlreadyCovered = paidToday >= Math.min(loan.dailyPayment, loan.balance);
   const submitDisabled = safeAmount <= 0 || Boolean(disabledReason);
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -80,7 +80,7 @@ export function LoanPaymentForm({ clientId, loan, company, paidToday = 0, compac
 
         <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-2">
           <div className="rounded-lg bg-carbon-900/70 px-2 py-1.5">
-            <p className="truncate text-[0.62rem] font-semibold uppercase leading-3 text-zinc-500">Monto a cobrar</p>
+            <p className="truncate text-[0.62rem] font-semibold uppercase leading-3 text-zinc-500">Monto a recaudar</p>
             <p className="mt-0.5 truncate text-base font-black text-brand-300">{formatCurrency(safeAmount, company)}</p>
           </div>
           <Button className="min-h-10 px-2 text-xs" type="submit" disabled={submitDisabled}>

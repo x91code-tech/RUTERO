@@ -19,9 +19,9 @@ export default async function DashboardPage() {
         <MetricCard label="Capital en calle" value={formatCurrency(metrics.activePrincipalBalance, company)} icon={<Landmark />} />
         <MetricCard label="Interes pendiente" value={formatCurrency(metrics.activeInterestBalance, company)} icon={<TrendingUp />} tone="orange" />
         <MetricCard label="Cuotas esperadas hoy" value={formatCurrency(metrics.expectedToday, company)} icon={<Wallet />} />
-        <MetricCard label="Cobrado hoy" value={formatCurrency(metrics.collectedToday, company)} icon={<Wallet />} tone="green" />
+        <MetricCard label="Recaudo hoy" value={formatCurrency(metrics.collectedToday, company)} icon={<Wallet />} tone="green" />
         <MetricCard label="Capital recuperado" value={formatCurrency(metrics.principalCollectedToday, company)} icon={<Wallet />} />
-        <MetricCard label="Ganancia cobrada" value={formatCurrency(metrics.interestCollectedToday + metrics.lateFeeCollectedToday, company)} icon={<TrendingUp />} tone="green" />
+        <MetricCard label="Ganancia recaudada" value={formatCurrency(metrics.interestCollectedToday + metrics.lateFeeCollectedToday, company)} icon={<TrendingUp />} tone="green" />
         <MetricCard label="Prestamos entregados hoy" value={formatCurrency(-metrics.loanDisbursementsToday, company)} icon={<TrendingDown />} tone="red" />
         <MetricCard label="Caja esperada hoy" value={formatCurrency(metrics.cashboxExpectedToday, company)} icon={<Banknote />} tone={metrics.cashboxExpectedToday < 0 ? "red" : "green"} />
         <MetricCard label="Caja reportada" value={formatCurrency(metrics.cashboxReportedToday, company)} icon={<Banknote />} tone={metrics.cashboxReportedToday < 0 ? "red" : "green"} />
@@ -29,12 +29,12 @@ export default async function DashboardPage() {
         <MetricCard label="Entradas caja" value={formatCurrency(metrics.cashInflowsToday, company)} icon={<TrendingUp />} tone="green" />
         <MetricCard label="Salidas caja" value={formatCurrency(-metrics.cashOutflowsToday, company)} icon={<TrendingDown />} tone="orange" />
         <MetricCard label="Movimiento neto caja" value={formatCurrency(cashNetToday, company)} tone={cashNetToday >= 0 ? "green" : "red"} />
-        <MetricCard label="Prestamos vencidos" value={String(metrics.overdueLoans)} icon={<AlertTriangle />} tone={metrics.overdueLoans > 0 ? "red" : "green"} />
+        <MetricCard label="Cartera vencida" value={String(metrics.overdueLoans)} icon={<AlertTriangle />} tone={metrics.overdueLoans > 0 ? "red" : "green"} />
         <MetricCard label="Listos para renovar" value={String(metrics.renewalCandidates)} icon={<RefreshCw />} tone={metrics.renewalCandidates > 0 ? "orange" : "green"} />
         <MetricCard label="Cajas abiertas" value={String(metrics.openCashboxesToday)} icon={<AlertTriangle />} tone={metrics.openCashboxesToday > 0 ? "orange" : "green"} />
         <MetricCard label="Cajas descuadradas" value={String(metrics.unbalancedCashboxesToday)} icon={<AlertTriangle />} tone={metrics.unbalancedCashboxesToday > 0 ? "red" : "green"} />
-        <MetricCard label="Clientes pendientes" value={String(metrics.pendingClients)} tone={metrics.pendingClients > 0 ? "orange" : "green"} />
-        <MetricCard label="Cobradores activos" value={String(metrics.activeSellers)} icon={<Users />} />
+        <MetricCard label="Pendientes por recaudo" value={String(metrics.pendingClients)} tone={metrics.pendingClients > 0 ? "orange" : "green"} />
+        <MetricCard label="Cobradores en ruta" value={String(metrics.activeSellers)} icon={<Users />} />
       </div>
 
       <div className="mt-6">
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
               <tr>
                 <th className="pb-3">Cobrador</th>
                 <th className="pb-3 text-right">Esperado</th>
-                <th className="pb-3 text-right">Cobrado</th>
+                <th className="pb-3 text-right">Recaudo</th>
                 <th className="pb-3 text-right">%</th>
                 <th className="pb-3 text-right">Prestado</th>
                 <th className="pb-3 text-right">Caja esperada</th>

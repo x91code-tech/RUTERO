@@ -202,7 +202,7 @@ function CashboxCloseSummary({
             <p className={projectedClosingCash < 0 ? "truncate text-3xl font-black text-red-300" : "truncate text-3xl font-black text-white"}>
               {formatCurrency(projectedClosingCash, company)}
             </p>
-            <p className="truncate text-sm text-zinc-400">Recaudo pretendido: {formatCurrency(expectedCollectionToday, company)}</p>
+            <p className="truncate text-sm text-zinc-400">Recaudo esperado: {formatCurrency(expectedCollectionToday, company)}</p>
           </div>
         </div>
       </div>

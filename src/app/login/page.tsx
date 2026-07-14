@@ -15,12 +15,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div>
           <p className="max-w-2xl text-5xl font-black leading-tight text-white">Control diario de prestamos, rutas y caja en calle.</p>
           <p className="mt-5 max-w-xl text-zinc-400">
-            RUTERO organiza clientes, cuotas diarias, cobros, cobradores, ubicaciones y saldos por empresa.
+            RUTERO organiza clientes, cuotas diarias, recaudos, cobradores, ubicaciones y saldos por empresa.
           </p>
         </div>
         <div className="grid grid-cols-3 gap-3 text-sm">
           <div className="rounded-xl bg-carbon-900/80 p-4"><p className="text-zinc-500">Prestamos</p><p className="mt-1 font-bold text-white">20% y cuota diaria</p></div>
-          <div className="rounded-xl bg-carbon-900/80 p-4"><p className="text-zinc-500">Rutas</p><p className="mt-1 font-bold text-white">Cobro por cobrador</p></div>
+          <div className="rounded-xl bg-carbon-900/80 p-4"><p className="text-zinc-500">Rutas</p><p className="mt-1 font-bold text-white">Recaudo por cobrador</p></div>
           <div className="rounded-xl bg-carbon-900/80 p-4"><p className="text-zinc-500">Caja</p><p className="mt-1 font-bold text-white">Cierre operativo</p></div>
         </div>
       </section>
