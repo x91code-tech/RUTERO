@@ -5,6 +5,7 @@ export type CurrencyConfig = {
   currencyName: string;
   locale: string;
   timeZone: string;
+  phonePrefix: string;
   fractionDigits: number;
   clientDocumentRequirements: ClientDocumentRequirement[];
 };
@@ -24,6 +25,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Bolívar digital",
     locale: "es-VE",
     timeZone: "America/Caracas",
+    phonePrefix: "+58",
     fractionDigits: 2,
     clientDocumentRequirements: [
       { type: "RIF", label: "RIF", required: true, description: "Registro de Información Fiscal del negocio." },
@@ -38,6 +40,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Dólar estadounidense",
     locale: "en-US",
     timeZone: "America/New_York",
+    phonePrefix: "+1",
     fractionDigits: 2,
     clientDocumentRequirements: [
       { type: "EIN", label: "EIN", required: true, description: "Employer Identification Number si aplica." },
@@ -52,6 +55,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Peso colombiano",
     locale: "es-CO",
     timeZone: "America/Bogota",
+    phonePrefix: "+57",
     fractionDigits: 0,
     clientDocumentRequirements: [
       { type: "NIT", label: "NIT", required: true, description: "Número de Identificación Tributaria." },
@@ -66,6 +70,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Dólar estadounidense",
     locale: "es-PA",
     timeZone: "America/Panama",
+    phonePrefix: "+507",
     fractionDigits: 2,
     clientDocumentRequirements: [
       { type: "RUC", label: "RUC", required: true, description: "Registro Único de Contribuyente." },
@@ -80,6 +85,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Real brasileño",
     locale: "pt-BR",
     timeZone: "America/Sao_Paulo",
+    phonePrefix: "+55",
     fractionDigits: 2,
     clientDocumentRequirements: [
       { type: "CNPJ", label: "CNPJ", required: true, description: "Cadastro Nacional da Pessoa Jurídica." },
@@ -94,6 +100,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Peso mexicano",
     locale: "es-MX",
     timeZone: "America/Mexico_City",
+    phonePrefix: "+52",
     fractionDigits: 2,
     clientDocumentRequirements: [
       { type: "RFC", label: "RFC", required: true, description: "Registro Federal de Contribuyentes." },
@@ -108,6 +115,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Sol peruano",
     locale: "es-PE",
     timeZone: "America/Lima",
+    phonePrefix: "+51",
     fractionDigits: 2,
     clientDocumentRequirements: [
       { type: "RUC", label: "RUC", required: true, description: "Registro Único de Contribuyentes." },
@@ -122,6 +130,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Peso chileno",
     locale: "es-CL",
     timeZone: "America/Santiago",
+    phonePrefix: "+56",
     fractionDigits: 0,
     clientDocumentRequirements: [
       { type: "RUT", label: "RUT", required: true, description: "Rol Único Tributario." },
@@ -136,6 +145,7 @@ export const supportedCountries: CurrencyConfig[] = [
     currencyName: "Peso dominicano",
     locale: "es-DO",
     timeZone: "America/Santo_Domingo",
+    phonePrefix: "+1",
     fractionDigits: 2,
     clientDocumentRequirements: [
       { type: "RNC", label: "RNC", required: true, description: "Registro Nacional de Contribuyentes." },
@@ -161,6 +171,7 @@ export function getCurrencyConfig(input?: Partial<CurrencyConfig> | null): Curre
     currencyName: input?.currencyName ?? base.currencyName,
     locale: input?.locale ?? base.locale,
     timeZone: input?.timeZone ?? base.timeZone,
+    phonePrefix: input?.phonePrefix ?? base.phonePrefix,
     fractionDigits: input?.fractionDigits ?? base.fractionDigits,
     clientDocumentRequirements: input?.clientDocumentRequirements ?? base.clientDocumentRequirements
   };
@@ -168,4 +179,19 @@ export function getCurrencyConfig(input?: Partial<CurrencyConfig> | null): Curre
 
 export function getClientDocumentRequirements(countryCode: string) {
   return getCurrencyConfig({ countryCode }).clientDocumentRequirements;
+}
+
+export function getMissingRequiredClientDocuments(
+  countryCode: string,
+  documents: { documentType: string; fileUrl?: string | null; status: string }[]
+) {
+  const documentsByType = new Map(documents.map((document) => [document.documentType, document]));
+
+  return getClientDocumentRequirements(countryCode)
+    .filter((requirement) => requirement.required)
+    .filter((requirement) => {
+      const document = documentsByType.get(requirement.type);
+      return !document?.fileUrl?.trim() || !["UPLOADED", "APPROVED"].includes(document.status);
+    })
+    .map((requirement) => requirement.label);
 }

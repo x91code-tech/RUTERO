@@ -12,11 +12,17 @@ import { collectionPaymentTypeLabel } from "@/lib/collection-payments";
 import { getClientProfileData } from "@/lib/clients-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 
-export default async function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function ClientProfilePage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const data = await getClientProfileData(id);
   if (!data) notFound();
-  const { client, collections, company, loans, route, sales } = data;
+  const { canVerifyClient, client, collections, company, loans, missingRequiredDocuments, route, sales } = data;
   const todayKey = new Date().toISOString().slice(0, 10);
 
   return (
@@ -30,11 +36,18 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
               <p><span className="text-zinc-400">Dirección:</span> {client.address}</p>
               <p><span className="text-zinc-400">Documento:</span> {client.document}</p>
               <p><span className="text-zinc-400">Ruta:</span> {route?.name}</p>
-              <p><span className="text-zinc-400">Saldo pendiente:</span> <strong>{formatCurrency(client.pendingBalance, company)}</strong></p>
+              <p><span className="text-zinc-400">País y moneda:</span> <strong>{client.countryCode} · {client.currencyCode}</strong></p>
+              <p><span className="text-zinc-400">Saldo pendiente:</span> <strong>{formatCurrency(client.pendingBalance, client)}</strong></p>
               <p><span className="text-zinc-400">Notas:</span> {client.notes}</p>
             </div>
           </Card>
-          <ClientVerificationForm client={client} />
+          {canVerifyClient ? (
+            <ClientVerificationForm
+              client={client}
+              missingRequiredDocuments={missingRequiredDocuments}
+              documentsError={query.error === "required_documents"}
+            />
+          ) : null}
           <Card id="prestamo">
             <CardHeader title="Nuevo prestamo" description="Registra el capital entregado y calcula cuotas segun la frecuencia configurada." />
             {client.status === "ACTIVE" ? (
@@ -50,15 +63,15 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
           <CardHeader title="Prestamos activos" description="Capital entregado, cuota diaria y saldo deudor." />
           <div className="space-y-3">
             {loans.map((loan) => (
-              <div key={loan.id} className="rounded-xl bg-white/[0.04] p-4">
+              <div key={loan.id} className="rounded-xl bg-carbon-950 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold">Total {formatCurrency(loan.totalAmount, company)}</p>
+                  <p className="font-semibold">Total {formatCurrency(loan.totalAmount, loan)}</p>
                   <StatusBadge tone={loan.status === "PAID" ? "green" : loan.status === "OVERDUE" ? "red" : "orange"}>{loan.status}</StatusBadge>
                 </div>
                 <div className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
-                  <p><span className="text-zinc-400">Entregado</span><br /><strong>{formatCurrency(loan.disbursedAmount ?? loan.principalAmount, company)}</strong></p>
-                  <p><span className="text-zinc-400">Valor cuota</span><br /><strong>{formatCurrency(loan.dailyPayment, company)}</strong></p>
-                  <p><span className="text-zinc-400">Saldo</span><br /><strong>{formatCurrency(loan.balance, company)}</strong></p>
+                  <p><span className="text-zinc-400">Entregado</span><br /><strong>{formatCurrency(loan.disbursedAmount ?? loan.principalAmount, loan)}</strong></p>
+                  <p><span className="text-zinc-400">Valor cuota</span><br /><strong>{formatCurrency(loan.dailyPayment, loan)}</strong></p>
+                  <p><span className="text-zinc-400">Saldo</span><br /><strong>{formatCurrency(loan.balance, loan)}</strong></p>
                 </div>
                 {loan.status === "ACTIVE" && loan.balance > 0 ? (
                   <div className="mt-4 grid gap-4">
@@ -66,14 +79,16 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                       clientId={client.id}
                       loan={loan}
                       company={company}
+                      clientName={client.name}
                       paidToday={collections.filter((collection) => collection.loanId === loan.id && collection.date.startsWith(todayKey)).reduce((total, collection) => total + (collection.balanceApplied ?? collection.amount), 0)}
+                      compact
                     />
                     <LoanRenewalForm client={client} company={company} loan={loan} />
                   </div>
                 ) : null}
               </div>
             ))}
-            {loans.length === 0 ? <p className="rounded-xl bg-white/[0.04] p-4 text-sm text-zinc-400">Este cliente todavia no tiene prestamos.</p> : null}
+            {loans.length === 0 ? <p className="rounded-xl bg-carbon-950 p-4 text-sm text-zinc-400">Este cliente todavia no tiene prestamos.</p> : null}
           </div>
         </Card>
 
@@ -81,18 +96,18 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
           <CardHeader title="Historial" description="Prestamos, ingresos extra y recaudos relacionados con este cliente." />
           <div className="space-y-3">
             {[...sales, ...collections].map((movement) => (
-              <div key={movement.id} className="flex items-center justify-between rounded-xl bg-white/[0.04] p-4">
+              <div key={movement.id} className="flex items-center justify-between rounded-xl bg-carbon-950 p-4">
                 <div>
                   <p className="font-semibold">{"product" in movement ? movement.product : "Recaudo registrado"}</p>
                   <p className="text-sm text-zinc-400">
-                    {paymentMethodLabel(movement.paymentMethod, company.countryCode)}
+                    {paymentMethodLabel(movement.paymentMethod, movement.countryCode ?? company.countryCode)}
                     {"paymentType" in movement ? ` - ${collectionPaymentTypeLabel(movement.paymentType)}` : ""}
                   </p>
                   {"balanceApplied" in movement ? (
-                    <p className="text-xs text-zinc-500">Aplicado a deuda {formatCurrency(movement.balanceApplied ?? movement.amount, company)}</p>
+                    <p className="text-xs text-zinc-500">Aplicado a deuda {formatCurrency(movement.balanceApplied ?? movement.amount, movement)}</p>
                   ) : null}
                 </div>
-                <p className="font-black">{formatCurrency(movement.amount, company)}</p>
+                <p className="font-black">{formatCurrency(movement.amount, movement)}</p>
               </div>
             ))}
           </div>

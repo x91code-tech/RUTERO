@@ -58,7 +58,7 @@ export function LoanRenewalForm({ client, company, loan }: LoanRenewalFormProps)
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Nuevo capital">
+        <Field label={`Nuevo capital (${loan.currencyCode ?? client.currencyCode})`}>
           <Input name="principalAmount" type="number" value={principalAmount} min="0" step="0.01" onChange={(event) => setPrincipalAmount(Number(event.target.value))} />
         </Field>
         <Field label="Interes %">
@@ -84,11 +84,11 @@ export function LoanRenewalForm({ client, company, loan }: LoanRenewalFormProps)
       </Field>
 
       <div className="grid gap-2 text-sm sm:grid-cols-2">
-        <Preview label="Saldo que se descuenta" value={formatCurrency(totals.discountedBalance, company)} />
-        <Preview label="Efectivo a entregar" value={formatCurrency(totals.disbursedAmount, company)} highlight />
-        <Preview label="Ganancia nueva" value={formatCurrency(totals.interestAmount, company)} />
-        <Preview label="Nueva cuota" value={formatCurrency(totals.dailyPayment, company)} highlight />
-        <Preview label="Total nuevo" value={formatCurrency(totals.totalAmount, company)} />
+        <Preview label="Saldo que se descuenta" value={formatCurrency(totals.discountedBalance, loan)} />
+        <Preview label="Efectivo a entregar" value={formatCurrency(totals.disbursedAmount, loan)} highlight />
+        <Preview label="Ganancia nueva" value={formatCurrency(totals.interestAmount, loan)} />
+        <Preview label="Nueva cuota" value={formatCurrency(totals.dailyPayment, loan)} highlight />
+        <Preview label="Total nuevo" value={formatCurrency(totals.totalAmount, loan)} />
       </div>
 
       <Field label="Notas">

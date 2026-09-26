@@ -1,5 +1,6 @@
 import type { CashboxStatus, PaymentMethod as PrismaPaymentMethod, Prisma } from "@prisma/client";
 import { normalizeCashMovementKind } from "@/lib/cash-movements";
+import { getCurrencyConfig } from "@/lib/countries";
 import { prisma } from "@/lib/db";
 import { endOfLocalDay, formatDateInput, startOfLocalDay } from "@/lib/date-utils";
 import { getSessionUser } from "@/lib/session";
@@ -9,6 +10,7 @@ export type ReportFilters = {
   from?: string;
   to?: string;
   sellerId?: string;
+  countryCode?: string;
   routeId?: string;
   clientId?: string;
   paymentMethod?: string;
@@ -17,6 +19,8 @@ export type ReportFilters = {
 export type ReportCashboxRow = {
   id: string;
   sellerId: string;
+  countryCode: string;
+  currencyCode: string;
   date: string;
   initialCash: number;
   reportedCash: number;
@@ -58,6 +62,7 @@ function normalizeFilters(filters: ReportFilters = {}) {
       from: formatDateInput(fromDate),
       to: formatDateInput(toDate),
       sellerId: selected(filters.sellerId),
+      countryCode: selected(filters.countryCode),
       routeId: selected(filters.routeId),
       clientId: selected(filters.clientId),
       paymentMethod: selected(filters.paymentMethod)
@@ -73,16 +78,17 @@ function toCompany(company: {
   currencyCode: string;
   locale: string;
   timeZone: string;
-}): Company {
+}, countryCode = company.countryCode): Company {
+  const currency = getCurrencyConfig({ countryCode });
   return {
     id: company.id,
     name: company.name,
     rif: company.rif ?? undefined,
     plan: "PRO",
-    countryCode: company.countryCode,
-    currencyCode: company.currencyCode,
-    locale: company.locale,
-    timeZone: company.timeZone
+    countryCode: currency.countryCode,
+    currencyCode: currency.currencyCode,
+    locale: currency.locale,
+    timeZone: currency.timeZone
   };
 }
 
@@ -99,10 +105,13 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
   const movementDateScope = { OR: [{ date: dateRange }, { createdAt: dateRange }] };
   const sellerWhere = activeSellerId ? { sellerId: activeSellerId } : {};
 
-  const [company, users, routes, clients] = await Promise.all([
-    prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
+  const company = await prisma.company.findUniqueOrThrow({ where: { id: user.companyId } });
+  const countryCode = user.role === "SELLER"
+    ? user.countryCode
+    : getCurrencyConfig({ countryCode: normalized.values.countryCode ?? company.countryCode }).countryCode;
+  const [users, routes, clients] = await Promise.all([
     prisma.user.findMany({
-      where: { companyId: user.companyId, active: true, ...(user.role === "SELLER" ? { id: user.id } : {}) },
+      where: { companyId: user.companyId, active: true, countryCode, ...(user.role === "SELLER" ? { id: user.id } : {}) },
       orderBy: { name: "asc" }
     }),
     prisma.route.findMany({
@@ -111,7 +120,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       orderBy: { name: "asc" }
     }),
     prisma.client.findMany({
-      where: { companyId: user.companyId, ...(activeSellerId ? { sellerId: activeSellerId } : {}) },
+      where: { companyId: user.companyId, countryCode, ...(activeSellerId ? { sellerId: activeSellerId } : {}) },
       include: { routeClients: true },
       orderBy: { name: "asc" }
     })
@@ -137,6 +146,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
     prisma.loan.findMany({
       where: {
         companyId: user.companyId,
+        countryCode,
         ...sellerWhere,
         ...clientWhere,
         createdAt: dateRange
@@ -146,6 +156,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
     prisma.sale.findMany({
       where: {
         companyId: user.companyId,
+        countryCode,
         ...sellerWhere,
         ...clientWhere,
         ...paymentMethodWhere,
@@ -156,6 +167,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
     prisma.collection.findMany({
       where: {
         companyId: user.companyId,
+        countryCode,
         ...sellerWhere,
         ...clientWhere,
         ...paymentMethodWhere,
@@ -166,6 +178,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
     prisma.expense.findMany({
       where: {
         companyId: user.companyId,
+        countryCode,
         ...sellerWhere,
         ...paymentMethodWhere,
         ...movementDateScope
@@ -175,6 +188,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
     prisma.cashbox.findMany({
       where: {
         companyId: user.companyId,
+        countryCode,
         ...sellerWhere,
         date: dateRange
       },
@@ -187,16 +201,19 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
     cashboxes,
     companyId: user.companyId,
     sellerId: activeSeller?.id ?? user.id,
-    date: normalized.fromDate
+    date: normalized.fromDate,
+    countryCode: activeSeller?.countryCode ?? countryCode
   });
 
   return {
-    company: toCompany(company),
+    company: toCompany(company, countryCode),
+    countryCode,
     currentUser: {
       id: user.id,
       companyId: user.companyId,
       name: user.name,
       email: user.email,
+      countryCode: user.countryCode,
       role: user.role
     } satisfies User,
     filters: normalized.values,
@@ -205,6 +222,7 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       companyId: item.companyId,
       name: item.name,
       email: item.email,
+      countryCode: item.countryCode,
       role: item.role
     })) satisfies User[],
     routes: routes.map((route) => ({
@@ -226,6 +244,8 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       document: client.document ?? "",
       routeId: client.routeClients[0]?.routeId ?? "",
       sellerId: client.sellerId,
+      countryCode: client.countryCode,
+      currencyCode: client.currencyCode,
       pendingBalance: Number(client.pendingBalance),
       status: client.status,
       notes: client.notes ?? ""
@@ -235,6 +255,8 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       companyId: loan.companyId,
       clientId: loan.clientId,
       sellerId: loan.sellerId,
+      countryCode: loan.countryCode,
+      currencyCode: loan.currencyCode,
       principalAmount: Number(loan.principalAmount),
       disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
       interestRate: Number(loan.interestRate),
@@ -259,6 +281,8 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       companyId: sale.companyId,
       clientId: sale.clientId,
       sellerId: sale.sellerId,
+      countryCode: sale.countryCode,
+      currencyCode: sale.currencyCode,
       product: sale.concept,
       amount: Number(sale.amount),
       paymentMethod: sale.paymentMethod,
@@ -271,6 +295,8 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       clientId: collection.clientId,
       loanId: collection.loanId ?? undefined,
       sellerId: collection.sellerId,
+      countryCode: collection.countryCode,
+      currencyCode: collection.currencyCode,
       amount: Number(collection.amount),
       paymentType: collection.paymentType,
       application: collection.application,
@@ -291,6 +317,8 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
       id: expense.id,
       companyId: expense.companyId,
       sellerId: expense.sellerId,
+      countryCode: expense.countryCode,
+      currencyCode: expense.currencyCode,
       movementKind: normalizeCashMovementKind(expense.movementKind),
       type: expense.type,
       amount: Number(expense.amount),
@@ -302,6 +330,8 @@ export async function getReportsPageData(filters: ReportFilters = {}) {
     cashboxes: cashboxes.map((cashbox) => ({
       id: cashbox.id,
       sellerId: cashbox.sellerId,
+      countryCode: cashbox.countryCode,
+      currencyCode: cashbox.currencyCode,
       date: cashbox.date.toISOString(),
       initialCash: Number(cashbox.initialCash),
       reportedCash: Number(cashbox.reportedCash),
@@ -321,6 +351,8 @@ function buildReportCashbox(input: {
     id: string;
     companyId: string;
     sellerId: string;
+    countryCode: string;
+    currencyCode: string;
     date: Date;
     initialCash: Prisma.Decimal;
     reportedCash: Prisma.Decimal;
@@ -335,6 +367,7 @@ function buildReportCashbox(input: {
   companyId: string;
   sellerId: string;
   date: Date;
+  countryCode: string;
 }): Cashbox {
   const { cashboxes } = input;
   const firstCashbox = cashboxes[0];
@@ -343,6 +376,8 @@ function buildReportCashbox(input: {
     id: firstCashbox?.id ?? "cashbox_report",
     companyId: input.companyId,
     sellerId: firstCashbox?.sellerId ?? input.sellerId,
+    countryCode: firstCashbox?.countryCode ?? input.countryCode,
+    currencyCode: firstCashbox?.currencyCode ?? getCurrencyConfig({ countryCode: input.countryCode }).currencyCode,
     date: input.date.toISOString(),
     initialCash: sum(cashboxes.map((cashbox) => Number(cashbox.initialCash))),
     reportedCash: sum(cashboxes.map((cashbox) => Number(cashbox.reportedCash))),

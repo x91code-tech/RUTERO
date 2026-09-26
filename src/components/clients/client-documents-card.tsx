@@ -24,7 +24,7 @@ export function ClientDocumentsCard({ documents }: { documents: ClientDocument[]
       </div>
       <div className="space-y-3">
         {documents.map((document) => (
-          <div key={document.id} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+          <div key={document.id} className="rounded-lg border border-white/10 bg-carbon-950 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-semibold">{document.label}</p>

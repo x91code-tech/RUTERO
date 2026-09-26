@@ -23,12 +23,14 @@ function tomorrowInputValue() {
 }
 
 export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
+  const selectableClients = clients.filter((client) => client.status === "ACTIVE");
+  const initialClientId = selectableClients.some((client) => client.id === defaultClientId) ? defaultClientId : selectableClients[0]?.id ?? "";
+  const [selectedClientId, setSelectedClientId] = useState(initialClientId);
   const [principalAmount, setPrincipalAmount] = useState(100);
   const [interestRatePercent, setInterestRatePercent] = useState(getDefaultInterestPercent(company.defaultInterestRate));
   const [termDays, setTermDays] = useState(getDefaultTermDays(company.defaultTermDays));
-  const activeClients = clients.filter((client) => client.status === "ACTIVE");
-  const selectableClients = activeClients;
-  const selectedClientId = selectableClients.some((client) => client.id === defaultClientId) ? defaultClientId : selectableClients[0]?.id ?? "";
+  const selectedClient = selectableClients.find((client) => client.id === selectedClientId);
+  const currency = selectedClient ?? company;
 
   const totals = useMemo(() => {
     const principal = Number.isFinite(principalAmount) ? principalAmount : 0;
@@ -61,7 +63,7 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
   return (
     <form action={createLoanAction} className="grid gap-4">
       <Field label="Cliente">
-        <Select name="clientId" defaultValue={selectedClientId} disabled={Boolean(defaultClientId)}>
+        <Select name="clientId" value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} disabled={Boolean(defaultClientId)}>
           {selectableClients.map((client) => (
             <option key={client.id} value={client.id}>{client.name}</option>
           ))}
@@ -70,7 +72,7 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Capital entregado">
+        <Field label={`Capital entregado (${currency.currencyCode})`}>
           <Input name="principalAmount" type="number" value={principalAmount} min="0" step="0.01" onChange={(event) => setPrincipalAmount(Number(event.target.value))} />
         </Field>
         <Field label="Interes %">
@@ -81,9 +83,9 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
       <div className="grid gap-4 sm:grid-cols-[1fr_1.4fr]">
         <Field label="Numero de cuotas">
           <div className="grid grid-cols-[3rem_1fr_3rem] overflow-hidden rounded-lg border border-white/10">
-            <button type="button" className="bg-brand-500 text-2xl font-black text-carbon-950" onClick={() => setTermDays((value) => Math.max(value - 1, 1))}>-</button>
+            <button type="button" className="bg-brand-500 text-2xl font-black text-white" onClick={() => setTermDays((value) => Math.max(value - 1, 1))}>-</button>
             <Input name="termDays" type="number" value={termDays} min="1" step="1" className="rounded-none border-0 text-center text-xl font-black" onChange={(event) => setTermDays(Number(event.target.value))} />
-            <button type="button" className="bg-brand-500 text-2xl font-black text-carbon-950" onClick={() => setTermDays((value) => value + 1)}>+</button>
+            <button type="button" className="bg-brand-500 text-2xl font-black text-white" onClick={() => setTermDays((value) => value + 1)}>+</button>
           </div>
         </Field>
         <Field label="Frecuencia">
@@ -100,9 +102,9 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
       </Field>
 
       <div className="grid gap-3 rounded-lg border border-brand-500/25 bg-brand-500/10 p-4 text-sm sm:grid-cols-3">
-        <Preview label="Interes" value={formatCurrency(totals.interestAmount, company)} />
-        <Preview label="Total a recuperar" value={formatCurrency(totals.totalAmount, company)} />
-        <Preview label="Valor cuota" value={formatCurrency(totals.dailyPayment, company)} highlight />
+        <Preview label="Interes" value={formatCurrency(totals.interestAmount, currency)} />
+        <Preview label="Total a recuperar" value={formatCurrency(totals.totalAmount, currency)} />
+        <Preview label="Valor cuota" value={formatCurrency(totals.dailyPayment, currency)} highlight />
       </div>
 
       <Field label="Notas">

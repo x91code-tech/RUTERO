@@ -43,7 +43,7 @@ export function MobileLoginForm({ nextPath }: { nextPath?: string }) {
       <input ref={deviceNameRef} type="hidden" name="deviceName" />
       {state.message ? <p className="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{state.message}</p> : null}
       {savedIdentifier ? (
-        <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-lg border border-white/10 bg-carbon-950 p-4">
           <p className="text-xs uppercase text-zinc-500">Identificador del telefono</p>
           <p className="mt-1 font-mono text-2xl font-black text-white">{savedIdentifier}</p>
           <input type="hidden" name="identifier" value={savedIdentifier} />

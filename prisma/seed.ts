@@ -65,9 +65,11 @@ async function main() {
   for (const [index, name] of clientNames.entries()) {
     const document = `V-${12345678 + index}`;
     const client = await prisma.client.upsert({
-      where: { companyId_document: { companyId: company.id, document } },
+      where: { companyId_countryCode_document: { companyId: company.id, countryCode: company.countryCode, document } },
       update: {
         sellerId: seller.id,
+        countryCode: company.countryCode,
+        currencyCode: company.currencyCode,
         name,
         phone: `+58 412-555-010${index}`,
         address: `Dirección comercial ${index + 1}`,
@@ -80,6 +82,8 @@ async function main() {
       create: {
         companyId: company.id,
         sellerId: seller.id,
+        countryCode: company.countryCode,
+        currencyCode: company.currencyCode,
         name,
         phone: `+58 412-555-010${index}`,
         address: `Dirección comercial ${index + 1}`,

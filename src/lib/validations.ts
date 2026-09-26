@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getPaymentMethodCodes } from "@/lib/payment-methods";
+import { supportedCountries } from "@/lib/countries";
 
 const newPasswordSchema = z.string()
   .min(8, "La contrasena debe tener minimo 8 caracteres")
@@ -128,6 +129,7 @@ export const createUserSchema = z.object({
   name: z.string().min(2, "Indica el nombre"),
   email: z.string().email("Ingresa un correo valido").transform((value) => value.toLowerCase().trim()),
   role: z.enum(["ADMIN", "SUPERVISOR", "SELLER"]),
+  countryCode: z.string().refine((value) => supportedCountries.some((country) => country.countryCode === value), "Selecciona un pais valido"),
   password: newPasswordSchema
 });
 

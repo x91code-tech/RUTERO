@@ -7,6 +7,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { collectionApplicationLabel, collectionPaymentTypeLabel } from "@/lib/collection-payments";
 import { getFinancialPageData } from "@/lib/financial-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
+import { groupByCurrency } from "@/lib/money-groups";
 
 const errorMessages: Record<string, string> = {
   renewal_requires_full_payment: "La configuracion de la empresa exige pagar el saldo completo o autorizacion administrativa para renovar."
@@ -15,18 +16,29 @@ const errorMessages: Record<string, string> = {
 export default async function CollectionsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
   const { clients, collections, company, loans } = await getFinancialPageData();
-  const collectedTotal = collections.reduce((total, collection) => total + collection.amount, 0);
-  const appliedTotal = collections.reduce((total, collection) => total + (collection.balanceApplied ?? collection.amount), 0);
-  const overpaymentTotal = collections.reduce((total, collection) => total + (collection.overpaymentAmount ?? 0), 0);
+  const collectionGroups = groupByCurrency(collections);
 
   return (
     <AppShell title="Recaudos" subtitle="Registro de pagos con saldo anterior, saldo nuevo e impacto de caja.">
       {error ? <p className="mb-4 rounded-xl bg-amber-500/15 px-4 py-3 text-sm text-amber-100">{errorMessages[error] ?? "No se pudo registrar el recaudo."}</p> : null}
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-4 grid gap-3">
         <MetricCard label="Recaudos" value={String(collections.length)} icon={<WalletCards className="h-4 w-4" />} />
-        <MetricCard label="Dinero recibido" value={formatCurrency(collectedTotal, company)} tone="green" />
-        <MetricCard label="Aplicado a deuda" value={formatCurrency(appliedTotal, company)} />
-        <MetricCard label="Sobrantes" value={formatCurrency(overpaymentTotal, company)} tone={overpaymentTotal > 0 ? "orange" : "green"} />
+        {collectionGroups.map((group) => {
+          const received = group.items.reduce((total, collection) => total + collection.amount, 0);
+          const applied = group.items.reduce((total, collection) => total + (collection.balanceApplied ?? collection.amount), 0);
+          const overpayment = group.items.reduce((total, collection) => total + (collection.overpaymentAmount ?? 0), 0);
+          const currency = { countryCode: group.countryCode, currencyCode: group.currencyCode };
+          return (
+            <section key={`${group.countryCode}-${group.currencyCode}`}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">{group.countryName} · {group.currencyCode}</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <MetricCard label="Dinero recibido" value={formatCurrency(received, currency)} tone="green" />
+                <MetricCard label="Aplicado a deuda" value={formatCurrency(applied, currency)} />
+                <MetricCard label="Sobrantes" value={formatCurrency(overpayment, currency)} tone={overpayment > 0 ? "orange" : "green"} />
+              </div>
+            </section>
+          );
+        })}
       </div>
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card id="registrar-recaudo">
@@ -43,14 +55,14 @@ export default async function CollectionsPage({ searchParams }: { searchParams: 
                 <div key={collection.id} className="interactive-surface rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold">{client?.name}</p>
-                    <p className="font-black">{formatCurrency(collection.amount, company)}</p>
+                    <p className="font-black">{formatCurrency(collection.amount, collection)}</p>
                   </div>
                   <p className="mt-1 text-sm text-zinc-400">
-                    {paymentMethodLabel(collection.paymentMethod, company.countryCode)} - {collectionPaymentTypeLabel(collection.paymentType)} - {collectionApplicationLabel(collection.application)}
+                    {paymentMethodLabel(collection.paymentMethod, collection.countryCode ?? company.countryCode)} - {collectionPaymentTypeLabel(collection.paymentType)} - {collectionApplicationLabel(collection.application)}
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
-                    Aplicado a deuda {formatCurrency(collection.balanceApplied ?? collection.amount, company)} - Saldo nuevo {formatCurrency(collection.newBalance, company)}
-                    {(collection.overpaymentAmount ?? 0) > 0 ? ` - Sobrante ${formatCurrency(collection.overpaymentAmount ?? 0, company)}` : ""}
+                    Aplicado a deuda {formatCurrency(collection.balanceApplied ?? collection.amount, collection)} - Saldo nuevo {formatCurrency(collection.newBalance, collection)}
+                    {(collection.overpaymentAmount ?? 0) > 0 ? ` - Sobrante ${formatCurrency(collection.overpaymentAmount ?? 0, collection)}` : ""}
                     {collection.loanId ? " - prestamo" : ""}
                   </p>
                   <div className="mt-3">
@@ -62,7 +74,7 @@ export default async function CollectionsPage({ searchParams }: { searchParams: 
               );
             })}
             {collections.length === 0 ? (
-              <p className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-400">
+              <p className="rounded-lg border border-white/10 bg-carbon-950 p-4 text-sm text-zinc-400">
                 Todavia no hay recaudos registrados.
               </p>
             ) : null}

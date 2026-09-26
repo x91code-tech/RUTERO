@@ -74,6 +74,7 @@ export type User = {
   mobileDeviceBoundAt?: string;
   mobileDeviceName?: string;
   role: Role;
+  countryCode: string;
   routeIds?: string[];
 };
 
@@ -88,6 +89,8 @@ export type Client = {
   document: string;
   routeId: string;
   sellerId: string;
+  countryCode: string;
+  currencyCode: string;
   pendingBalance: number;
   status: ClientStatus;
   notes: string;
@@ -132,6 +135,8 @@ export type Sale = {
   companyId: string;
   clientId: string;
   sellerId: string;
+  countryCode?: string;
+  currencyCode?: string;
   product: string;
   amount: number;
   paymentMethod: PaymentMethod;
@@ -145,6 +150,8 @@ export type Collection = {
   clientId: string;
   loanId?: string;
   sellerId: string;
+  countryCode?: string;
+  currencyCode?: string;
   amount: number;
   paymentType?: CollectionPaymentType;
   application?: CollectionApplication;
@@ -167,6 +174,8 @@ export type Loan = {
   companyId: string;
   clientId: string;
   sellerId: string;
+  countryCode?: string;
+  currencyCode?: string;
   principalAmount: number;
   disbursedAmount?: number;
   interestRate: number;
@@ -191,6 +200,8 @@ export type Expense = {
   id: string;
   companyId: string;
   sellerId: string;
+  countryCode?: string;
+  currencyCode?: string;
   movementKind: CashMovementKind;
   type: string;
   amount: number;
@@ -203,6 +214,8 @@ export type Cashbox = {
   id: string;
   companyId: string;
   sellerId: string;
+  countryCode?: string;
+  currencyCode?: string;
   date: string;
   initialCash: number;
   reportedCash: number;

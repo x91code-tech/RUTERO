@@ -7,21 +7,33 @@ import { ExpenseForm } from "@/components/forms/movement-form";
 import { cashMovementKindLabels, getCashMovementImpact } from "@/lib/cash-movements";
 import { getFinancialPageData } from "@/lib/financial-data";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
+import { groupByCurrency } from "@/lib/money-groups";
 
 export default async function ExpensesPage() {
   const { company, expenses } = await getFinancialPageData();
-  const incomeTotal = expenses.filter((expense) => expense.movementKind === "INCOME").reduce((total, expense) => total + expense.amount, 0);
-  const expenseTotal = expenses.filter((expense) => expense.movementKind === "EXPENSE").reduce((total, expense) => total + expense.amount, 0);
-  const withdrawalTotal = expenses.filter((expense) => expense.movementKind === "WITHDRAWAL").reduce((total, expense) => total + expense.amount, 0);
-  const netTotal = expenses.reduce((total, expense) => total + getCashMovementImpact(expense.amount, expense.movementKind), 0);
+  const expenseGroups = groupByCurrency(expenses);
 
   return (
     <AppShell title="Movimientos de caja" subtitle="Registra gastos, retiros y entradas que afectan la caja diaria.">
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Entradas" value={formatCurrency(incomeTotal, company)} icon={<TrendingUp className="h-4 w-4" />} tone="green" />
-        <MetricCard label="Gastos" value={formatCurrency(-expenseTotal, company)} icon={<TrendingDown className="h-4 w-4" />} tone={expenseTotal > 0 ? "red" : "green"} />
-        <MetricCard label="Retiros" value={formatCurrency(-withdrawalTotal, company)} icon={<Banknote className="h-4 w-4" />} tone={withdrawalTotal > 0 ? "orange" : "green"} />
-        <MetricCard label="Neto caja" value={formatCurrency(netTotal, company)} tone={netTotal >= 0 ? "green" : "red"} />
+      <div className="mb-4 grid gap-3">
+        {expenseGroups.map((group) => {
+          const incomeTotal = group.items.filter((expense) => expense.movementKind === "INCOME").reduce((total, expense) => total + expense.amount, 0);
+          const expenseTotal = group.items.filter((expense) => expense.movementKind === "EXPENSE").reduce((total, expense) => total + expense.amount, 0);
+          const withdrawalTotal = group.items.filter((expense) => expense.movementKind === "WITHDRAWAL").reduce((total, expense) => total + expense.amount, 0);
+          const netTotal = group.items.reduce((total, expense) => total + getCashMovementImpact(expense.amount, expense.movementKind), 0);
+          const currency = { countryCode: group.countryCode, currencyCode: group.currencyCode };
+          return (
+            <section key={`${group.countryCode}-${group.currencyCode}`}>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-zinc-500">{group.countryName} · {group.currencyCode}</p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <MetricCard label="Entradas" value={formatCurrency(incomeTotal, currency)} icon={<TrendingUp className="h-4 w-4" />} tone="green" />
+                <MetricCard label="Gastos" value={formatCurrency(-expenseTotal, currency)} icon={<TrendingDown className="h-4 w-4" />} tone={expenseTotal > 0 ? "red" : "green"} />
+                <MetricCard label="Retiros" value={formatCurrency(-withdrawalTotal, currency)} icon={<Banknote className="h-4 w-4" />} tone={withdrawalTotal > 0 ? "orange" : "green"} />
+                <MetricCard label="Neto caja" value={formatCurrency(netTotal, currency)} tone={netTotal >= 0 ? "green" : "red"} />
+              </div>
+            </section>
+          );
+        })}
       </div>
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card id="registrar-movimiento">
@@ -43,17 +55,17 @@ export default async function ExpensesPage() {
                       </StatusBadge>
                       <p className="mt-2 truncate font-semibold">{expense.type}</p>
                       <p className="truncate text-sm text-zinc-400">
-                        {paymentMethodLabel(expense.paymentMethod, company.countryCode)} - {expense.comment || "Sin comentario"}
+                        {paymentMethodLabel(expense.paymentMethod, expense.countryCode ?? company.countryCode)} - {expense.comment || "Sin comentario"}
                       </p>
                     </div>
                     <p className={impact < 0 ? "shrink-0 font-black text-red-300" : "shrink-0 font-black text-emerald-300"}>
-                      {formatCurrency(impact, company)}
+                      {formatCurrency(impact, expense)}
                     </p>
                   </div>
                 );
               })
             ) : (
-              <p className="rounded-lg border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-400">
+              <p className="rounded-lg border border-white/10 bg-carbon-950 p-4 text-sm text-zinc-400">
                 Todavia no hay movimientos registrados.
               </p>
             )}

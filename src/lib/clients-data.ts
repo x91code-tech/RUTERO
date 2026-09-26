@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getMissingRequiredClientDocuments } from "@/lib/countries";
 import { getSessionUser } from "@/lib/session";
 import {
   demoClientDocuments,
@@ -86,6 +87,7 @@ export async function getClientsPageData() {
       companyId: item.companyId,
       name: item.name,
       email: item.email,
+      countryCode: item.countryCode,
       mobileIdentifier: item.mobileIdentifier ?? undefined,
       mobileDeviceBoundAt: item.mobileDeviceBoundAt?.toISOString(),
       mobileDeviceName: item.mobileDeviceName ?? undefined,
@@ -117,6 +119,8 @@ export async function getClientsPageData() {
       companyId: loan.companyId,
       clientId: loan.clientId,
       sellerId: loan.sellerId,
+      countryCode: loan.countryCode,
+      currencyCode: loan.currencyCode,
       principalAmount: Number(loan.principalAmount),
       disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
       interestRate: Number(loan.interestRate),
@@ -142,6 +146,8 @@ export async function getClientsPageData() {
       clientId: collection.clientId,
       loanId: collection.loanId ?? undefined,
       sellerId: collection.sellerId,
+      countryCode: collection.countryCode,
+      currencyCode: collection.currencyCode,
       amount: Number(collection.amount),
       paymentType: collection.paymentType,
       application: collection.application,
@@ -174,10 +180,15 @@ export async function getClientProfileData(id: string) {
         locations: demoClientLocations.filter((location) => location.clientId === baseClient.id),
         documents: demoClientDocuments.filter((document) => document.clientId === baseClient.id)
       },
+      missingRequiredDocuments: getMissingRequiredClientDocuments(
+        baseClient.countryCode,
+        demoClientDocuments.filter((document) => document.clientId === baseClient.id)
+      ),
       route: demoRoutes.find((route) => route.id === baseClient.routeId) ?? null,
       loans: demoLoans.filter((loan) => loan.clientId === baseClient.id),
       sales: demoSales.filter((sale) => sale.clientId === baseClient.id),
-      collections: demoCollections.filter((collection) => collection.clientId === baseClient.id)
+      collections: demoCollections.filter((collection) => collection.clientId === baseClient.id),
+      canVerifyClient: false
     };
   }
 
@@ -239,6 +250,7 @@ export async function getClientProfileData(id: string) {
         notes: document.notes ?? undefined
       }))
     },
+    missingRequiredDocuments: getMissingRequiredClientDocuments(client.countryCode, client.documents),
     route: client.routeClients[0]?.route
       ? {
           id: client.routeClients[0].route.id,
@@ -254,6 +266,8 @@ export async function getClientProfileData(id: string) {
       companyId: loan.companyId,
       clientId: loan.clientId,
       sellerId: loan.sellerId,
+      countryCode: loan.countryCode,
+      currencyCode: loan.currencyCode,
       principalAmount: Number(loan.principalAmount),
       disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
       interestRate: Number(loan.interestRate),
@@ -278,6 +292,8 @@ export async function getClientProfileData(id: string) {
       companyId: sale.companyId,
       clientId: sale.clientId,
       sellerId: sale.sellerId,
+      countryCode: sale.countryCode,
+      currencyCode: sale.currencyCode,
       product: sale.concept,
       amount: Number(sale.amount),
       paymentMethod: sale.paymentMethod,
@@ -290,6 +306,8 @@ export async function getClientProfileData(id: string) {
       clientId: collection.clientId,
       loanId: collection.loanId ?? undefined,
       sellerId: collection.sellerId,
+      countryCode: collection.countryCode,
+      currencyCode: collection.currencyCode,
       amount: Number(collection.amount),
       paymentType: collection.paymentType,
       application: collection.application,
@@ -305,7 +323,8 @@ export async function getClientProfileData(id: string) {
       paymentMethod: collection.paymentMethod,
       date: collection.date.toISOString(),
       observation: collection.observation ?? undefined
-    }))
+    })),
+    canVerifyClient: user.role !== "SELLER"
   };
 }
 
@@ -319,6 +338,8 @@ function toClient(client: {
   latitude: unknown;
   longitude: unknown;
   document: string | null;
+  countryCode: string;
+  currencyCode: string;
   pendingBalance: unknown;
   status: Client["status"];
   notes: string | null;
@@ -335,6 +356,8 @@ function toClient(client: {
     document: client.document ?? "",
     routeId: client.routeClients?.[0]?.routeId ?? "",
     sellerId: client.sellerId,
+    countryCode: client.countryCode,
+    currencyCode: client.currencyCode,
     pendingBalance: Number(client.pendingBalance),
     status: client.status,
     notes: client.notes ?? ""

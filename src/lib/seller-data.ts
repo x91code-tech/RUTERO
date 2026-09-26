@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { demoClients, demoCollections, demoCompany, demoLoans } from "@/lib/demo-data";
+import { getCurrencyConfig } from "@/lib/countries";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import { getInstallmentNumber, shouldCollectOnDate } from "@/lib/loan-schedule";
 import type { Client, Collection, Company, Loan } from "@/lib/types";
@@ -47,6 +48,8 @@ function toClient(client: {
   latitude: unknown;
   longitude: unknown;
   document: string | null;
+  countryCode: string;
+  currencyCode: string;
   pendingBalance: unknown;
   status: Client["status"];
   notes: string | null;
@@ -62,6 +65,8 @@ function toClient(client: {
     document: client.document ?? "",
     routeId: "",
     sellerId: client.sellerId,
+    countryCode: client.countryCode,
+    currencyCode: client.currencyCode,
     pendingBalance: Number(client.pendingBalance),
     status: client.status,
     notes: client.notes ?? ""
@@ -73,6 +78,8 @@ function toLoan(loan: {
   companyId: string;
   clientId: string;
   sellerId: string;
+  countryCode: string;
+  currencyCode: string;
   principalAmount: unknown;
   disbursedAmount?: unknown;
   interestRate: unknown;
@@ -97,6 +104,8 @@ function toLoan(loan: {
     companyId: loan.companyId,
     clientId: loan.clientId,
     sellerId: loan.sellerId,
+    countryCode: loan.countryCode,
+    currencyCode: loan.currencyCode,
     principalAmount: Number(loan.principalAmount),
     disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
     interestRate: Number(loan.interestRate),
@@ -124,6 +133,8 @@ function toCollection(collection: {
   clientId: string;
   loanId: string | null;
   sellerId: string;
+  countryCode: string;
+  currencyCode: string;
   amount: unknown;
   paymentType: Collection["paymentType"];
   application: Collection["application"];
@@ -146,6 +157,8 @@ function toCollection(collection: {
     clientId: collection.clientId,
     loanId: collection.loanId ?? undefined,
     sellerId: collection.sellerId,
+    countryCode: collection.countryCode,
+    currencyCode: collection.currencyCode,
     amount: Number(collection.amount),
     paymentType: collection.paymentType,
     application: collection.application,
@@ -231,6 +244,7 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
 
     return {
       company: demoCompany,
+      currency: getCurrencyConfig({ countryCode: demoCompany.countryCode }),
       canCollect: true,
       cashboxStatus: "OPEN",
       items,
@@ -277,6 +291,7 @@ export async function getSellerDailyCollectionData(search = "", statusFilter = "
 
   return {
     company: toCompany(company),
+    currency: getCurrencyConfig({ countryCode: user.countryCode }),
     canCollect: cashbox?.status === "OPEN",
     cashboxStatus: cashbox?.status ?? "NOT_OPEN",
     items,

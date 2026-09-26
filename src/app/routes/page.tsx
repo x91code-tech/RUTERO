@@ -6,13 +6,14 @@ import { LinkButton } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getClientsPageData } from "@/lib/clients-data";
 import { formatCurrency } from "@/lib/formatters";
+import { groupByCurrency } from "@/lib/money-groups";
 import { buildGoogleMapsClientUrl, buildGoogleMapsRouteUrl, buildWazeClientUrl, getClientNavigationPoint, optimizeVisitOrder } from "@/lib/geo";
 import type { Client, ClientLocation, Loan } from "@/lib/types";
 
 type RouteClient = Client & { locations: ClientLocation[] };
 
 export default async function RoutesPage() {
-  const { clients: allClients, collections, company, loans, locations, routes, users } = await getClientsPageData();
+  const { clients: allClients, collections, loans, locations, routes, users } = await getClientsPageData();
 
   return (
     <AppShell title="Rutas del dia" subtitle="Clientes pendientes de recaudo, GPS y estado real de la ruta.">
@@ -44,7 +45,7 @@ export default async function RoutesPage() {
             const paidClientIds = new Set(routeCollections.map((collection) => collection.clientId));
             const pendingCount = routeLoans.filter((loan) => !paidClientIds.has(loan.clientId)).length;
             const collectedCount = paidClientIds.size;
-            const activeBalance = routeLoans.reduce((total, loan) => total + loan.balance, 0);
+            const activeBalanceGroups = groupByCurrency(routeLoans);
 
             return (
               <Card key={route.id}>
@@ -58,7 +59,13 @@ export default async function RoutesPage() {
                   <RouteStat label="Clientes" value={String(clients.length)} />
                   <RouteStat label="Pendientes" value={String(pendingCount)} tone={pendingCount > 0 ? "orange" : "green"} />
                   <RouteStat label="Recaudados" value={String(collectedCount)} tone="green" />
-                  <RouteStat label="Saldo cartera" value={formatCurrency(activeBalance, company)} />
+                  {activeBalanceGroups.map((group) => (
+                    <RouteStat
+                      key={`${group.countryCode}-${group.currencyCode}`}
+                      label={`Saldo ${group.currencyCode}`}
+                      value={formatCurrency(group.items.reduce((total, loan) => total + loan.balance, 0), group)}
+                    />
+                  ))}
                 </div>
 
                 <div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -79,7 +86,7 @@ export default async function RoutesPage() {
                       const status = getRouteClientStatus(client, activeLoan, paidToday);
 
                       return (
-                        <div key={client.id} className="grid gap-3 rounded-xl bg-white/[0.04] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                        <div key={client.id} className="grid gap-3 rounded-xl bg-carbon-950 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                           <div>
                             <p className="font-semibold">{index + 1}. {client.name}</p>
                             <p className="text-sm text-zinc-400">{navigationPoint?.address ?? client.address}</p>
@@ -91,13 +98,13 @@ export default async function RoutesPage() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                             <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                            {activeLoan ? <span className="text-sm font-bold text-zinc-200">{formatCurrency(activeLoan.balance, company)}</span> : null}
+                            {activeLoan ? <span className="text-sm font-bold text-zinc-200">{formatCurrency(activeLoan.balance, activeLoan)}</span> : null}
                             {navigationPoint ? (
                               <>
-                                <a className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]" href={buildGoogleMapsClientUrl(navigationPoint)} target="_blank" aria-label={`Abrir ${client.name} en Google Maps`}>
+                                <a className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-carbon-850 text-zinc-200 hover:bg-carbon-800" href={buildGoogleMapsClientUrl(navigationPoint)} target="_blank" aria-label={`Abrir ${client.name} en Google Maps`}>
                                   <ExternalLink className="h-4 w-4" />
                                 </a>
-                                <a className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]" href={buildWazeClientUrl(navigationPoint)} target="_blank" aria-label={`Abrir ${client.name} en Waze`}>
+                                <a className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-carbon-850 text-zinc-200 hover:bg-carbon-800" href={buildWazeClientUrl(navigationPoint)} target="_blank" aria-label={`Abrir ${client.name} en Waze`}>
                                   <Navigation className="h-4 w-4" />
                                 </a>
                               </>
@@ -107,7 +114,7 @@ export default async function RoutesPage() {
                       );
                     })
                   ) : (
-                    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-400">
+                    <div className="rounded-xl border border-white/10 bg-carbon-950 p-4 text-sm text-zinc-400">
                       Esta ruta todavia no tiene clientes asignados.
                     </div>
                   )}
@@ -152,7 +159,7 @@ function RouteStat({ label, tone = "neutral", value }: { label: string; tone?: "
 
 function Insight({ text, title }: { text: string; title: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+    <div className="rounded-xl border border-white/10 bg-carbon-950 p-4">
       <p className="font-bold text-white">{title}</p>
       <p className="mt-1 text-zinc-400">{text}</p>
     </div>

@@ -1,9 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Crosshair, FileScan, Loader2, MapPin, Plus } from "lucide-react";
+import { ChevronDown, Crosshair, FileScan, Globe2, Loader2, MapPin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/formatters";
+import { getCurrencyConfig } from "@/lib/countries";
 import type { Route, User } from "@/lib/types";
 import { createClientAction } from "@/server/actions/client-actions";
 
@@ -48,14 +50,39 @@ function toCoordinate(value: number) {
   return value.toFixed(7);
 }
 
-export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }) {
+function documentPlaceholder(type?: string) {
+  const placeholders: Record<string, string> = {
+    RIF: "J-00000000-0",
+    CEDULA: "V-00000000",
+    CNPJ: "00.000.000/0000-00",
+    CPF: "000.000.000-00",
+    EIN: "00-0000000",
+    NIT: "000.000.000-0",
+    RUC: "0000000000",
+    RFC: "XAXX010101000",
+    RUT: "00.000.000-0",
+    RNC: "000-00000-0",
+    DNI: "00000000"
+  };
+  return type ? placeholders[type] ?? "Numero de documento" : "Numero de documento";
+}
+
+export function ClientForm({ routes, users, companyCountryCode }: { routes: Route[]; users: User[]; companyCountryCode: string }) {
   const collectors = users.filter((user) => user.role === "SELLER" || user.role === "SUPERVISOR");
+  const [sellerId, setSellerId] = useState(collectors[0]?.id ?? "");
+  const [routeId, setRouteId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<ClientDraft>(initialDraft);
   const [scanStatus, setScanStatus] = useState("");
   const [gpsStatus, setGpsStatus] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [isLocating, setIsLocating] = useState<"store" | "secondary" | null>(null);
+  const assignedUser = collectors.find((user) => user.id === sellerId);
+  const countryCode = assignedUser?.role === "SELLER" ? assignedUser.countryCode : companyCountryCode;
+  const country = getCurrencyConfig({ countryCode });
+  const requiredDocuments = country.clientDocumentRequirements.filter((requirement) => requirement.required);
+  const primaryDocument = requiredDocuments[0];
+  const visibleRoutes = routes.filter((route) => !route.sellerId || !sellerId || route.sellerId === sellerId);
 
   function updateDraft(field: keyof ClientDraft, value: string) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -69,6 +96,7 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("countryCode", countryCode);
 
       const response = await fetch("/api/ai/client-document", {
         method: "POST",
@@ -135,52 +163,71 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
 
   return (
     <form action={createClientAction} className="grid gap-4">
-      <div className="rounded-lg border border-brand-500/25 bg-brand-500/10 p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-semibold text-white">Asistente con Gemini</p>
-            <p className="text-sm text-zinc-400">Sube una foto del documento para rellenar datos. Siempre revisa antes de guardar.</p>
-          </div>
-          <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={isScanning}>
-            {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileScan className="h-4 w-4" />}
-            ESCANEA DOCUMENTO
-          </Button>
+      <div className="flex items-start gap-3 rounded-xl border border-brand-400/20 bg-brand-400/[0.07] p-3.5">
+        <Globe2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-300" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-white">{country.countryName} <span className="font-normal text-zinc-400">· {country.currencyCode} {country.currencyName}</span></p>
+          <p className="mt-1 text-xs leading-5 text-zinc-400">
+            Documentos requeridos: {requiredDocuments.map((requirement) => requirement.label).join(", ") || "sin requisitos configurados"}
+          </p>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(event) => scanDocument(event.target.files?.[0])}
-        />
-        {scanStatus ? <p className="mt-3 text-sm text-zinc-300">{scanStatus}</p> : null}
+        <p className="ml-auto shrink-0 text-xs font-semibold tabular-nums text-zinc-300">{formatCurrency(0, country)}</p>
       </div>
+
+      <details className="group rounded-xl border border-white/10 bg-carbon-950">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-zinc-300 marker:content-none">
+          <span className="flex items-center gap-2"><FileScan className="h-4 w-4 text-zinc-500" /> Rellenar datos desde documento <span className="text-xs text-zinc-600">opcional</span></span>
+          <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-white/[0.07] p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-lg text-xs leading-5 text-zinc-500">Toma o sube una foto para proponer datos. Revísalos antes de guardar.</p>
+            <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={isScanning}>
+              {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileScan className="h-4 w-4" />}
+              {isScanning ? "Leyendo..." : "Escanear"}
+            </Button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(event) => scanDocument(event.target.files?.[0])}
+          />
+          {scanStatus ? <p className="mt-3 text-sm text-zinc-300">{scanStatus}</p> : null}
+        </div>
+      </details>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nombre del cliente">
           <Input name="name" value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} placeholder="Nombre comercial o razon social" required />
         </Field>
-        <Field label="Documento / Cedula / RIF">
-          <Input name="document" value={draft.document} onChange={(event) => updateDraft("document", event.target.value)} placeholder="J-00000000-0" required />
+        <Field label={primaryDocument ? `Documento principal · ${primaryDocument.label}` : "Documento de identidad"} hint={primaryDocument?.description}>
+          <Input name="document" value={draft.document} onChange={(event) => updateDraft("document", event.target.value)} placeholder={documentPlaceholder(primaryDocument?.type)} required />
         </Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Telefono">
-          <Input name="phone" value={draft.phone} onChange={(event) => updateDraft("phone", event.target.value)} placeholder="+58 412-000-0000" required />
+          <Input name="phone" type="tel" autoComplete="tel" value={draft.phone} onChange={(event) => updateDraft("phone", event.target.value)} placeholder={`${country.phonePrefix} ...`} required />
         </Field>
-        <Field label="Cobrador asignado">
-          <Select name="sellerId" defaultValue={collectors[0]?.id}>
-            {collectors.map((collector) => (
-              <option key={collector.id} value={collector.id}>{collector.name}</option>
-            ))}
+        <Field label="Cobrador asignado" hint={assignedUser ? `${country.countryName} · ${country.currencyCode}` : "Se usara el pais de la empresa"}>
+          <Select name="sellerId" value={sellerId} onChange={(event) => {
+            setSellerId(event.target.value);
+            setRouteId("");
+          }}>
+            {collectors.length === 0 ? <option value="">Usar administrador</option> : null}
+            {collectors.map((collector) => {
+              const collectorCountry = getCurrencyConfig({ countryCode: collector.role === "SELLER" ? collector.countryCode : companyCountryCode });
+              return <option key={collector.id} value={collector.id}>{collector.name} · {collectorCountry.countryCode}</option>;
+            })}
           </Select>
         </Field>
       </div>
       <Field label="Ruta asignada">
-        <Select name="routeId" defaultValue={routes[0]?.id ?? ""}>
+        <Select name="routeId" value={routeId} onChange={(event) => setRouteId(event.target.value)}>
           <option value="">Sin ruta por ahora</option>
-          {routes.map((route) => (
+          {visibleRoutes.map((route) => (
             <option key={route.id} value={route.id}>{route.name}</option>
           ))}
         </Select>
@@ -188,7 +235,13 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
       <Field label="Direccion tienda">
         <Textarea name="address" value={draft.address} onChange={(event) => updateDraft("address", event.target.value)} placeholder="Direccion exacta del local" required />
       </Field>
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+      <details className="group rounded-xl border border-white/10 bg-carbon-950">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-zinc-300 marker:content-none">
+          <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-400" /> Ubicaciones y GPS <span className="text-xs text-zinc-600">opcional</span></span>
+          <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+        </summary>
+        <div className="grid gap-4 border-t border-white/[0.07] p-4">
+      <div className="rounded-lg border border-white/10 bg-carbon-950 p-4">
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 font-semibold">
             <MapPin className="h-4 w-4 text-brand-500" /> Ubicacion tienda
@@ -207,7 +260,7 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
           </Field>
         </div>
       </div>
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-lg border border-white/10 bg-carbon-950 p-4">
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-semibold">Residencia / segunda ubicacion</p>
           <Button type="button" variant="secondary" onClick={() => captureLocation("secondary")} disabled={isLocating !== null}>
@@ -228,6 +281,8 @@ export function ClientForm({ routes, users }: { routes: Route[]; users: User[] }
         </div>
         {gpsStatus ? <p className="mt-3 text-sm text-zinc-300">{gpsStatus}</p> : null}
       </div>
+        </div>
+      </details>
       <Field label="Notas">
         <Textarea name="notes" value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} placeholder="Referencia, horario, condiciones de credito o indicaciones internas" />
       </Field>

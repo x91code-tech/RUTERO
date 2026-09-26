@@ -1,16 +1,21 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
+import type { CurrencyConfig } from "@/lib/countries";
+import { getCurrencyConfig } from "@/lib/countries";
 import { createUserFormAction, type UserFormState } from "@/server/actions/user-actions";
 
 const initialState: UserFormState = { ok: false, message: "" };
 
-export function UserForm() {
+export function UserForm({ countries, defaultCountryCode }: { countries: CurrencyConfig[]; defaultCountryCode: string }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, action, isPending] = useActionState(createUserFormAction, initialState);
+  const [role, setRole] = useState("SELLER");
+  const [countryCode, setCountryCode] = useState(defaultCountryCode);
+  const country = getCurrencyConfig({ countryCode });
 
   useEffect(() => {
     if (state.ok) formRef.current?.reset();
@@ -40,12 +45,26 @@ export function UserForm() {
         <FieldError message={state.fieldErrors?.email?.[0]} />
       </Field>
       <Field label="Rol">
-        <Select name="role" defaultValue="SELLER">
+        <Select name="role" value={role} onChange={(event) => setRole(event.target.value)}>
           <option value="SELLER">Cobrador</option>
           <option value="SUPERVISOR">Supervisor</option>
           <option value="ADMIN">Administrador</option>
         </Select>
       </Field>
+      {role === "SELLER" ? (
+        <div className="grid gap-3 rounded-xl border border-white/10 bg-carbon-950 p-4 sm:grid-cols-[1fr_auto] sm:items-end">
+          <Field label="Pais del cobrador">
+            <Select name="countryCode" value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+              {countries.map((item) => (
+                <option key={item.countryCode} value={item.countryCode}>{item.countryName}</option>
+              ))}
+            </Select>
+          </Field>
+          <p className="pb-3 text-sm text-zinc-400">
+            Moneda de su cartera: <span className="font-semibold text-white">{country.currencyCode} · {country.currencyName}</span>
+          </p>
+        </div>
+      ) : <input type="hidden" name="countryCode" value={defaultCountryCode} />}
       <Field label="Contrasena temporal">
         <Input name="password" type="password" placeholder="Minimo 8, letras y numeros" required aria-invalid={Boolean(state.fieldErrors?.password)} />
         <FieldError message={state.fieldErrors?.password?.[0]} />

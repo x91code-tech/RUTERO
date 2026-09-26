@@ -24,18 +24,21 @@ const sizes = {
 
 export function RuteroLogo({ href, size = "md", showText = true, className, ...props }: RuteroLogoProps) {
   const content = (
-    <span className="inline-flex items-center gap-2">
-      <Image
-        src="/brand/rutero-logo.png"
-        alt="RUTERO"
-        width={160}
-        height={160}
-        priority={size !== "sm"}
-        className={cn("shrink-0 object-contain", sizes[size].mark)}
-      />
+    <span className="inline-flex items-center gap-2.5">
+      <span className="relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-brand-500/25 bg-brand-500/10 shadow-glow">
+        <Image
+          src="/brand/rutero-logo.png"
+          alt="RUTERO"
+          width={160}
+          height={160}
+          priority={size !== "sm"}
+          className={cn("shrink-0 object-contain", sizes[size].mark, "p-1.5")}
+        />
+      </span>
       {showText ? (
-        <span className={cn("font-black tracking-normal text-white", size === "lg" ? "text-3xl" : size === "md" ? "text-2xl" : "text-xl")}>
-          RUTERO
+        <span className={cn("font-black tracking-[-0.08em] text-white", size === "lg" ? "text-3xl" : size === "md" ? "text-2xl" : "text-xl")}>
+          <span className="text-brand-300">R</span>
+          UTERO
         </span>
       ) : null}
     </span>

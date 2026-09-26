@@ -66,7 +66,7 @@ export function CompanySettingsForm({ company, countries }: { company: Company; 
         <Input value={company.plan} readOnly />
       </Field>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-2xl border border-white/10 bg-carbon-950 p-4">
         <h3 className="mb-4 font-bold text-white">Reglas operativas</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Interes por defecto %">

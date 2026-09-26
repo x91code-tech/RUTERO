@@ -6,7 +6,7 @@ import { ResetCollectorPinForm } from "@/components/settings/reset-collector-pin
 import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getClientsPageData } from "@/lib/clients-data";
-import { supportedCountries } from "@/lib/countries";
+import { getCurrencyConfig, supportedCountries } from "@/lib/countries";
 import { formatCurrency } from "@/lib/formatters";
 import { roleDescription, roleLabel, roleTone } from "@/lib/roles";
 
@@ -25,7 +25,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <Card>
           <CardHeader title="Empresa" description="Datos generales de la cuenta SaaS." />
           <CompanySettingsForm company={company} countries={supportedCountries} />
-          <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+          <div className="mt-5 rounded-xl border border-white/10 bg-carbon-950 p-4">
             <p className="text-sm text-zinc-400">Vista previa de moneda</p>
             <p className="mt-2 text-2xl font-black">{formatCurrency(1535, company)}</p>
           </div>
@@ -34,19 +34,20 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <Card>
           <CardHeader title="Usuarios y permisos" description="Crea administradores, supervisores y cobradores." />
           {error ? <p className="mb-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{errorMessages[error] ?? "No se pudo completar la accion."}</p> : null}
-          <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+          <div className="mb-5 rounded-xl border border-white/10 bg-carbon-950 p-4">
             <h3 className="mb-4 font-bold">Crear usuario</h3>
-            <UserForm />
+            <UserForm countries={supportedCountries} defaultCountryCode={company.countryCode} />
           </div>
           <div className="space-y-3">
             {users.map((user) => (
-              <div key={user.id} className="grid gap-3 rounded-xl bg-white/[0.04] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div key={user.id} className="grid gap-3 rounded-xl bg-carbon-950 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div>
                   <p className="font-semibold">{user.name}</p>
                   <p className="text-sm text-zinc-400">{user.email}</p>
                   <p className="mt-1 text-xs text-zinc-500">{roleDescription(user.role)}</p>
                   {user.role === "SELLER" ? (
                     <div className="mt-2 grid gap-1 text-xs text-zinc-400">
+                      <p>Cartera: <span className="font-medium text-zinc-200">{getCurrencyConfig({ countryCode: user.countryCode }).countryName} · {getCurrencyConfig({ countryCode: user.countryCode }).currencyCode}</span></p>
                       <p>Acceso telefono: <span className="font-mono text-zinc-100">{user.mobileIdentifier ?? "Sin generar"}</span></p>
                       <p>
                         Dispositivo:{" "}

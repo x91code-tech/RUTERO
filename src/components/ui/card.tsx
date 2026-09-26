@@ -13,8 +13,8 @@ export function CardHeader({ title, description, action }: { title: string; desc
   return (
     <div className="mb-4 flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <h2 className="text-lg font-black text-white">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-zinc-400">{description}</p> : null}
+        <h2 className="text-base font-black tracking-[-0.02em] text-white sm:text-lg">{title}</h2>
+        {description ? <p className="mt-1 max-w-2xl text-sm leading-5 text-zinc-400">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

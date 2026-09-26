@@ -64,6 +64,10 @@ export async function createUserAction(formData: FormData) {
   if (!canManageUsers(currentUser.role)) redirect("/settings?error=permission");
 
   const payload = createUserSchema.parse(Object.fromEntries(formData));
+  const company = await prisma.company.findUniqueOrThrow({
+    where: { id: currentUser.companyId },
+    select: { countryCode: true }
+  });
   const existingUser = await prisma.user.findUnique({ where: { email: payload.email } });
   if (existingUser) redirect("/settings?error=user_exists");
 
@@ -78,7 +82,8 @@ export async function createUserAction(formData: FormData) {
       mobileIdentifier: mobileCredentials?.mobileIdentifier,
       mobilePinHash: mobileCredentials?.mobilePinHash,
       mobilePinUpdatedAt: mobileCredentials?.mobilePinUpdatedAt,
-      role: payload.role
+      role: payload.role,
+      countryCode: payload.role === "SELLER" ? payload.countryCode : company.countryCode
     }
   });
 
@@ -89,7 +94,7 @@ export async function createUserAction(formData: FormData) {
       action: "USER_CREATED",
       entity: "User",
       entityId: user.id,
-      newValue: { name: user.name, email: user.email, role: user.role, mobileIdentifier: user.mobileIdentifier }
+      newValue: { name: user.name, email: user.email, role: user.role, countryCode: user.countryCode, mobileIdentifier: user.mobileIdentifier }
     }
   });
 
@@ -116,6 +121,10 @@ export async function createUserFormAction(_state: UserFormState, formData: Form
       fieldErrors: parsed.error.flatten().fieldErrors
     };
   }
+  const company = await prisma.company.findUniqueOrThrow({
+    where: { id: currentUser.companyId },
+    select: { countryCode: true }
+  });
 
   const existingUser = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existingUser) return { ok: false, message: "Ya existe un usuario con ese correo." };
@@ -131,7 +140,8 @@ export async function createUserFormAction(_state: UserFormState, formData: Form
       mobileIdentifier: mobileCredentials?.mobileIdentifier,
       mobilePinHash: mobileCredentials?.mobilePinHash,
       mobilePinUpdatedAt: mobileCredentials?.mobilePinUpdatedAt,
-      role: parsed.data.role
+      role: parsed.data.role,
+      countryCode: parsed.data.role === "SELLER" ? parsed.data.countryCode : company.countryCode
     }
   });
 
@@ -142,7 +152,7 @@ export async function createUserFormAction(_state: UserFormState, formData: Form
       action: "USER_CREATED",
       entity: "User",
       entityId: user.id,
-      newValue: { name: user.name, email: user.email, role: user.role, mobileIdentifier: user.mobileIdentifier }
+      newValue: { name: user.name, email: user.email, role: user.role, countryCode: user.countryCode, mobileIdentifier: user.mobileIdentifier }
     }
   });
 

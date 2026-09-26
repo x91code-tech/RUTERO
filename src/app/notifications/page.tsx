@@ -24,11 +24,11 @@ export default async function NotificationsPage() {
         />
         <div className="space-y-3">
           {notifications.map((notification) => (
-            <div key={notification.id} className={`rounded-xl border p-4 ${notification.readAt ? "border-white/10 bg-white/[0.03]" : "border-brand-500/30 bg-brand-500/10"}`}>
+            <div key={notification.id} className={`rounded-xl border p-4 ${notification.readAt ? "border-white/10 bg-carbon-950" : "border-brand-500/30 bg-brand-500/10"}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/[0.06] text-brand-400">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-carbon-850 text-brand-400">
                       <Bell className="h-5 w-5" />
                     </div>
                     <div>
@@ -54,7 +54,7 @@ export default async function NotificationsPage() {
           ))}
 
           {notifications.length === 0 ? (
-            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-8 text-center text-zinc-400">
+            <div className="rounded-xl border border-white/10 bg-carbon-950 p-8 text-center text-zinc-400">
               Todavia no hay notificaciones.
             </div>
           ) : null}

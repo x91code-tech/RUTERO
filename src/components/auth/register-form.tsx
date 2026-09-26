@@ -53,7 +53,7 @@ export function RegisterForm({ countries }: { countries: CurrencyConfig[] }) {
         <Input name="password" type="password" placeholder="Minimo 8, letras y numeros" autoComplete="new-password" aria-invalid={Boolean(state.fieldErrors?.password)} />
         <FieldError message={state.fieldErrors?.password?.[0]} />
       </Field>
-      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-300">
+      <div className="rounded-lg border border-white/10 bg-carbon-950 p-4 text-sm text-zinc-300">
         La empresa queda lista con rol ADMIN, moneda por pais, plan PRO y cobradores internos.
       </div>
       <Button type="submit" disabled={isPending} className="sm:col-span-2">

@@ -39,7 +39,7 @@ export function CashMovementFields({
           ))}
         </Select>
       </Field>
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm text-zinc-300">
+      <div className="rounded-lg border border-white/10 bg-carbon-950 p-3 text-sm text-zinc-300">
         {cashMovementKindDescriptions[movementKind]}
       </div>
       <Field label="Concepto">

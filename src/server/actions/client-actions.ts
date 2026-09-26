@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ClientLocationType } from "@prisma/client";
-import { getClientDocumentRequirements } from "@/lib/countries";
+import { getClientDocumentRequirements, getCurrencyConfig } from "@/lib/countries";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
 import { clientDocumentSchema, clientLocationSchema, createClientSchema, verifyClientSchema } from "@/lib/validations";
@@ -16,22 +16,34 @@ export async function createClientAction(formData: FormData) {
   const payload = createClientSchema.parse(Object.fromEntries(formData));
   const company = await prisma.company.findUniqueOrThrow({ where: { id: user.companyId } });
   const sellerId = user.role === "SELLER" ? user.id : payload.sellerId || user.id;
+  const seller = await prisma.user.findFirstOrThrow({
+    where: {
+      id: sellerId,
+      companyId: user.companyId,
+      active: true,
+      role: { in: ["SELLER", "SUPERVISOR", "ADMIN", "SUPER_ADMIN"] }
+    },
+    select: { id: true, countryCode: true, role: true }
+  });
+  const countryCode = seller.role === "SELLER" ? seller.countryCode : company.countryCode;
+  const { currencyCode } = getCurrencyConfig({ countryCode });
 
   if (payload.routeId) {
-    await prisma.route.findFirstOrThrow({
+    const route = await prisma.route.findFirstOrThrow({
       where: {
         id: payload.routeId,
         companyId: user.companyId,
         ...(user.role === "SELLER" ? { sellerId: user.id } : {})
       }
     });
+    if (route.sellerId && route.sellerId !== sellerId) redirect("/clients?error=route_seller_mismatch");
   }
 
   const duplicatedClient = await prisma.client.findFirst({
     where: {
       companyId: user.companyId,
       OR: [
-        { document: payload.document },
+        { document: payload.document, countryCode },
         { phone: payload.phone }
       ]
     }
@@ -44,6 +56,8 @@ export async function createClientAction(formData: FormData) {
       data: {
         companyId: user.companyId,
         sellerId,
+        countryCode,
+        currencyCode,
         name: payload.name,
         phone: payload.phone,
         address: payload.address,
@@ -103,9 +117,9 @@ export async function createClientAction(formData: FormData) {
     }
 
     await tx.clientDocument.createMany({
-      data: getClientDocumentRequirements(company.countryCode).map((requirement) => ({
+      data: getClientDocumentRequirements(countryCode).map((requirement) => ({
         clientId: client.id,
-        countryCode: company.countryCode,
+        countryCode,
         documentType: requirement.type,
         label: requirement.label,
         required: requirement.required,
@@ -121,7 +135,7 @@ export async function createClientAction(formData: FormData) {
         action: "CLIENT_CREATED",
         entity: "Client",
         entityId: client.id,
-        newValue: payload
+        newValue: { ...payload, countryCode, currencyCode }
       }
     });
 
@@ -146,7 +160,6 @@ export async function updateClientLocationAction(formData: FormData) {
   const client = await prisma.client.findFirstOrThrow({
     where: { id: payload.clientId, companyId: user.companyId }
   });
-
   await prisma.$transaction(async (tx) => {
     const existingLocation = await tx.clientLocation.findFirst({
       where: {
@@ -215,8 +228,15 @@ export async function uploadClientDocumentAction(formData: FormData) {
   if (!user) redirect("/login");
 
   const client = await prisma.client.findFirstOrThrow({
-    where: { id: payload.clientId, companyId: user.companyId }
+    where: {
+      id: payload.clientId,
+      companyId: user.companyId,
+      ...(user.role === "SELLER" ? { sellerId: user.id } : {})
+    }
   });
+  const requirement = getClientDocumentRequirements(client.countryCode)
+    .find((item) => item.type === payload.documentType);
+  if (!requirement) redirect(`/clients/${client.id}?error=invalid_document`);
 
   await prisma.clientDocument.upsert({
     where: {
@@ -226,22 +246,22 @@ export async function uploadClientDocumentAction(formData: FormData) {
       }
     },
     update: {
-      countryCode: payload.countryCode,
-      label: payload.label,
-      required: payload.required,
+      countryCode: client.countryCode,
+      label: requirement.label,
+      required: requirement.required,
       fileUrl: payload.fileUrl,
-      notes: payload.notes,
+      notes: requirement.description,
       status: payload.fileUrl ? "UPLOADED" : "PENDING",
       uploadedAt: payload.fileUrl ? new Date() : null
     },
     create: {
       clientId: client.id,
-      countryCode: payload.countryCode,
+      countryCode: client.countryCode,
       documentType: payload.documentType,
-      label: payload.label,
-      required: payload.required,
+      label: requirement.label,
+      required: requirement.required,
       fileUrl: payload.fileUrl,
-      notes: payload.notes,
+      notes: requirement.description,
       status: payload.fileUrl ? "UPLOADED" : "PENDING",
       uploadedAt: payload.fileUrl ? new Date() : null
     }
@@ -260,6 +280,26 @@ export async function verifyClientAction(formData: FormData) {
   const client = await prisma.client.findFirstOrThrow({
     where: { id: payload.clientId, companyId: user.companyId }
   });
+
+  if (payload.decision === "APPROVE") {
+    const requiredDocuments = getClientDocumentRequirements(client.countryCode).filter((document) => document.required);
+    const uploadedDocuments = await prisma.clientDocument.findMany({
+      where: {
+        clientId: client.id,
+        documentType: { in: requiredDocuments.map((document) => document.type) }
+      },
+      select: { documentType: true, fileUrl: true, status: true }
+    });
+    const documentsByType = new Map(uploadedDocuments.map((document) => [document.documentType, document]));
+    const missingDocuments = requiredDocuments.filter((requirement) => {
+      const document = documentsByType.get(requirement.type);
+      return !document?.fileUrl?.trim() || !["UPLOADED", "APPROVED"].includes(document.status);
+    });
+
+    if (missingDocuments.length > 0) {
+      redirect(`/clients/${client.id}?error=required_documents`);
+    }
+  }
 
   const updatedClient = await prisma.client.update({
     where: { id: client.id },

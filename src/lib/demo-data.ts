@@ -26,7 +26,8 @@ export const demoUsers: User[] = [
     companyId: demoCompany.id,
     name: "Admin RUTERO",
     email: "admin@rutero.app",
-    role: "ADMIN"
+    role: "ADMIN",
+    countryCode: "VE"
   },
   {
     id: "user_seller",
@@ -35,6 +36,7 @@ export const demoUsers: User[] = [
     email: "cobrador@rutero.app",
     mobileIdentifier: "COB-DEMO",
     role: "SELLER",
+    countryCode: "VE",
     routeIds: ["route_centro"]
   },
   {
@@ -43,6 +45,7 @@ export const demoUsers: User[] = [
     name: "Supervisora Norte",
     email: "supervisor@rutero.app",
     role: "SUPERVISOR",
+    countryCode: "VE",
     routeIds: ["route_norte", "route_sur"]
   }
 ];
@@ -65,6 +68,8 @@ export const demoClients: Client[] = [
     document: "V-12345678",
     routeId: "route_centro",
     sellerId: "user_seller",
+    countryCode: "VE",
+    currencyCode: "VES",
     pendingBalance: 240,
     status: "ACTIVE",
     notes: "Prefiere pagos por transferencia después de las 2 p. m."
@@ -80,6 +85,8 @@ export const demoClients: Client[] = [
     document: "V-87654321",
     routeId: "route_centro",
     sellerId: "user_seller",
+    countryCode: "VE",
+    currencyCode: "VES",
     pendingBalance: 0,
     status: "ACTIVE",
     notes: "Cliente frecuente de contado."
@@ -95,6 +102,8 @@ export const demoClients: Client[] = [
     document: "J-30200111-5",
     routeId: "route_norte",
     sellerId: "user_supervisor",
+    countryCode: "VE",
+    currencyCode: "VES",
     pendingBalance: 610,
     status: "DELINQUENT",
     notes: "Revisar acuerdo de pago semanal."
@@ -110,6 +119,8 @@ export const demoClients: Client[] = [
     document: "V-11223344",
     routeId: "route_norte",
     sellerId: "user_supervisor",
+    countryCode: "VE",
+    currencyCode: "VES",
     pendingBalance: 120,
     status: "PENDING",
     notes: "Pendiente por confirmar pedido."
@@ -125,6 +136,8 @@ export const demoClients: Client[] = [
     document: "V-44332211",
     routeId: "route_sur",
     sellerId: "user_seller",
+    countryCode: "VE",
+    currencyCode: "VES",
     pendingBalance: 75,
     status: "ACTIVE",
     notes: "Solicita factura detallada."

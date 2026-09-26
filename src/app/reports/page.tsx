@@ -6,6 +6,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
+import { getCurrencyConfig, supportedCountries } from "@/lib/countries";
 import { formatCurrency, paymentMethodLabel } from "@/lib/formatters";
 import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
 import { getReportsPageData, type ReportFilters } from "@/lib/reports-data";
@@ -16,7 +17,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const data = await getReportsPageData(filterInput);
   if (!data) redirect("/login");
 
-  const { cashbox, cashboxes, clients, collections, company, currentUser, expenses, filters, loans, routes, sales, users } = data;
+  const { cashbox, cashboxes, clients, collections, currentUser, expenses, filters, loans, routes, sales, users, countryCode } = data;
+  const company = { ...data.company, ...getCurrencyConfig({ countryCode }) };
   const reportingAllCollectors = currentUser.role !== "SELLER" && !filters.sellerId;
   const seller = reportingAllCollectors
     ? { ...currentUser, name: "Todos los cobradores" }
@@ -33,7 +35,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     collections,
     expenses,
     loans,
-    countryCode: company.countryCode
+    countryCode
   });
   const collectionBreakdown = {
     principalApplied: sum(collections.map((collection) => collection.principalApplied)),
@@ -106,6 +108,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <Field label="Fecha final">
                 <Input type="date" name="to" defaultValue={filters.to} />
               </Field>
+              {currentUser.role !== "SELLER" ? (
+                <Field label="País / moneda">
+                  <Select name="countryCode" defaultValue={countryCode}>
+                    {supportedCountries.map((country) => (
+                      <option key={country.countryCode} value={country.countryCode}>{country.countryName} · {country.currencyCode}</option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : <input type="hidden" name="countryCode" value={countryCode} />}
               <Field label="Cobrador">
                 <Select name="sellerId" defaultValue={filters.sellerId ?? "all"}>
                   {currentUser.role !== "SELLER" ? <option value="all">Todos los cobradores</option> : null}
@@ -193,7 +204,7 @@ function formatInputDateLabel(value: string) {
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white/[0.04] p-4">
+    <div className="rounded-xl bg-carbon-950 p-4">
       <p className="text-sm text-zinc-400">{label}</p>
       <p className="text-xl font-black">{value}</p>
     </div>
@@ -259,7 +270,7 @@ function VisualCashReport({
 
   return (
     <div className="grid gap-4">
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-lg border border-white/10 bg-carbon-950 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm text-zinc-400">Cierre de ruta</p>
@@ -283,7 +294,7 @@ function VisualCashReport({
         <ChartPanel title="Salidas de efectivo" total={summary.cashOutflows} rows={outflowRows} company={company} tone="red" />
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-lg border border-white/10 bg-carbon-950 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm text-zinc-400">Caja fisica</p>
@@ -311,7 +322,7 @@ function VisualCashReport({
           company={company}
           tone="green"
         />
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-lg border border-white/10 bg-carbon-950 p-4">
           <p className="font-black">Cartera y control</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <ReportNumber label="Saldo pendiente" value={formatCurrency(clientBalanceTotal, company)} tone={clientBalanceTotal > 0 ? "red" : "green"} />
@@ -352,7 +363,7 @@ function ChartPanel({
   const color = tone === "green" ? "bg-emerald-400" : tone === "red" ? "bg-red-400" : "bg-brand-500";
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+    <div className="rounded-lg border border-white/10 bg-carbon-950 p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="font-black">{title}</p>
         <p className={tone === "red" ? "font-black text-red-300" : tone === "green" ? "font-black text-emerald-300" : "font-black text-orange-300"}>

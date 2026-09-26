@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/session";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { cashMovementKindLabels, getCashMovementImpact, isCashMovementOutflow, normalizeCashMovementKind } from "@/lib/cash-movements";
 import { demoCashbox, demoClients, demoCollections, demoCompany, demoExpenses, demoLoans, demoNotifications, demoSales, demoUsers } from "@/lib/demo-data";
+import { getCurrencyConfig } from "@/lib/countries";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import { paymentMethodLabel } from "@/lib/formatters";
 import { shouldCollectOnDate } from "@/lib/loan-schedule";
@@ -17,16 +18,17 @@ function toCompany(company: {
   currencyCode: string;
   locale: string;
   timeZone: string;
-}): Company {
+}, countryCode = company.countryCode): Company {
+  const currency = getCurrencyConfig({ countryCode });
   return {
     id: company.id,
     name: company.name,
     rif: company.rif ?? undefined,
     plan: "PRO",
-    countryCode: company.countryCode,
-    currencyCode: company.currencyCode,
-    locale: company.locale,
-    timeZone: company.timeZone
+    countryCode: currency.countryCode,
+    currencyCode: currency.currencyCode,
+    locale: currency.locale,
+    timeZone: currency.timeZone
   };
 }
 
@@ -118,7 +120,7 @@ export type DashboardMovement = {
   amount: number;
 };
 
-export async function getDashboardData() {
+export async function getDashboardData(requestedCountryCode?: string) {
   const user = await getSessionUser();
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
@@ -167,6 +169,7 @@ export async function getDashboardData() {
 
     return {
       company: demoCompany,
+      countryCode: demoCompany.countryCode,
       metrics: {
         activeLoanBalance: activeLoans.reduce((total, loan) => total + loan.balance, 0),
         expectedToday: activeLoans
@@ -251,42 +254,45 @@ export async function getDashboardData() {
     };
   }
 
-  const [company, clients, users, loans, loansToday, collectionsToday, expensesToday, salesToday, cashboxesToday, notifications] = await Promise.all([
-    prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
-    prisma.client.findMany({ where: { companyId: user.companyId }, select: { id: true, name: true, status: true } }),
-    prisma.user.findMany({ where: { companyId: user.companyId, active: true }, select: { id: true, name: true, role: true } }),
+  const company = await prisma.company.findUniqueOrThrow({ where: { id: user.companyId } });
+  const countryCode = user.role === "SELLER"
+    ? user.countryCode
+    : getCurrencyConfig({ countryCode: requestedCountryCode ?? company.countryCode }).countryCode;
+  const [clients, users, loans, loansToday, collectionsToday, expensesToday, salesToday, cashboxesToday, notifications] = await Promise.all([
+    prisma.client.findMany({ where: { companyId: user.companyId, countryCode }, select: { id: true, name: true, status: true } }),
+    prisma.user.findMany({ where: { companyId: user.companyId, active: true, countryCode }, select: { id: true, name: true, role: true, countryCode: true } }),
     prisma.loan.findMany({
-      where: { companyId: user.companyId, status: "ACTIVE" },
+      where: { companyId: user.companyId, countryCode, status: "ACTIVE" },
       include: { client: { select: { name: true } }, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 50
     }),
     prisma.loan.findMany({
-      where: { companyId: user.companyId, createdAt: { gte: todayStart, lt: todayEnd } },
+      where: { companyId: user.companyId, countryCode, createdAt: { gte: todayStart, lt: todayEnd } },
       include: { client: { select: { name: true } }, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 50
     }),
     prisma.collection.findMany({
-      where: { companyId: user.companyId, ...movementDateScope },
+      where: { companyId: user.companyId, countryCode, ...movementDateScope },
       include: { client: { select: { name: true } }, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 50
     }),
     prisma.expense.findMany({
-      where: { companyId: user.companyId, ...movementDateScope },
+      where: { companyId: user.companyId, countryCode, ...movementDateScope },
       include: { seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 25
     }),
     prisma.sale.findMany({
-      where: { companyId: user.companyId, ...movementDateScope },
+      where: { companyId: user.companyId, countryCode, ...movementDateScope },
       include: { client: { select: { name: true } }, seller: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 25
     }),
     prisma.cashbox.findMany({
-      where: { companyId: user.companyId, date: { gte: todayStart, lt: todayEnd } },
+      where: { companyId: user.companyId, countryCode, date: { gte: todayStart, lt: todayEnd } },
       orderBy: { openedAt: "desc" }
     }),
     prisma.notification.findMany({ where: { companyId: user.companyId }, orderBy: { createdAt: "desc" }, take: 8 })
@@ -364,7 +370,7 @@ export async function getDashboardData() {
   };
   const dashboardSummary = calculateDailySummary({
     cashbox: dashboardCashbox,
-    countryCode: company.countryCode,
+    countryCode,
     loans: loansToday.map((loan) => ({
       id: loan.id,
       companyId: loan.companyId,
@@ -539,12 +545,13 @@ export async function getDashboardData() {
       ...expensesToday
         .filter((expense) => normalizeCashMovementKind(expense.movementKind) === "INCOME")
         .map((expense) => ({ paymentMethod: expense.paymentMethod, amount: expense.amount }))
-    ], company.countryCode),
+    ], countryCode),
     clientStatus: buildClientStatusAnalytics(clients)
   } satisfies AdminAnalyticsData;
 
   return {
-    company: toCompany(company),
+    company: toCompany(company, countryCode),
+    countryCode,
     metrics: {
       activeLoanBalance: loans.reduce((total, loan) => total + Number(loan.balance), 0),
       expectedToday: loans

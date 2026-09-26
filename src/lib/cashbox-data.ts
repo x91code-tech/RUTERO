@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/session";
 import { cashMovementKindLabels, getCashMovementImpact, normalizeCashMovementKind } from "@/lib/cash-movements";
 import { demoCashbox, demoCollections, demoCompany, demoExpenses, demoLoans, demoSales } from "@/lib/demo-data";
 import { ensureCashboxCloseReminder } from "@/lib/cashbox-alerts";
+import { getCurrencyConfig } from "@/lib/countries";
 import { endOfLocalDay, startOfLocalDay } from "@/lib/date-utils";
 import { shouldCollectOnDate } from "@/lib/loan-schedule";
 import type { Cashbox, Collection, Company, Expense, Loan, Role, Sale, User } from "@/lib/types";
@@ -24,25 +25,27 @@ function toCompany(company: {
   currencyCode: string;
   locale: string;
   timeZone: string;
-}): Company {
+}, countryCode = company.countryCode): Company {
+  const currency = getCurrencyConfig({ countryCode });
   return {
     id: company.id,
     name: company.name,
     rif: company.rif ?? undefined,
     plan: "PRO",
-    countryCode: company.countryCode,
-    currencyCode: company.currencyCode,
-    locale: company.locale,
-    timeZone: company.timeZone
+    countryCode: currency.countryCode,
+    currencyCode: currency.currencyCode,
+    locale: currency.locale,
+    timeZone: currency.timeZone
   };
 }
 
-export async function getCashboxPageData() {
+export async function getCashboxPageData(requestedCountryCode?: string) {
   const user = await getSessionUser();
   const todayStart = startOfLocalDay();
   if (!user) {
     return {
       company: demoCompany,
+      countryCode: demoCompany.countryCode,
       cashbox: demoCashbox,
       loans: demoLoans,
       sales: demoSales,
@@ -97,26 +100,31 @@ export async function getCashboxPageData() {
   await ensureCashboxCloseReminder(user.companyId);
 
   const todayEnd = endOfLocalDay();
+  const company = await prisma.company.findUniqueOrThrow({ where: { id: user.companyId } });
+  const countryCode = user.role === "SELLER"
+    ? user.countryCode
+    : getCurrencyConfig({ countryCode: requestedCountryCode ?? company.countryCode }).countryCode;
+  const currency = getCurrencyConfig({ countryCode });
   const sellerScope = user.role === "SELLER" ? { sellerId: user.id } : {};
   const movementDateScope = { OR: [{ date: { gte: todayStart, lt: todayEnd } }, { createdAt: { gte: todayStart, lt: todayEnd } }] };
-  const [company, cashboxes, loans, activeLoans, sales, collections, expenses, collectors] = await Promise.all([
-    prisma.company.findUniqueOrThrow({ where: { id: user.companyId } }),
+  const [cashboxes, loans, activeLoans, sales, collections, expenses, collectors] = await Promise.all([
     prisma.cashbox.findMany({
-      where: { companyId: user.companyId, ...sellerScope, date: { gte: todayStart, lt: todayEnd } }
+      where: { companyId: user.companyId, ...sellerScope, countryCode, date: { gte: todayStart, lt: todayEnd } }
     }),
-    prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, createdAt: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
+    prisma.loan.findMany({ where: { companyId: user.companyId, ...sellerScope, countryCode, createdAt: { gte: todayStart, lt: todayEnd } }, include: { client: { select: { name: true } } } }),
     prisma.loan.findMany({
-      where: { companyId: user.companyId, ...sellerScope, status: "ACTIVE" },
+      where: { companyId: user.companyId, ...sellerScope, countryCode, status: "ACTIVE" },
       select: { clientId: true, dailyPayment: true, balance: true, startDate: true, paymentFrequency: true }
     }),
-    prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope }, include: { client: { select: { name: true } } } }),
-    prisma.collection.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope }, include: { client: { select: { name: true } } } }),
-    prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope, ...movementDateScope } }),
+    prisma.sale.findMany({ where: { companyId: user.companyId, ...sellerScope, countryCode, ...movementDateScope }, include: { client: { select: { name: true } } } }),
+    prisma.collection.findMany({ where: { companyId: user.companyId, ...sellerScope, countryCode, ...movementDateScope }, include: { client: { select: { name: true } } } }),
+    prisma.expense.findMany({ where: { companyId: user.companyId, ...sellerScope, countryCode, ...movementDateScope } }),
     prisma.user.findMany({
       where: {
         companyId: user.companyId,
         active: true,
         role: "SELLER",
+        countryCode,
         ...(user.role === "SELLER" ? { id: user.id } : {})
       },
       select: { id: true, companyId: true, name: true, email: true, role: true, mobileIdentifier: true }
@@ -150,17 +158,20 @@ export async function getCashboxPageData() {
   );
 
   return {
-    company: toCompany(company),
+    company: toCompany(company, countryCode),
+    countryCode,
     cashbox: {
       id: currentCashbox?.id ?? "cashbox_today",
       companyId: user.companyId,
       sellerId: user.id,
+      countryCode: currentCashbox?.countryCode ?? currency.countryCode,
+      currencyCode: currentCashbox?.currencyCode ?? currency.currencyCode,
       date: todayStart.toISOString(),
       initialCash: sumCashboxes((cashbox) => cashbox.initialCash) + carryForwardInitialCash,
       reportedCash: sumCashboxes((cashbox) => cashbox.reportedCash),
       reportedTransfer: sumCashboxes((cashbox) => cashbox.reportedTransfer),
       reportedPix: sumCashboxes((cashbox) => cashbox.reportedPix),
-      status: cashboxes.some((cashbox) => cashbox.status === "OPEN") ? "OPEN" : currentCashbox?.status ?? "OPEN",
+      status: cashboxes.some((cashbox) => cashbox.status === "OPEN") ? "OPEN" : currentCashbox?.status ?? "CLOSED",
       observations: cashboxes.map((cashbox) => cashbox.observations).filter(Boolean).join(" | ")
     } satisfies Cashbox,
     currentUser: {
@@ -169,6 +180,7 @@ export async function getCashboxPageData() {
       name: user.name,
       email: user.email,
       mobileIdentifier: user.mobileIdentifier ?? undefined,
+      countryCode: user.countryCode,
       role: user.role as Role
     } satisfies User,
     openedCashboxes: cashboxes.length,
@@ -181,6 +193,8 @@ export async function getCashboxPageData() {
       companyId: loan.companyId,
       clientId: loan.clientId,
       sellerId: loan.sellerId,
+      countryCode: loan.countryCode,
+      currencyCode: loan.currencyCode,
       principalAmount: Number(loan.principalAmount),
       disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
       interestRate: Number(loan.interestRate),
@@ -205,6 +219,8 @@ export async function getCashboxPageData() {
       companyId: sale.companyId,
       clientId: sale.clientId,
       sellerId: sale.sellerId,
+      countryCode: sale.countryCode,
+      currencyCode: sale.currencyCode,
       product: sale.concept,
       amount: Number(sale.amount),
       paymentMethod: sale.paymentMethod,
@@ -217,6 +233,8 @@ export async function getCashboxPageData() {
       clientId: collection.clientId,
       loanId: collection.loanId ?? undefined,
       sellerId: collection.sellerId,
+      countryCode: collection.countryCode,
+      currencyCode: collection.currencyCode,
       amount: Number(collection.amount),
       paymentType: collection.paymentType,
       application: collection.application,
@@ -237,6 +255,8 @@ export async function getCashboxPageData() {
       id: expense.id,
       companyId: expense.companyId,
       sellerId: expense.sellerId,
+      countryCode: expense.countryCode,
+      currencyCode: expense.currencyCode,
       movementKind: normalizeCashMovementKind(expense.movementKind),
       type: expense.type as Expense["type"],
       amount: Number(expense.amount),

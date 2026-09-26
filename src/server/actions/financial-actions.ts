@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { PaymentMethod } from "@prisma/client";
 import { calculateDailySummary } from "@/lib/cashbox-calculations";
 import { normalizeCashMovementKind } from "@/lib/cash-movements";
+import { getCurrencyConfig, supportedCountries } from "@/lib/countries";
 import { endOfLocalDay, parseDateInputAsLocal, startOfLocalDay } from "@/lib/date-utils";
 import { prisma } from "@/lib/db";
 import { addPaymentPeriods } from "@/lib/loan-schedule";
@@ -55,6 +56,8 @@ export async function createSaleAction(formData: FormData) {
         companyId: user.companyId,
         sellerId: user.id,
         clientId: client.id,
+        countryCode: client.countryCode,
+        currencyCode: client.currencyCode,
         concept: payload.product,
         amount: payload.amount,
         paymentMethod: payload.paymentMethod as PaymentMethod,
@@ -169,6 +172,8 @@ export async function createCollectionAction(formData: FormData) {
         sellerId: user.id,
         clientId: client.id,
         loanId: activeLoan?.id,
+        countryCode: client.countryCode,
+        currencyCode: client.currencyCode,
         amount: receivedAmount,
         paymentType: payload.paymentType,
         application: payload.application,
@@ -291,6 +296,8 @@ export async function createLoanAction(formData: FormData) {
         companyId: user.companyId,
         sellerId,
         clientId: client.id,
+        countryCode: client.countryCode,
+        currencyCode: client.currencyCode,
         principalAmount,
         disbursedAmount: principalAmount,
         interestRate,
@@ -409,6 +416,8 @@ export async function createRenewalLoanAction(formData: FormData) {
         sellerId,
         clientId: client.id,
         loanId: activeLoan.id,
+        countryCode: client.countryCode,
+        currencyCode: client.currencyCode,
         amount: oldLoanBalance,
         paymentType: "RENEWAL",
         application: "NORMAL",
@@ -445,6 +454,8 @@ export async function createRenewalLoanAction(formData: FormData) {
         companyId: user.companyId,
         sellerId,
         clientId: client.id,
+        countryCode: client.countryCode,
+        currencyCode: client.currencyCode,
         principalAmount,
         disbursedAmount,
         interestRate,
@@ -507,11 +518,17 @@ export async function createExpenseAction(formData: FormData) {
   if (!user) redirect("/login");
   await ensureCollectorCashboxIsOpen(user);
   const date = parseDateInputAsLocal(payload.date);
+  const countryCode = user.role === "SELLER"
+    ? user.countryCode
+    : (await prisma.company.findUniqueOrThrow({ where: { id: user.companyId }, select: { countryCode: true } })).countryCode;
+  const currency = getCurrencyConfig({ countryCode });
 
   const expense = await prisma.expense.create({
     data: {
       companyId: user.companyId,
       sellerId: user.id,
+      countryCode,
+      currencyCode: currency.currencyCode,
       movementKind: payload.movementKind,
       type: payload.type,
       amount: payload.amount,
@@ -557,16 +574,20 @@ async function getLastClosedCashboxBySeller(companyId: string, sellerIds: string
   return bySeller;
 }
 
-export async function openTodayCashboxesAction() {
+export async function openTodayCashboxesAction(formData: FormData) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (user.role === "SELLER") redirect("/cashbox");
+  const requestedCountryCode = formData.get("countryCode");
+  if (typeof requestedCountryCode !== "string" || !supportedCountries.some((country) => country.countryCode === requestedCountryCode)) {
+    redirect("/cashbox?error=invalid_country");
+  }
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
   const collectors = await prisma.user.findMany({
-    where: { companyId: user.companyId, active: true, role: "SELLER" },
-    select: { id: true, name: true }
+    where: { companyId: user.companyId, active: true, role: "SELLER", countryCode: requestedCountryCode },
+    select: { id: true, name: true, countryCode: true }
   });
   const sellerIds = collectors.map((collector) => collector.id);
   const [existing, previousBySeller] = await Promise.all([
@@ -585,6 +606,8 @@ export async function openTodayCashboxesAction() {
         data: {
           companyId: user.companyId,
           sellerId: collector.id,
+          countryCode: collector.countryCode,
+          currencyCode: getCurrencyConfig({ countryCode: collector.countryCode }).currencyCode,
           date: todayStart,
           initialCash: Number(previousBySeller.get(collector.id)?.reportedCash ?? 0),
           reportedCash: 0,
@@ -630,6 +653,7 @@ export async function closeCashboxAction(formData: FormData) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (user.role !== "SELLER") redirect("/cashbox");
+  await ensureCollectorCashboxIsOpen(user);
 
   const todayStart = startOfLocalDay();
   const todayEnd = endOfLocalDay();
@@ -663,6 +687,8 @@ export async function closeCashboxAction(formData: FormData) {
     id: "cashbox_close",
     companyId: user.companyId,
     sellerId: user.id,
+    countryCode: user.countryCode,
+    currencyCode: getCurrencyConfig({ countryCode: user.countryCode }).currencyCode,
     date: todayStart.toISOString(),
     initialCash: fixedInitialCash,
     reportedCash: payload.reportedCash,
@@ -673,11 +699,14 @@ export async function closeCashboxAction(formData: FormData) {
   };
   const summary = calculateDailySummary({
     cashbox: cashboxInput,
+    countryCode: user.countryCode,
     sales: sales.map((sale) => ({
       id: sale.id,
       companyId: sale.companyId,
       clientId: sale.clientId,
       sellerId: sale.sellerId,
+      countryCode: sale.countryCode,
+      currencyCode: sale.currencyCode,
       product: sale.concept,
       amount: Number(sale.amount),
       paymentMethod: sale.paymentMethod,
@@ -690,6 +719,8 @@ export async function closeCashboxAction(formData: FormData) {
       clientId: collection.clientId,
       loanId: collection.loanId ?? undefined,
       sellerId: collection.sellerId,
+      countryCode: collection.countryCode,
+      currencyCode: collection.currencyCode,
       amount: Number(collection.amount),
       previousBalance: Number(collection.previousBalance),
       newBalance: Number(collection.newBalance),
@@ -701,6 +732,8 @@ export async function closeCashboxAction(formData: FormData) {
       id: expense.id,
       companyId: expense.companyId,
       sellerId: expense.sellerId,
+      countryCode: expense.countryCode,
+      currencyCode: expense.currencyCode,
       movementKind: normalizeCashMovementKind(expense.movementKind),
       type: expense.type as Expense["type"],
       amount: Number(expense.amount),
@@ -713,6 +746,8 @@ export async function closeCashboxAction(formData: FormData) {
       companyId: loan.companyId,
       clientId: loan.clientId,
       sellerId: loan.sellerId,
+      countryCode: loan.countryCode,
+      currencyCode: loan.currencyCode,
       principalAmount: Number(loan.principalAmount),
       disbursedAmount: Number(loan.disbursedAmount ?? loan.principalAmount),
       interestRate: Number(loan.interestRate),
@@ -751,6 +786,8 @@ export async function closeCashboxAction(formData: FormData) {
     create: {
       companyId: user.companyId,
       sellerId: user.id,
+      countryCode: user.countryCode,
+      currencyCode: getCurrencyConfig({ countryCode: user.countryCode }).currencyCode,
       date: todayStart,
       initialCash: fixedInitialCash,
       reportedCash: payload.reportedCash,

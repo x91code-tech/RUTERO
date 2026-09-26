@@ -10,6 +10,8 @@
     "cap:sync": "npx cap sync",
     "cap:add:android": "npx cap add android",
     "cap:open:android": "npx cap open android",
+    "android:build-release": "cmd /c \"cd android && gradlew.bat assembleRelease\"",
+    "android:install-release": "cmd /c \"adb install -r android/app/build/outputs/apk/release/app-release.apk\"",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

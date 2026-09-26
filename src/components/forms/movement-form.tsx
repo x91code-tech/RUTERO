@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import { Button, LinkButton } from "@/components/ui/button";
 import { CashMovementFields } from "@/components/forms/cash-movement-fields";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { getDefaultInterestPercent, getDefaultTermDays, paymentFrequencyLabels } from "@/lib/company-settings";
 import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
+import { formatCurrency } from "@/lib/formatters";
 import { createCollectionAction, createExpenseAction, createLoanAction } from "@/server/actions/financial-actions";
 import type { Client, Company, Loan } from "@/lib/types";
 
@@ -90,8 +94,13 @@ export function LoanForm(props: MovementFormProps) {
 }
 
 export function CollectionForm(props: MovementFormProps) {
-  const { clients, loans, paymentOptions } = getFormData(props);
+  const { clients, loans, company } = getFormData(props);
+  const initialClientId = clients.some((client) => client.id === props.defaultClientId) ? props.defaultClientId : clients[0]?.id ?? "";
+  const [selectedClientId, setSelectedClientId] = useState(initialClientId);
+  const selectedClient = clients.find((client) => client.id === selectedClientId);
+  const paymentOptions = getPaymentMethodsForCountry(selectedClient?.countryCode ?? company?.countryCode ?? "VE");
   const activeLoans = loans.filter((loan) => loan.status === "ACTIVE" && loan.balance > 0);
+  const selectedClientLoans = activeLoans.filter((loan) => loan.clientId === selectedClientId);
   const defaultPaymentMethod = paymentOptions.find((method) => method.category === "cash")?.code ?? paymentOptions[0]?.code;
   const paymentTypes = [
     ["INSTALLMENT", "Cuota del dia"],
@@ -134,7 +143,7 @@ export function CollectionForm(props: MovementFormProps) {
   return (
     <form action={createCollectionAction} className="grid gap-4">
       <Field label="Cliente">
-        <Select name="clientId" defaultValue={props.defaultClientId ?? clients[0]?.id}>
+        <Select name="clientId" value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)}>
           {clients.map((client) => (
             <option key={client.id} value={client.id}>
               {client.name}
@@ -145,11 +154,11 @@ export function CollectionForm(props: MovementFormProps) {
       <Field label="Prestamo">
         <Select name="loanId" defaultValue="">
           <option value="">Recaudo general del cliente</option>
-          {activeLoans.map((loan) => {
+          {selectedClientLoans.map((loan) => {
             const client = clients.find((item) => item.id === loan.clientId);
             return (
               <option key={loan.id} value={loan.id}>
-                {client?.name} - saldo {loan.balance.toFixed(2)} - cuota {loan.dailyPayment.toFixed(2)}
+                {client?.name} - saldo {formatCurrency(loan.balance, loan)} - cuota {formatCurrency(loan.dailyPayment, loan)}
               </option>
             );
           })}
@@ -159,7 +168,7 @@ export function CollectionForm(props: MovementFormProps) {
         <Field label="Referencia de saldo">
           <Input value="Se calcula al guardar" readOnly />
         </Field>
-        <Field label="Monto pagado">
+        <Field label={`Monto pagado (${selectedClient?.currencyCode ?? company?.currencyCode ?? "VES"})`}>
           <Input name="amount" type="number" defaultValue="100" min="0" step="0.01" />
         </Field>
       </div>

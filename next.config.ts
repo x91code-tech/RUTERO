@@ -6,7 +6,13 @@ const projectRoot = dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: projectRoot,
-  reactStrictMode: true
+  reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "recharts"],
+  },
 };
 
 export default nextConfig;

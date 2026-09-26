@@ -246,7 +246,8 @@ export async function registerCompanyAction(formData: FormData) {
         name: parsed.data.adminName,
         email: parsed.data.email,
         passwordHash,
-        role: "ADMIN"
+        role: "ADMIN",
+        countryCode: countryConfig.countryCode
       }
     });
 
@@ -326,7 +327,8 @@ export async function registerCompanyFormAction(_state: AuthFormState, formData:
         name: parsed.data.adminName,
         email: parsed.data.email,
         passwordHash,
-        role: "ADMIN"
+        role: "ADMIN",
+        countryCode: countryConfig.countryCode
       }
     });
 

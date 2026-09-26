@@ -58,7 +58,7 @@ export function ClientLocationCard({ client }: { client: Client }) {
       </div>
 
       <div className="grid gap-4">
-        <form action={updateClientLocationAction} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+        <form action={updateClientLocationAction} className="rounded-lg border border-white/10 bg-carbon-950 p-4">
           <input type="hidden" name="clientId" value={client.id} />
           <input type="hidden" name="type" value="STORE" />
           <input type="hidden" name="label" value="Ubicacion tienda" />
@@ -87,7 +87,7 @@ export function ClientLocationCard({ client }: { client: Client }) {
           </div>
         </form>
 
-        <form action={updateClientLocationAction} className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+        <form action={updateClientLocationAction} className="rounded-lg border border-white/10 bg-carbon-950 p-4">
           <input type="hidden" name="clientId" value={client.id} />
           <input type="hidden" name="type" value="BILLING" />
           <input type="hidden" name="label" value="Segunda ubicacion" />
@@ -121,10 +121,10 @@ export function ClientLocationCard({ client }: { client: Client }) {
 
       {locatedClient && hasClientLocation(locatedClient) ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-4 py-2 font-semibold text-white transition hover:bg-white/[0.1]" href={buildGoogleMapsClientUrl(locatedClient)} target="_blank">
+          <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-carbon-850 px-4 py-2 font-semibold text-white transition hover:bg-carbon-800" href={buildGoogleMapsClientUrl(locatedClient)} target="_blank">
             <MapPinned className="h-4 w-4" /> Abrir tienda en Maps
           </a>
-          <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-4 py-2 font-semibold text-white transition hover:bg-white/[0.1]" href={buildWazeClientUrl(locatedClient)} target="_blank">
+          <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/10 bg-carbon-850 px-4 py-2 font-semibold text-white transition hover:bg-carbon-800" href={buildWazeClientUrl(locatedClient)} target="_blank">
             <Navigation className="h-4 w-4" /> Abrir tienda en Waze
           </a>
         </div>
