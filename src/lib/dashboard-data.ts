@@ -301,7 +301,36 @@ export async function getDashboardData() {
         .reduce((total, collection) => total + Number(collection.amount), 0)
     }))
     .filter((item) => item.value > 0);
+  const activeCollectorsCount = users.filter((item) => item.role === "SELLER").length;
+  const activeClientsCount = clients.filter((client) => client.status === "ACTIVE").length;
   const generatedNotifications: Notification[] = [
+    ...(!activeCollectorsCount
+      ? [{
+          id: "generated_no_collectors",
+          companyId: user.companyId,
+          title: "Faltan cobradores",
+          message: "Crea al menos un cobrador activo para asignar clientes, abrir caja y salir a ruta.",
+          severity: "warning" as const
+        }]
+      : []),
+    ...(activeCollectorsCount > 0 && cashboxesToday.filter((cashbox) => cashbox.status === "OPEN").length === 0
+      ? [{
+          id: "generated_no_open_cashboxes",
+          companyId: user.companyId,
+          title: "Cajas sin abrir",
+          message: "Abre las cajas del dia para que los cobradores puedan registrar prestamos, recaudos y movimientos.",
+          severity: "warning" as const
+        }]
+      : []),
+    ...(!activeClientsCount
+      ? [{
+          id: "generated_no_active_clients",
+          companyId: user.companyId,
+          title: "No hay clientes activos",
+          message: "Crea clientes y apruebalos antes de registrar prestamos o recaudos.",
+          severity: "warning" as const
+        }]
+      : []),
     ...(loans.filter((loan) => loan.dueDate < todayStart && Number(loan.balance) > 0).length
       ? [{
           id: "generated_overdue_loans",
@@ -542,7 +571,7 @@ export async function getDashboardData() {
       overdueLoans: loans.filter((loan) => loan.dueDate < todayStart && Number(loan.balance) > 0).length,
       renewalCandidates: renewalCandidateRows.length,
       pendingClients: clients.filter((client) => client.status === "PENDING").length,
-      activeSellers: users.filter((item) => item.role === "SELLER").length
+      activeSellers: activeCollectorsCount
     },
     sellerCollections: sellerCollections.length ? sellerCollections : [{ label: "Sin recaudos", value: 0 }],
     cashboxRows,

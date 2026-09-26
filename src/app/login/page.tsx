@@ -39,7 +39,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <Link href="/register" className="font-semibold text-brand-400 hover:text-brand-300">Crear empresa</Link>
             <Link href="/mobile-login" className="font-semibold text-brand-400 hover:text-brand-300">Acceso cobrador</Link>
           </div>
-          <p className="mt-3 text-xs text-zinc-500">Demo: admin@rutero.app</p>
         </div>
       </section>
     </main>

@@ -1,8 +1,7 @@
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { CashMovementFields } from "@/components/forms/cash-movement-fields";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { getDefaultInterestPercent, getDefaultTermDays, paymentFrequencyLabels } from "@/lib/company-settings";
-import { demoClients, demoCompany } from "@/lib/demo-data";
 import { getPaymentMethodsForCountry } from "@/lib/payment-methods";
 import { createCollectionAction, createExpenseAction, createLoanAction } from "@/server/actions/financial-actions";
 import type { Client, Company, Loan } from "@/lib/types";
@@ -28,26 +27,38 @@ function tomorrowInputValue() {
 }
 
 function getFormData(input?: MovementFormProps) {
-  const company = input?.company ?? demoCompany;
-  const clients = input?.clients?.length ? input.clients : demoClients;
+  const company = input?.company;
+  const clients = input?.clients ?? [];
   return {
     company,
     clients,
     loans: input?.loans ?? [],
-    paymentOptions: getPaymentMethodsForCountry(company.countryCode)
+    paymentOptions: getPaymentMethodsForCountry(company?.countryCode ?? "VE")
   };
 }
 
 export function LoanForm(props: MovementFormProps) {
   const { clients, company } = getFormData(props);
+  if (!company) return null;
+  const activeClients = clients.filter((client) => client.status === "ACTIVE");
   const defaultInterestPercent = getDefaultInterestPercent(company.defaultInterestRate);
   const defaultTermDays = getDefaultTermDays(company.defaultTermDays);
+
+  if (!activeClients.length) {
+    return (
+      <EmptyFormState
+        title="No hay clientes activos para prestar"
+        text="Crea y verifica al menos un cliente antes de registrar un prestamo."
+      />
+    );
+  }
+  const selectedClientId = activeClients.some((client) => client.id === props.defaultClientId) ? props.defaultClientId : activeClients[0]?.id;
 
   return (
     <form action={createLoanAction} className="grid gap-4">
       <Field label="Cliente">
-        <Select name="clientId" defaultValue={props.defaultClientId ?? clients[0]?.id}>
-          {clients.map((client) => (
+        <Select name="clientId" defaultValue={selectedClientId}>
+          {activeClients.map((client) => (
             <option key={client.id} value={client.id}>
               {client.name}
             </option>
@@ -99,6 +110,26 @@ export function CollectionForm(props: MovementFormProps) {
     ["ADDITIONAL_WITH_BALANCE", "Adicional que descuenta saldo"],
     ["ADDITIONAL_NO_BALANCE", "Adicional sin descontar saldo"]
   ];
+
+  if (!clients.length) {
+    return (
+      <EmptyFormState
+        title="No hay clientes para recaudar"
+        text="Crea clientes y asignales un cobrador antes de registrar recaudos."
+      />
+    );
+  }
+
+  if (!activeLoans.length) {
+    return (
+      <EmptyFormState
+        title="No hay prestamos activos"
+        text="Registra un prestamo activo para que el recaudo afecte saldo, cuotas y caja correctamente."
+        actionLabel="Crear prestamo"
+        actionHref="/loans"
+      />
+    );
+  }
 
   return (
     <form action={createCollectionAction} className="grid gap-4">
@@ -176,5 +207,17 @@ export function ExpenseForm(props: MovementFormProps) {
       <CashMovementFields defaultDate={todayInputValue()} paymentOptions={paymentOptions} />
       <Button type="submit">Registrar movimiento</Button>
     </form>
+  );
+}
+
+function EmptyFormState({ actionHref = "/clients", actionLabel = "Crear cliente", text, title }: { actionHref?: string; actionLabel?: string; text: string; title: string }) {
+  return (
+    <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
+      <p className="font-bold text-amber-100">{title}</p>
+      <p className="mt-1 text-sm text-amber-100/80">{text}</p>
+      <LinkButton href={actionHref} variant="secondary" className="mt-4 w-full">
+        {actionLabel}
+      </LinkButton>
+    </div>
   );
 }

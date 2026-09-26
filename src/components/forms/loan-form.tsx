@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Landmark } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { getDefaultInterestPercent, getDefaultTermDays, paymentFrequencyOptions } from "@/lib/company-settings";
 import { formatCurrency } from "@/lib/formatters";
@@ -27,8 +27,8 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
   const [interestRatePercent, setInterestRatePercent] = useState(getDefaultInterestPercent(company.defaultInterestRate));
   const [termDays, setTermDays] = useState(getDefaultTermDays(company.defaultTermDays));
   const activeClients = clients.filter((client) => client.status === "ACTIVE");
-  const selectableClients = activeClients.length ? activeClients : clients;
-  const selectedClientId = defaultClientId ?? selectableClients[0]?.id ?? "";
+  const selectableClients = activeClients;
+  const selectedClientId = selectableClients.some((client) => client.id === defaultClientId) ? defaultClientId : selectableClients[0]?.id ?? "";
 
   const totals = useMemo(() => {
     const principal = Number.isFinite(principalAmount) ? principalAmount : 0;
@@ -43,6 +43,20 @@ export function LoanForm({ clients, company, defaultClientId }: LoanFormProps) {
       dailyPayment: roundMoney(totalAmount / days)
     };
   }, [principalAmount, interestRatePercent, termDays]);
+
+  if (!selectableClients.length) {
+    return (
+      <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4">
+        <p className="font-bold text-amber-100">No hay clientes activos</p>
+        <p className="mt-1 text-sm text-amber-100/80">
+          Crea un cliente y apruebalo antes de registrar un prestamo.
+        </p>
+        <LinkButton href="/clients" variant="secondary" className="mt-4 w-full">
+          Crear cliente
+        </LinkButton>
+      </div>
+    );
+  }
 
   return (
     <form action={createLoanAction} className="grid gap-4">
