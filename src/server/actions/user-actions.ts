@@ -80,7 +80,7 @@ async function createUserWithinPlan({
   countryCode: string;
 }) {
   return prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${currentUser.companyId}, 0))`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${currentUser.companyId}, 0))`;
     const subscription = await tx.subscriptionPlan.findUnique({ where: { companyId: currentUser.companyId } });
     if (!subscription?.active) throw new UserCapacityError("inactive-subscription");
     const [userCount, sellerCount] = await Promise.all([

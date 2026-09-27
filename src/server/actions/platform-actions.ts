@@ -184,7 +184,7 @@ export async function createPlatformCompanyAction(formData: FormData): Promise<n
   if (partnerId) {
     try {
       await prisma.$transaction(async (tx) => {
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${partnerId}, 0))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${partnerId}, 0))`;
         const profile = await tx.partnerProfile.findUnique({ where: { id: partnerId } });
         if (!profile) throw new PartnerCreationError("not-found");
         if (!profile.active) throw new PartnerCreationError("inactive");
@@ -221,7 +221,7 @@ export async function createCompanySubscriptionAction(formData: FormData): Promi
   if (!plan || !plan.monthlyPrice.greaterThan(0)) redirect("/platform/plans?error=price");
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${companyId}, 0))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${companyId}, 0))`;
       const company = await tx.company.findUnique({ where: { id: companyId }, select: { id: true, accountType: true } });
       if (!company) throw new SubscriptionSetupError("company-not-found");
       if (await tx.subscriptionPlan.findUnique({ where: { companyId }, select: { id: true } })) {
@@ -340,7 +340,7 @@ export async function createReferredCompanyAction(formData: FormData): Promise<n
 
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${profile.id}, 0))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${profile.id}, 0))`;
       const currentProfile = await tx.partnerProfile.findUnique({ where: { id: profile.id } });
       if (!currentProfile) throw new PartnerCreationError("not-found");
       if (!currentProfile.active) throw new PartnerCreationError("inactive");
@@ -386,7 +386,7 @@ export async function recordSubscriptionPaymentAction(formData: FormData): Promi
   let result;
   try {
     result = await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${companyId}, 0))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${companyId}, 0))`;
       const company = await tx.company.findUnique({
         where: { id: companyId },
         include: { subscription: true, referredByPartner: true }
@@ -467,7 +467,7 @@ export async function updateCompanySubscriptionAction(formData: FormData): Promi
   if (!plan) redirect("/platform?error=invalid-contract");
 
   await prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${companyId}, 0))`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${companyId}, 0))`;
     const company = await tx.company.findFirst({
       where: { id: companyId },
       include: { subscription: true }
@@ -548,7 +548,7 @@ export async function updatePartnerTermsAction(formData: FormData): Promise<neve
   }
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${partnerId}, 0))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${partnerId}, 0))`;
       const profile = await tx.partnerProfile.findUnique({ where: { id: partnerId } });
       if (!profile) throw new PartnerCreationError("not-found");
       const referredCount = await tx.company.count({ where: { referredByPartnerId: partnerId, accountType: "CUSTOMER" } });
