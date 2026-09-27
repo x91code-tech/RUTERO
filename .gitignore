@@ -27,10 +27,14 @@ prisma/dev.db-journal
 .DS_Store
 Thumbs.db
 .vscode/
+*.tsbuildinfo
 
 # Capacitor / Android builds
 android/app/build/
 android/build/
+android/keystore.properties
+android/*.jks
+android/app/*.jks
 
 # Local APK analysis artifacts
 analysis/

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Clock3, MapPin, MapPinned, Search } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock3, MapPin, MapPinned, Navigation, Phone, Search } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { LoanPaymentForm } from "@/components/forms/loan-payment-form";
 import { Input } from "@/components/ui/input";
+import { buildGoogleMapsClientUrl } from "@/lib/geo";
 import { getSellerDailyCollectionData } from "@/lib/seller-data";
 import { formatCurrency, formatShortDate } from "@/lib/formatters";
 
@@ -131,8 +132,8 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
 
                 <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 sm:min-w-48 sm:justify-end sm:border-0 sm:pt-0">
                   <div className="sm:text-right">
-                    <p className="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-zinc-500">Cuota de hoy</p>
-                    <p className="mt-1 text-lg font-bold tracking-[-0.04em] tabular-nums text-white">{formatCurrency(item.loan.dailyPayment, item.loan)}</p>
+                    <p className="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-zinc-500">{item.amountDueToday > 0 ? "Pendiente hoy" : "Cuota cubierta"}</p>
+                    <p className="mt-1 text-lg font-bold tracking-[-0.04em] tabular-nums text-white">{formatCurrency(item.amountDueToday, item.loan)}</p>
                   </div>
                   <div className={`shrink-0 rounded-full border border-white/10 bg-carbon-950 px-2.5 py-1.5 text-[0.65rem] font-semibold ${statusColor}`}>
                     {statusText}
@@ -141,7 +142,7 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
               </div>
 
               <div className="grid grid-cols-3 border-y border-white/[0.07] bg-black/10 sm:grid-cols-4">
-                <Info label="Cuota" value={`${item.installmentNumber} / ${item.loan.termDays}`} />
+                <Info label="Cuotas" value={`${item.installmentNumber} / ${item.loan.termDays}`} />
                 <Info label="Recaudado" value={formatCurrency(item.receivedToday, item.loan)} strongClass={item.isPaidToday ? "text-emerald-300" : "text-zinc-100"} />
                 <Info label="Saldo" value={formatCurrency(item.loan.balance, item.loan)} />
                 <Info className="hidden sm:block" label="Vence" value={formatShortDate(item.loan.dueDate)} />
@@ -154,6 +155,26 @@ export default async function SellerPage({ searchParams }: { searchParams: Promi
                   {item.lateAmount > 0 ? <span className="font-semibold text-red-300">Atraso {formatCurrency(item.lateAmount, item.loan)}</span> : null}
                 </div>
                 <LoanPaymentForm clientId={item.client.id} loan={item.loan} company={company} clientName={item.client.name} paidToday={item.paidToday} compact disabledReason={disabledReason} />
+              </div>
+              <div className="flex flex-wrap gap-2 px-3.5 pb-3.5 sm:px-4 sm:pb-4">
+                {item.client.phone ? (
+                  <a
+                    href={`tel:${item.client.phone.replace(/[^\d+]/g, "")}`}
+                    className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-carbon-950 px-3 text-xs font-semibold text-zinc-200 transition hover:bg-carbon-850 sm:flex-none"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Llamar
+                  </a>
+                ) : null}
+                <a
+                  href={buildGoogleMapsClientUrl(item.client)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-carbon-950 px-3 text-xs font-semibold text-zinc-200 transition hover:bg-carbon-850 sm:flex-none"
+                >
+                  <Navigation className="h-4 w-4" />
+                  Cómo llegar
+                </a>
               </div>
             </article>
           );

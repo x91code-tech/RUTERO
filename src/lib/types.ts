@@ -1,4 +1,4 @@
-export type Role = "SUPER_ADMIN" | "ADMIN" | "SUPERVISOR" | "SELLER";
+export type Role = "SUPER_ADMIN" | "ADMIN" | "SUPERVISOR" | "SELLER" | "PARTNER";
 export type PaymentMethod =
   | "CASH"
   | "TRANSFER"

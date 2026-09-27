@@ -71,8 +71,12 @@ export function optimizeVisitOrder(clients: ClientWithLocation[], start?: Coordi
   return ordered;
 }
 
-export function buildGoogleMapsClientUrl(client: ClientWithLocation) {
-  return `https://www.google.com/maps/search/?api=1&query=${client.latitude},${client.longitude}`;
+export function buildGoogleMapsClientUrl(client: Client) {
+  const query = hasClientLocation(client)
+    ? `${client.latitude},${client.longitude}`
+    : client.address.trim() || client.name;
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 export function buildGoogleMapsRouteUrl(clients: ClientWithLocation[], start?: Coordinates) {

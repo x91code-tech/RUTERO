@@ -271,7 +271,7 @@ export async function getCashboxPageData(requestedCountryCode?: string) {
         description: loan.client.name,
         paymentMethod: "CASH_LOCAL",
         date: loan.createdAt.toISOString(),
-        amount: -Number(loan.principalAmount)
+        amount: -Number(loan.disbursedAmount ?? loan.principalAmount)
       })),
       ...sales.map((sale) => ({
         id: sale.id,

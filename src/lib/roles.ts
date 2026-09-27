@@ -5,7 +5,8 @@ export function roleLabel(role: Role) {
     SUPER_ADMIN: "Super admin",
     ADMIN: "Administrador",
     SUPERVISOR: "Supervisor",
-    SELLER: "Cobrador"
+    SELLER: "Cobrador",
+    PARTNER: "Socio"
   };
 
   return labels[role];
@@ -16,14 +17,15 @@ export function roleDescription(role: Role) {
     SUPER_ADMIN: "Acceso total a la plataforma.",
     ADMIN: "Gestiona empresa, usuarios, rutas y reportes.",
     SUPERVISOR: "Supervisa rutas, clientes, cobros y caja.",
-    SELLER: "Cobra cuotas, registra movimientos de caja y atiende su ruta asignada."
+    SELLER: "Cobra cuotas, registra movimientos de caja y atiende su ruta asignada.",
+    PARTNER: "Administra las empresas que ha referido y sus comisiones."
   };
 
   return descriptions[role];
 }
 
 export function roleTone(role: Role): "green" | "orange" | "blue" | "gray" {
-  if (role === "ADMIN" || role === "SUPER_ADMIN") return "green";
+  if (role === "ADMIN" || role === "SUPER_ADMIN" || role === "PARTNER") return "green";
   if (role === "SELLER") return "orange";
   if (role === "SUPERVISOR") return "blue";
   return "gray";

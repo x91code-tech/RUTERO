@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Bell, ClipboardList, CreditCard, Home, Landmark, LogOut, Map, Menu, Route, Settings, Shield, Users, WalletCards } from "lucide-react";
+import { Bell, Building2, ClipboardList, CreditCard, FileSearch, Headphones, Home, Landmark, LogOut, Map, Menu, Palette, PlusCircle, ReceiptText, Route, Settings, Shield, UserCog, Users, WalletCards } from "lucide-react";
 import { RuteroLogo } from "@/components/brand/rutero-logo";
 import { getNotificationSummary } from "@/lib/notifications-data";
 import { canRoleAccessPath, getDefaultPathForRole } from "@/lib/permissions";
@@ -11,6 +11,19 @@ import { cn } from "@/lib/utils";
 import { logoutAction } from "@/server/actions/auth-actions";
 
 const navigation = [
+  { href: "/platform", label: "Plataforma", icon: Shield },
+  { href: "/platform/plans", label: "Planes", icon: WalletCards },
+  { href: "/platform/companies/new", label: "Nueva empresa", icon: PlusCircle },
+  { href: "/platform/companies", label: "Empresas", icon: Building2 },
+  { href: "/platform/partners", label: "Socios", icon: Users },
+  { href: "/platform/payments", label: "Pagos plataforma", icon: ReceiptText },
+  { href: "/platform/audit", label: "Auditoria", icon: FileSearch },
+  { href: "/platform/team", label: "Equipo RUTERO", icon: UserCog },
+  { href: "/platform/reports", label: "Reportes globales", icon: Map },
+  { href: "/platform/support", label: "Soporte", icon: Headphones },
+  { href: "/platform/brand", label: "Marca y dominios", icon: Palette },
+  { href: "/platform/settings", label: "Ajustes plataforma", icon: Settings },
+  { href: "/partner", label: "Mis empresas", icon: Users },
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/seller", label: "Cobrador", icon: CreditCard },
   { href: "/clients", label: "Clientes", icon: Users },
@@ -47,7 +60,7 @@ export async function AppShell({ children, title, subtitle }: { children: React.
         <nav className="grid gap-1">
           {allowedNavigation.map((item) => {
             const Icon = item.icon;
-            const isActive = currentPath === item.href || currentPath.startsWith(`${item.href}/`);
+            const isActive = item.href === "/platform" ? currentPath === item.href : currentPath === item.href || currentPath.startsWith(`${item.href}/`);
 
             return (
               <Link
@@ -108,7 +121,7 @@ export async function AppShell({ children, title, subtitle }: { children: React.
             <nav className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {allowedNavigation.map((item) => {
                 const Icon = item.icon;
-                const isActive = currentPath === item.href || currentPath.startsWith(`${item.href}/`);
+                const isActive = item.href === "/platform" ? currentPath === item.href : currentPath === item.href || currentPath.startsWith(`${item.href}/`);
 
                 return (
                   <Link

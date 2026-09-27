@@ -13,6 +13,7 @@ export type SellerCollectionItem = {
   receivedToday: number;
   installmentNumber: number;
   expectedPaidToDate: number;
+  amountDueToday: number;
   lateAmount: number;
   isPaidToday: boolean;
 };
@@ -201,6 +202,7 @@ function buildItems(clients: Client[], loans: Loan[], collections: Collection[],
       const expectedPaidToDate = Math.min(installmentNumber * loan.dailyPayment, loan.totalAmount);
       const lateAmount = Math.max(expectedPaidToDate - loan.paidAmount, 0);
       const expectedToday = Math.min(loan.dailyPayment, loan.balance);
+      const amountDueToday = Math.max(expectedToday - paidToday, 0);
 
       return {
         client,
@@ -209,8 +211,9 @@ function buildItems(clients: Client[], loans: Loan[], collections: Collection[],
         receivedToday,
         installmentNumber,
         expectedPaidToDate,
+        amountDueToday,
         lateAmount,
-        isPaidToday: expectedToday === 0 || paidToday >= expectedToday
+        isPaidToday: amountDueToday === 0
       } satisfies SellerCollectionItem;
     })
     .filter((item): item is SellerCollectionItem => Boolean(item))

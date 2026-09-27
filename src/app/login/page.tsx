@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { CollectorLoginRedirect } from "@/components/auth/collector-login-redirect";
 import { LoginForm } from "@/components/auth/login-form";
@@ -63,9 +62,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <p className="mt-2 text-sm leading-6 text-zinc-400">Inicia sesión para continuar. Los cobradores pueden entrar con su PIN.</p>
           {error ? <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{decodeURIComponent(error)}</p> : null}
           <LoginForm nextPath={next} />
-          <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4 text-sm text-zinc-400">
-            <Link href="/register" className="font-semibold text-brand-400 hover:text-brand-300">Crear empresa</Link>
-            <Link href="/mobile-login" className="font-semibold text-brand-400 hover:text-brand-300">Acceso cobrador</Link>
+          <div className="mt-5 flex justify-end border-t border-white/10 pt-4 text-sm text-zinc-400">
+            <a href="/mobile-login" className="font-semibold text-brand-400 hover:text-brand-300">Acceso cobrador</a>
           </div>
         </div>
       </section>

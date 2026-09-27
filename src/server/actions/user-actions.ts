@@ -58,6 +58,72 @@ async function buildCollectorMobileCredentials() {
   };
 }
 
+type UserCapacityErrorCode = "inactive-subscription" | "user-limit" | "seller-limit";
+
+class UserCapacityError extends Error {
+  constructor(readonly code: UserCapacityErrorCode) {
+    super(code);
+  }
+}
+
+async function createUserWithinPlan({
+  currentUser,
+  payload,
+  passwordHash,
+  mobileCredentials,
+  countryCode
+}: {
+  currentUser: NonNullable<Awaited<ReturnType<typeof getSessionUser>>>;
+  payload: { name: string; email: string; role: "ADMIN" | "SUPERVISOR" | "SELLER" };
+  passwordHash: string;
+  mobileCredentials: Awaited<ReturnType<typeof buildCollectorMobileCredentials>> | null;
+  countryCode: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${currentUser.companyId}, 0))`;
+    const subscription = await tx.subscriptionPlan.findUnique({ where: { companyId: currentUser.companyId } });
+    if (!subscription?.active) throw new UserCapacityError("inactive-subscription");
+    const [userCount, sellerCount] = await Promise.all([
+      tx.user.count({ where: { companyId: currentUser.companyId } }),
+      tx.user.count({ where: { companyId: currentUser.companyId, role: "SELLER" } })
+    ]);
+    if (userCount >= subscription.maxUsers) throw new UserCapacityError("user-limit");
+    if (payload.role === "SELLER" && sellerCount >= subscription.maxSellers) throw new UserCapacityError("seller-limit");
+
+    const user = await tx.user.create({
+      data: {
+        companyId: currentUser.companyId,
+        name: payload.name,
+        email: payload.email,
+        passwordHash,
+        mobileIdentifier: mobileCredentials?.mobileIdentifier,
+        mobilePinHash: mobileCredentials?.mobilePinHash,
+        mobilePinUpdatedAt: mobileCredentials?.mobilePinUpdatedAt,
+        role: payload.role,
+        countryCode: payload.role === "SELLER" ? countryCode : currentUser.countryCode
+      }
+    });
+    await tx.auditLog.create({
+      data: {
+        companyId: currentUser.companyId,
+        userId: currentUser.id,
+        action: "USER_CREATED",
+        entity: "User",
+        entityId: user.id,
+        newValue: { name: user.name, email: user.email, role: user.role, countryCode: user.countryCode, mobileIdentifier: user.mobileIdentifier }
+      }
+    });
+    return user;
+  });
+}
+
+function capacityErrorMessage(error: unknown) {
+  if (!(error instanceof UserCapacityError)) return null;
+  if (error.code === "inactive-subscription") return "La suscripción de la empresa está inactiva. Contacta al propietario de RUTERO.";
+  if (error.code === "user-limit") return "La empresa alcanzó el máximo de usuarios de su plan.";
+  return "La empresa alcanzó el máximo de cobradores de su plan.";
+}
+
 export async function createUserAction(formData: FormData) {
   const currentUser = await getSessionUser();
   if (!currentUser) redirect("/login");
@@ -73,30 +139,20 @@ export async function createUserAction(formData: FormData) {
 
   const passwordHash = await bcrypt.hash(payload.password, 10);
   const mobileCredentials = payload.role === "SELLER" ? await buildCollectorMobileCredentials() : null;
-  const user = await prisma.user.create({
-    data: {
-      companyId: currentUser.companyId,
-      name: payload.name,
-      email: payload.email,
+  let user;
+  try {
+    user = await createUserWithinPlan({
+      currentUser,
+      payload,
       passwordHash,
-      mobileIdentifier: mobileCredentials?.mobileIdentifier,
-      mobilePinHash: mobileCredentials?.mobilePinHash,
-      mobilePinUpdatedAt: mobileCredentials?.mobilePinUpdatedAt,
-      role: payload.role,
+      mobileCredentials,
       countryCode: payload.role === "SELLER" ? payload.countryCode : company.countryCode
-    }
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      companyId: currentUser.companyId,
-      userId: currentUser.id,
-      action: "USER_CREATED",
-      entity: "User",
-      entityId: user.id,
-      newValue: { name: user.name, email: user.email, role: user.role, countryCode: user.countryCode, mobileIdentifier: user.mobileIdentifier }
-    }
-  });
+    });
+  } catch (error) {
+    const message = capacityErrorMessage(error);
+    if (message) redirect(`/settings?error=${encodeURIComponent(message)}`);
+    throw error;
+  }
 
   await createNotification({
     companyId: currentUser.companyId,
@@ -131,30 +187,20 @@ export async function createUserFormAction(_state: UserFormState, formData: Form
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
   const mobileCredentials = parsed.data.role === "SELLER" ? await buildCollectorMobileCredentials() : null;
-  const user = await prisma.user.create({
-    data: {
-      companyId: currentUser.companyId,
-      name: parsed.data.name,
-      email: parsed.data.email,
+  let user;
+  try {
+    user = await createUserWithinPlan({
+      currentUser,
+      payload: parsed.data,
       passwordHash,
-      mobileIdentifier: mobileCredentials?.mobileIdentifier,
-      mobilePinHash: mobileCredentials?.mobilePinHash,
-      mobilePinUpdatedAt: mobileCredentials?.mobilePinUpdatedAt,
-      role: parsed.data.role,
+      mobileCredentials,
       countryCode: parsed.data.role === "SELLER" ? parsed.data.countryCode : company.countryCode
-    }
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      companyId: currentUser.companyId,
-      userId: currentUser.id,
-      action: "USER_CREATED",
-      entity: "User",
-      entityId: user.id,
-      newValue: { name: user.name, email: user.email, role: user.role, countryCode: user.countryCode, mobileIdentifier: user.mobileIdentifier }
-    }
-  });
+    });
+  } catch (error) {
+    const message = capacityErrorMessage(error);
+    if (message) return { ok: false, message };
+    throw error;
+  }
 
   await createNotification({
     companyId: currentUser.companyId,

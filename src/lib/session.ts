@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { createHash, randomBytes } from "crypto";
 import type { User } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isCompanyBillingSuspended } from "@/lib/billing";
 
 const sessionCookieName = "rutero_session";
 const sessionDurationDays = 30;
@@ -57,7 +58,13 @@ export async function getSessionUser(): Promise<User | null> {
     include: { user: true }
   });
 
-  if (!session || session.expiresAt < new Date() || !session.user.active) {
+  if (
+    !session ||
+    session.expiresAt < new Date() ||
+    !session.user.active ||
+    (session.user.role !== "SUPER_ADMIN" && await isCompanyBillingSuspended(session.user.companyId)) ||
+    (session.user.role === "PARTNER" && !await prisma.partnerProfile.findFirst({ where: { userId: session.user.id, active: true }, select: { id: true } }))
+  ) {
     await clearUserSession();
     return null;
   }
