@@ -1,6 +1,6 @@
 import { CapacitorConfig } from "@capacitor/cli";
 
-const serverUrl = (process.env.CAPACITOR_SERVER_URL ?? "https://vps68020.publiccloud.com.br/seller").trim();
+const serverUrl = (process.env.CAPACITOR_SERVER_URL ?? "https://rutero.fr-host.fr/login").trim();
 
 const config: CapacitorConfig = {
   appId: "com.rutero.app",
