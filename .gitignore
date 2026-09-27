@@ -39,3 +39,6 @@ android/app/*.jks
 # Local APK analysis artifacts
 analysis/
 *.apk
+
+# Local deployment keys
+.deploy/
