@@ -70,6 +70,209 @@ textarea {
 }
 
 @layer components {
+  .login-page {
+    isolation: isolate;
+    background:
+      radial-gradient(ellipse at 48% 48%, rgba(255, 122, 26, 0.055), transparent 48%),
+      #0b0b0a;
+  }
+
+  .login-welcome {
+    position: relative;
+    background:
+      radial-gradient(ellipse at 57% 53%, rgba(255, 122, 26, 0.075), transparent 41%),
+      linear-gradient(145deg, #171512 0%, #11100e 100%);
+    animation: login-rise 650ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .login-welcome-content {
+    width: 100%;
+    margin-top: auto;
+    margin-bottom: auto;
+    padding-block: 3rem;
+  }
+
+  .login-route-scene {
+    position: relative;
+    width: min(100%, 660px);
+    aspect-ratio: 660 / 290;
+    margin: 0 auto 2.5rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 1.25rem;
+    background:
+      radial-gradient(ellipse at 53% 57%, rgba(255, 122, 26, 0.09), transparent 50%),
+      repeating-linear-gradient(0deg, transparent 0 35px, rgba(255, 255, 255, 0.025) 36px),
+      repeating-linear-gradient(90deg, transparent 0 35px, rgba(255, 255, 255, 0.025) 36px),
+      rgba(11, 11, 10, 0.38);
+  }
+
+  .login-route-label {
+    position: absolute;
+    z-index: 2;
+    top: 1rem;
+    left: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #c9c0b6;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .login-route-pulse {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 9999px;
+    background: #ff8f31;
+    box-shadow: 0 0 12px rgba(255, 122, 26, 0.85);
+    animation: login-pulse 1.8s ease-in-out infinite;
+  }
+
+  .login-route-map {
+    position: absolute;
+    inset: 11% 3% 4%;
+    width: 94%;
+    height: 85%;
+    overflow: visible;
+  }
+
+  .login-route-glow,
+  .login-route-line {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+
+  .login-route-glow {
+    stroke: rgba(255, 122, 26, 0.19);
+    stroke-width: 17;
+    filter: blur(8px);
+  }
+
+  .login-route-line {
+    stroke: #ff8f31;
+    stroke-dasharray: 1100;
+    stroke-dashoffset: 1100;
+    stroke-width: 2.5;
+    animation: login-route-draw 5s ease-in-out infinite alternate;
+  }
+
+  .login-route-stop {
+    fill: #171512;
+    stroke: #ffad5d;
+    stroke-width: 2;
+  }
+
+  .login-route-stop-end {
+    fill: #ff7a1a;
+    stroke: #ffd2a9;
+    stroke-width: 2.5;
+    filter: drop-shadow(0 0 7px rgba(255, 122, 26, 0.8));
+  }
+
+  .login-route-marker {
+    position: absolute;
+    z-index: 1;
+    top: 70.7%;
+    left: 6.8%;
+    width: 0.7rem;
+    height: 0.7rem;
+    border: 2px solid #fff4e9;
+    border-radius: 9999px;
+    background: #ff7a1a;
+    box-shadow: 0 0 0 5px rgba(255, 122, 26, 0.16), 0 0 22px rgba(255, 122, 26, 0.8);
+    animation: login-route-travel 7s ease-in-out infinite;
+  }
+
+  .login-route-caption {
+    position: absolute;
+    right: 1.1rem;
+    bottom: 0.9rem;
+    left: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #827b73;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .login-route-caption-line {
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, rgba(255, 122, 26, 0.4), transparent);
+  }
+
+  .login-form-section {
+    animation: login-rise 650ms 100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .login-form-card {
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.015);
+  }
+
+  @keyframes login-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes login-route-draw {
+    0% {
+      stroke-dashoffset: 1100;
+      opacity: 0.45;
+    }
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+
+  @keyframes login-route-travel {
+    0%,
+    4% {
+      top: 70.7%;
+      left: 6.8%;
+    }
+    24% {
+      top: 38.6%;
+      left: 30.6%;
+    }
+    43% {
+      top: 53%;
+      left: 54.5%;
+    }
+    62% {
+      top: 34.4%;
+      left: 77.3%;
+    }
+    82%,
+    96% {
+      top: 20%;
+      left: 93%;
+    }
+    100% {
+      top: 70.7%;
+      left: 6.8%;
+    }
+  }
+
+  @keyframes login-pulse {
+    50% {
+      opacity: 0.45;
+      box-shadow: 0 0 4px rgba(255, 122, 26, 0.4);
+    }
+  }
+
   .overflow-x-auto {
     max-width: 100%;
     -webkit-overflow-scrolling: touch;
@@ -141,6 +344,22 @@ textarea {
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .login-welcome,
+    .login-form-section,
+    .login-route-pulse,
+    .login-route-line,
+    .login-route-marker {
+      animation: none;
+    }
+
+    .login-route-line {
+      stroke-dashoffset: 0;
+    }
+
+    .login-route-marker {
+      display: none;
+    }
+
     *,
     *::before,
     *::after {
