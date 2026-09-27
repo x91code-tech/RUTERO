@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Capacitor } from "@capacitor/core";
 
 const collectorIdKey = "rutero_collector_id";
 
@@ -10,7 +11,7 @@ export function CollectorLoginRedirect() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (searchParams.get("force") === "email") return;
+    if (Capacitor.isNativePlatform() || searchParams.get("force") === "email") return;
 
     const collectorId = window.localStorage.getItem(collectorIdKey);
     if (!collectorId) return;
