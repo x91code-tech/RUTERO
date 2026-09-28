@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ function getOrCreateDeviceToken() {
 export function LoginForm({ nextPath }: { nextPath?: string }) {
   const deviceTokenRef = useRef<HTMLInputElement>(null);
   const deviceNameRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState("");
+  const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
     if (deviceTokenRef.current) deviceTokenRef.current.value = getOrCreateDeviceToken();
@@ -29,20 +31,51 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
     if (deviceNameRef.current) deviceNameRef.current.value = navigator.userAgent.slice(0, 180);
   }
 
+  async function submitLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    ensureDeviceToken();
+    setError("");
+    setIsPending(true);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        body: new FormData(event.currentTarget),
+        credentials: "same-origin",
+        headers: {
+          "x-rutero-login-fetch": "1"
+        }
+      });
+      const data = await response.json() as { ok?: boolean; message?: string; redirectTo?: string };
+
+      if (!response.ok || !data.ok || !data.redirectTo) {
+        setError(data.message ?? "No se pudo iniciar sesion.");
+        return;
+      }
+
+      window.location.assign(data.redirectTo);
+    } catch {
+      setError("No se pudo conectar con el servidor.");
+    } finally {
+      setIsPending(false);
+    }
+  }
+
   return (
-    <form action="/api/auth/login" method="post" onSubmit={ensureDeviceToken} className="mt-6 grid gap-4">
+    <form action="/api/auth/login" method="post" onSubmit={submitLogin} className="mt-6 grid gap-4">
       <input type="hidden" name="next" value={nextPath ?? ""} />
       <input ref={deviceTokenRef} type="hidden" name="deviceToken" />
       <input ref={deviceNameRef} type="hidden" name="deviceName" />
+      {error ? <p className="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{error}</p> : null}
       <Field label="Correo">
         <Input name="email" type="email" autoComplete="email" placeholder="admin@empresa.com" />
       </Field>
       <Field label="Contrasena">
         <Input name="password" type="password" autoComplete="current-password" placeholder="Tu contrasena" />
       </Field>
-      <Button type="submit">
+      <Button type="submit" disabled={isPending}>
         <LogIn className="h-4 w-4" />
-        Entrar
+        {isPending ? "Entrando..." : "Entrar"}
       </Button>
     </form>
   );
