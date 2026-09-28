@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 import type { CurrencyConfig } from "@/lib/countries";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -27,7 +28,8 @@ const palette = ["#ff6b13", "#34d399", "#60a5fa", "#f59e0b", "#f87171", "#a3e635
 
 export function AdminAnalytics({ company, data }: { company: Partial<CurrencyConfig>; data: AdminAnalyticsData }) {
   return (
-    <div className="grid gap-6 xl:grid-cols-2">
+    <ClientErrorBoundary fallback={<AnalyticsFallback />}>
+      <div className="grid gap-6 xl:grid-cols-2">
       <ChartFrame title="Flujo de caja">
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data.cashFlow} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
@@ -83,7 +85,19 @@ export function AdminAnalytics({ company, data }: { company: Partial<CurrencyCon
           </div>
         </div>
       </ChartFrame>
-    </div>
+      </div>
+    </ClientErrorBoundary>
+  );
+}
+
+function AnalyticsFallback() {
+  return (
+    <section className="surface rounded-lg p-5">
+      <h2 className="text-lg font-bold text-white">Analiticas</h2>
+      <p className="mt-2 text-sm text-zinc-400">
+        Las graficas no se pudieron renderizar en este dispositivo. Los indicadores y tablas siguen disponibles.
+      </p>
+    </section>
   );
 }
 
@@ -153,8 +167,14 @@ function MoneyTooltip({
 }
 
 function compactMoney(value: number, company: Partial<CurrencyConfig>) {
-  return new Intl.NumberFormat(company.locale ?? "es-VE", {
-    notation: "compact",
-    maximumFractionDigits: 1
-  }).format(value);
+  try {
+    return new Intl.NumberFormat(company.locale ?? "es-VE", {
+      notation: "compact",
+      maximumFractionDigits: 1
+    }).format(value);
+  } catch {
+    return new Intl.NumberFormat(company.locale ?? "es-VE", {
+      maximumFractionDigits: 0
+    }).format(value);
+  }
 }

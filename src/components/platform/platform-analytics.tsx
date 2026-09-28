@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 
 type PlatformAnalyticsProps = {
   statusRows: { label: string; value: number; color: string }[];
@@ -25,54 +26,67 @@ const mutedColor = "#8b837b";
 
 export function PlatformAnalytics({ statusRows, planRows, currencyRows, partnerRows }: PlatformAnalyticsProps) {
   return (
-    <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-      <div className="surface rounded-2xl p-4 sm:p-5">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-black tracking-[-0.02em] text-white sm:text-lg">Pulso de suscripciones</h2>
-            <p className="mt-1 text-sm text-zinc-400">Estado actual de empresas y riesgo de cobro.</p>
+    <ClientErrorBoundary fallback={<PlatformAnalyticsFallback />}>
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="surface rounded-2xl p-4 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-black tracking-[-0.02em] text-white sm:text-lg">Pulso de suscripciones</h2>
+              <p className="mt-1 text-sm text-zinc-400">Estado actual de empresas y riesgo de cobro.</p>
+            </div>
+            <StatusLegend rows={statusRows} />
           </div>
-          <StatusLegend rows={statusRows} />
-        </div>
-        <div className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
-          <div className="h-64 min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={statusRows} dataKey="value" nameKey="label" innerRadius={62} outerRadius={92} paddingAngle={3}>
-                  {statusRows.map((row) => <Cell key={row.label} fill={row.color} />)}
-                </Pie>
-                <Tooltip content={<CountTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="min-w-0">
-            <h3 className="mb-3 text-sm font-bold text-zinc-300">Empresas por plan</h3>
-            <div className="h-64">
+          <div className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="h-64 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={planRows} layout="vertical" margin={{ left: 8, right: 8, top: 6, bottom: 6 }}>
-                  <CartesianGrid stroke="#ffffff14" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} stroke={mutedColor} tickLine={false} axisLine={false} fontSize={12} />
-                  <YAxis type="category" dataKey="label" width={92} stroke="#b9b0a6" tickLine={false} axisLine={false} fontSize={12} />
-                  <Tooltip content={<CountTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                  <Bar dataKey="value" name="Empresas" radius={[0, 7, 7, 0]} fill={barColor} />
-                </BarChart>
+                <PieChart>
+                  <Pie data={statusRows} dataKey="value" nameKey="label" innerRadius={62} outerRadius={92} paddingAngle={3}>
+                    {statusRows.map((row) => <Cell key={row.label} fill={row.color} />)}
+                  </Pie>
+                  <Tooltip content={<CountTooltip />} />
+                </PieChart>
               </ResponsiveContainer>
+            </div>
+            <div className="min-w-0">
+              <h3 className="mb-3 text-sm font-bold text-zinc-300">Empresas por plan</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={planRows} layout="vertical" margin={{ left: 8, right: 8, top: 6, bottom: 6 }}>
+                    <CartesianGrid stroke="#ffffff14" horizontal={false} />
+                    <XAxis type="number" allowDecimals={false} stroke={mutedColor} tickLine={false} axisLine={false} fontSize={12} />
+                    <YAxis type="category" dataKey="label" width={92} stroke="#b9b0a6" tickLine={false} axisLine={false} fontSize={12} />
+                    <Tooltip content={<CountTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                    <Bar dataKey="value" name="Empresas" radius={[0, 7, 7, 0]} fill={barColor} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid gap-4">
-        <MetricPanel title="Mensualidad esperada" description="Suma por moneda de las suscripciones activas configuradas.">
-          <ValueRows rows={currencyRows.map((row) => ({
-            label: row.label,
-            value: formatBilling(row.value, row.currencyCode)
-          }))} empty="No hay mensualidades configuradas." />
-        </MetricPanel>
-        <MetricPanel title="Red comercial" description="Empresas referidas por socio activo.">
-          <ValueRows rows={partnerRows.map((row) => ({ label: row.label, value: String(row.value) }))} empty="Todavia no hay empresas referidas." />
-        </MetricPanel>
-      </div>
+        <div className="grid gap-4">
+          <MetricPanel title="Mensualidad esperada" description="Suma por moneda de las suscripciones activas configuradas.">
+            <ValueRows rows={currencyRows.map((row) => ({
+              label: row.label,
+              value: formatBilling(row.value, row.currencyCode)
+            }))} empty="No hay mensualidades configuradas." />
+          </MetricPanel>
+          <MetricPanel title="Red comercial" description="Empresas referidas por socio activo.">
+            <ValueRows rows={partnerRows.map((row) => ({ label: row.label, value: String(row.value) }))} empty="Todavia no hay empresas referidas." />
+          </MetricPanel>
+        </div>
+      </section>
+    </ClientErrorBoundary>
+  );
+}
+
+function PlatformAnalyticsFallback() {
+  return (
+    <section className="surface rounded-2xl p-5">
+      <h2 className="text-base font-black tracking-[-0.02em] text-white">Analiticas de plataforma</h2>
+      <p className="mt-2 text-sm text-zinc-400">
+        Las graficas no se pudieron renderizar en este dispositivo. Las metricas y acciones siguen disponibles.
+      </p>
     </section>
   );
 }
