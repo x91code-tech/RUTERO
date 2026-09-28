@@ -1,18 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from "recharts";
 import { ClientErrorBoundary } from "@/components/ui/client-error-boundary";
 
 type PlatformAnalyticsProps = {
@@ -22,16 +9,7 @@ type PlatformAnalyticsProps = {
   partnerRows: { label: string; value: number }[];
 };
 
-const barColor = "#ff7a1a";
-const mutedColor = "#8b837b";
-
 export function PlatformAnalytics({ statusRows, planRows, currencyRows, partnerRows }: PlatformAnalyticsProps) {
-  const chartState = useChartRuntimeState();
-
-  if (chartState !== "ready") {
-    return <PlatformAnalyticsFallback loading={chartState === "loading"} />;
-  }
-
   return (
     <ClientErrorBoundary fallback={<PlatformAnalyticsFallback />}>
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
@@ -43,30 +21,11 @@ export function PlatformAnalytics({ statusRows, planRows, currencyRows, partnerR
             </div>
             <StatusLegend rows={statusRows} />
           </div>
-          <div className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
-            <div className="h-64 min-w-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={statusRows} dataKey="value" nameKey="label" innerRadius={62} outerRadius={92} paddingAngle={3}>
-                    {statusRows.map((row) => <Cell key={row.label} fill={row.color} />)}
-                  </Pie>
-                  <Tooltip content={<CountTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="grid gap-5 lg:grid-cols-2">
+            <ProgressRows rows={statusRows.map((row) => ({ ...row, valueLabel: `${row.value}` }))} empty="No hay empresas registradas." />
             <div className="min-w-0">
               <h3 className="mb-3 text-sm font-bold text-zinc-300">Empresas por plan</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={planRows} layout="vertical" margin={{ left: 8, right: 8, top: 6, bottom: 6 }}>
-                    <CartesianGrid stroke="#ffffff14" horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} stroke={mutedColor} tickLine={false} axisLine={false} fontSize={12} />
-                    <YAxis type="category" dataKey="label" width={92} stroke="#b9b0a6" tickLine={false} axisLine={false} fontSize={12} />
-                    <Tooltip content={<CountTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                    <Bar dataKey="value" name="Empresas" radius={[0, 7, 7, 0]} fill={barColor} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <ProgressRows rows={planRows.map((row) => ({ ...row, color: "#ff7a1a", valueLabel: `${row.value}` }))} empty="No hay planes asignados." />
             </div>
           </div>
         </div>
@@ -87,33 +46,15 @@ export function PlatformAnalytics({ statusRows, planRows, currencyRows, partnerR
   );
 }
 
-function PlatformAnalyticsFallback({ loading = false }: { loading?: boolean }) {
+function PlatformAnalyticsFallback() {
   return (
     <section className="surface rounded-2xl p-5">
       <h2 className="text-base font-black tracking-[-0.02em] text-white">Analiticas de plataforma</h2>
       <p className="mt-2 text-sm text-zinc-400">
-        {loading
-          ? "Preparando graficas..."
-          : "Las graficas avanzadas no se muestran en la app movil para evitar errores del WebView. Las metricas y acciones siguen disponibles."}
+        No se pudo cargar este bloque de analiticas. Las metricas y acciones siguen disponibles.
       </p>
     </section>
   );
-}
-
-function useChartRuntimeState() {
-  const [state, setState] = useState<"loading" | "ready" | "native">("loading");
-
-  useEffect(() => {
-    const capacitor = (window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-    if (capacitor?.isNativePlatform?.()) {
-      setState("native");
-      return;
-    }
-
-    setState("ready");
-  }, []);
-
-  return state;
 }
 
 function MetricPanel({ children, description, title }: { children: React.ReactNode; description: string; title: string }) {
@@ -122,6 +63,34 @@ function MetricPanel({ children, description, title }: { children: React.ReactNo
       <h2 className="text-base font-black tracking-[-0.02em] text-white">{title}</h2>
       <p className="mt-1 text-sm leading-5 text-zinc-400">{description}</p>
       <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function ProgressRows({
+  empty,
+  rows
+}: {
+  empty: string;
+  rows: { label: string; value: number; valueLabel: string; color: string }[];
+}) {
+  if (!rows.length) return <p className="rounded-xl border border-white/10 bg-carbon-950 p-3 text-sm text-zinc-500">{empty}</p>;
+
+  const max = Math.max(...rows.map((row) => row.value), 1);
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row) => (
+        <div key={row.label} className="rounded-xl border border-white/10 bg-carbon-950 p-3">
+          <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+            <span className="min-w-0 truncate font-semibold text-zinc-300">{row.label}</span>
+            <strong className="shrink-0 tabular-nums text-white">{row.valueLabel}</strong>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full" style={{ width: `${(row.value / max) * 100}%`, backgroundColor: row.color }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -150,25 +119,6 @@ function ValueRows({ empty, rows }: { empty: string; rows: { label: string; valu
           <strong className="shrink-0 text-sm tabular-nums text-white">{row.value}</strong>
         </div>
       ))}
-    </div>
-  );
-}
-
-function CountTooltip({
-  active,
-  label,
-  payload
-}: {
-  active?: boolean;
-  label?: string;
-  payload?: { name?: string; value?: number; payload?: { label?: string } }[];
-}) {
-  if (!active || !payload?.length) return null;
-  const item = payload[0];
-  return (
-    <div className="rounded-lg border border-white/10 bg-carbon-950/95 p-3 shadow-xl">
-      <p className="text-sm font-bold text-white">{label ?? item.payload?.label ?? item.name}</p>
-      <p className="mt-1 text-sm text-zinc-400">{item.value ?? 0} registros</p>
     </div>
   );
 }
