@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -27,6 +28,12 @@ export type AdminAnalyticsData = {
 const palette = ["#ff6b13", "#34d399", "#60a5fa", "#f59e0b", "#f87171", "#a3e635"];
 
 export function AdminAnalytics({ company, data }: { company: Partial<CurrencyConfig>; data: AdminAnalyticsData }) {
+  const chartState = useChartRuntimeState();
+
+  if (chartState !== "ready") {
+    return <AnalyticsFallback loading={chartState === "loading"} />;
+  }
+
   return (
     <ClientErrorBoundary fallback={<AnalyticsFallback />}>
       <div className="grid gap-6 xl:grid-cols-2">
@@ -90,15 +97,33 @@ export function AdminAnalytics({ company, data }: { company: Partial<CurrencyCon
   );
 }
 
-function AnalyticsFallback() {
+function AnalyticsFallback({ loading = false }: { loading?: boolean }) {
   return (
     <section className="surface rounded-lg p-5">
       <h2 className="text-lg font-bold text-white">Analiticas</h2>
       <p className="mt-2 text-sm text-zinc-400">
-        Las graficas no se pudieron renderizar en este dispositivo. Los indicadores y tablas siguen disponibles.
+        {loading
+          ? "Preparando graficas..."
+          : "Las graficas avanzadas no se muestran en la app movil para evitar errores del WebView. Los indicadores y tablas siguen disponibles."}
       </p>
     </section>
   );
+}
+
+function useChartRuntimeState() {
+  const [state, setState] = useState<"loading" | "ready" | "native">("loading");
+
+  useEffect(() => {
+    const capacitor = (window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+    if (capacitor?.isNativePlatform?.()) {
+      setState("native");
+      return;
+    }
+
+    setState("ready");
+  }, []);
+
+  return state;
 }
 
 function ChartFrame({ children, title }: { children: React.ReactNode; title: string }) {

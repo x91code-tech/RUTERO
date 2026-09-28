@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -25,6 +26,12 @@ const barColor = "#ff7a1a";
 const mutedColor = "#8b837b";
 
 export function PlatformAnalytics({ statusRows, planRows, currencyRows, partnerRows }: PlatformAnalyticsProps) {
+  const chartState = useChartRuntimeState();
+
+  if (chartState !== "ready") {
+    return <PlatformAnalyticsFallback loading={chartState === "loading"} />;
+  }
+
   return (
     <ClientErrorBoundary fallback={<PlatformAnalyticsFallback />}>
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
@@ -80,15 +87,33 @@ export function PlatformAnalytics({ statusRows, planRows, currencyRows, partnerR
   );
 }
 
-function PlatformAnalyticsFallback() {
+function PlatformAnalyticsFallback({ loading = false }: { loading?: boolean }) {
   return (
     <section className="surface rounded-2xl p-5">
       <h2 className="text-base font-black tracking-[-0.02em] text-white">Analiticas de plataforma</h2>
       <p className="mt-2 text-sm text-zinc-400">
-        Las graficas no se pudieron renderizar en este dispositivo. Las metricas y acciones siguen disponibles.
+        {loading
+          ? "Preparando graficas..."
+          : "Las graficas avanzadas no se muestran en la app movil para evitar errores del WebView. Las metricas y acciones siguen disponibles."}
       </p>
     </section>
   );
+}
+
+function useChartRuntimeState() {
+  const [state, setState] = useState<"loading" | "ready" | "native">("loading");
+
+  useEffect(() => {
+    const capacitor = (window as typeof window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+    if (capacitor?.isNativePlatform?.()) {
+      setState("native");
+      return;
+    }
+
+    setState("ready");
+  }, []);
+
+  return state;
 }
 
 function MetricPanel({ children, description, title }: { children: React.ReactNode; description: string; title: string }) {
