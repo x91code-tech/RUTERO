@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { NativeAutoUpdate } from "@/components/native-auto-update";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
@@ -25,7 +24,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="es">
       <body>
         <PwaRegister />
-        <NativeAutoUpdate />
         {children}
       </body>
     </html>
