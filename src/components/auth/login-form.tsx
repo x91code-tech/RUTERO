@@ -1,12 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
-import { loginFormAction, type AuthFormState } from "@/server/actions/auth-actions";
 
-const initialState: AuthFormState = { ok: false, message: "" };
 const deviceTokenKey = "rutero_device_token";
 
 function getOrCreateDeviceToken() {
@@ -18,7 +16,6 @@ function getOrCreateDeviceToken() {
 }
 
 export function LoginForm({ nextPath }: { nextPath?: string }) {
-  const [state, action, isPending] = useActionState(loginFormAction, initialState);
   const deviceTokenRef = useRef<HTMLInputElement>(null);
   const deviceNameRef = useRef<HTMLInputElement>(null);
 
@@ -33,28 +30,20 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
   }
 
   return (
-    <form action={action} onSubmit={ensureDeviceToken} className="mt-6 grid gap-4">
+    <form action="/api/auth/login" method="post" onSubmit={ensureDeviceToken} className="mt-6 grid gap-4">
       <input type="hidden" name="next" value={nextPath ?? ""} />
       <input ref={deviceTokenRef} type="hidden" name="deviceToken" />
       <input ref={deviceNameRef} type="hidden" name="deviceName" />
-      {state.message ? <p className="rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{state.message}</p> : null}
       <Field label="Correo">
-        <Input name="email" type="email" autoComplete="email" placeholder="admin@empresa.com" aria-invalid={Boolean(state.fieldErrors?.email)} />
-        <FieldError message={state.fieldErrors?.email?.[0]} />
+        <Input name="email" type="email" autoComplete="email" placeholder="admin@empresa.com" />
       </Field>
       <Field label="Contrasena">
-        <Input name="password" type="password" autoComplete="current-password" placeholder="Tu contrasena" aria-invalid={Boolean(state.fieldErrors?.password)} />
-        <FieldError message={state.fieldErrors?.password?.[0]} />
+        <Input name="password" type="password" autoComplete="current-password" placeholder="Tu contrasena" />
       </Field>
-      <Button type="submit" disabled={isPending}>
+      <Button type="submit">
         <LogIn className="h-4 w-4" />
-        {isPending ? "Entrando..." : "Entrar"}
+        Entrar
       </Button>
     </form>
   );
-}
-
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return <span className="text-xs font-medium text-red-300">{message}</span>;
 }
