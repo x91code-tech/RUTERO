@@ -2,8 +2,10 @@
 
 import { useEffect } from "react";
 
-const STORAGE_KEY = "rutero:last-build-id";
+const STORAGE_KEY = "rutero:last-build-id:v2";
+const RELOAD_FLAG_KEY = "rutero:reload-in-progress";
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const AUTH_PATHS = new Set(["/login", "/mobile-login", "/register", "/device-setup"]);
 
 async function clearNativeWebCaches() {
   if ("serviceWorker" in navigator) {
@@ -26,6 +28,12 @@ async function getServerBuildId() {
   return typeof payload.buildId === "string" && payload.buildId ? payload.buildId : null;
 }
 
+function canReloadNow() {
+  if (document.visibilityState !== "visible") return false;
+  if (document.readyState !== "complete") return false;
+  return !AUTH_PATHS.has(window.location.pathname);
+}
+
 export function NativeAutoUpdate() {
   useEffect(() => {
     let disposed = false;
@@ -46,10 +54,17 @@ export function NativeAutoUpdate() {
           return;
         }
 
-        if (previousBuildId !== buildId) {
+        if (previousBuildId !== buildId && canReloadNow()) {
           window.localStorage.setItem(STORAGE_KEY, buildId);
+          window.sessionStorage.setItem(RELOAD_FLAG_KEY, "1");
           await clearNativeWebCaches();
-          window.location.reload();
+          window.setTimeout(() => {
+            const url = new URL(window.location.href);
+            url.searchParams.set("rutero_build", buildId);
+            window.location.replace(url.toString());
+          }, 1500);
+        } else if (window.sessionStorage.getItem(RELOAD_FLAG_KEY) === "1") {
+          window.sessionStorage.removeItem(RELOAD_FLAG_KEY);
         }
       } catch {
         // Network and transient server errors should not block the mobile app.
