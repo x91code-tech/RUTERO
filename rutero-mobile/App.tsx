@@ -1,8 +1,8 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import { createCollection, getDeviceToken, getMe, getRoute, loginWithEmail, loginWithPin, type MobileUser, type RouteClient, type RoutePayload } from "./src";
+import { closeCashbox, createCollection, createExpense, getDeviceToken, getMe, getRoute, loginWithEmail, loginWithPin, type MobileUser, type RouteClient, type RoutePayload } from "./src";
 
 type AuthMode = "email" | "pin";
 
@@ -120,10 +120,13 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
   onLogout: () => void;
 }) {
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<RouteClient | null>(null);
+  const [movementOpen, setMovementOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
   const money = useMemo(() => moneyFormatter(route.company?.locale ?? "es-VE", route.company?.currencyCode ?? "VES"), [route.company]);
   const canCollect = route.cashbox?.status === "OPEN";
 
-  async function collectInstallment(client: RouteClient) {
+  async function collect(client: RouteClient, amount: number, paymentType: "INSTALLMENT" | "ADVANCE" | "SETTLEMENT" | "MANUAL") {
     if (!client.loan) return;
     if (!canCollect) {
       Alert.alert("Caja cerrada", "La caja debe estar abierta para registrar pagos.");
@@ -134,8 +137,8 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
       await createCollection(token, {
         clientId: client.id,
         loanId: client.loan.id,
-        amount: client.loan.dailyPayment,
-        paymentType: "INSTALLMENT",
+        amount,
+        paymentType,
         application: "NORMAL",
         paymentMethod: "CASH_LOCAL"
       });
@@ -168,6 +171,10 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
       <View style={styles.cashboxStrip}>
         <Text style={styles.cashboxLabel}>Caja</Text>
         <Text style={styles.cashboxValue}>{route.cashbox ? `${route.cashbox.status} · ${money(route.cashbox.expectedCash)}` : "Sin abrir"}</Text>
+        <View style={styles.quickActions}>
+          <SmallAction label="Movimiento" onPress={() => setMovementOpen(true)} />
+          <SmallAction label="Cerrar caja" onPress={() => setCloseOpen(true)} />
+        </View>
       </View>
 
       <FlatList
@@ -181,19 +188,24 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
             client={item}
             money={money}
             busy={busyClientId === item.id}
-            onCollect={() => collectInstallment(item)}
+            onCollect={() => collect(item, item.loan?.dailyPayment ?? 0, "INSTALLMENT")}
+            onOpen={() => setSelectedClient(item)}
           />
         )}
       />
+      <PaymentModal client={selectedClient} money={money} onClose={() => setSelectedClient(null)} onPay={(amount, type) => selectedClient ? collect(selectedClient, amount, type) : Promise.resolve()} />
+      <MovementModal open={movementOpen} onClose={() => setMovementOpen(false)} onSave={async (payload) => { await createExpense(token, payload); setMovementOpen(false); await onRefresh(); }} />
+      <CloseCashboxModal open={closeOpen} cashbox={route.cashbox} onClose={() => setCloseOpen(false)} onSave={async (payload) => { await closeCashbox(token, payload); setCloseOpen(false); await onRefresh(); }} />
     </SafeAreaView>
   );
 }
 
-function ClientCard({ client, money, busy, onCollect }: {
+function ClientCard({ client, money, busy, onCollect, onOpen }: {
   client: RouteClient;
   money: (value: number) => string;
   busy: boolean;
   onCollect: () => void;
+  onOpen: () => void;
 }) {
   const paid = client.paidToday > 0;
   return (
@@ -211,9 +223,104 @@ function ClientCard({ client, money, busy, onCollect }: {
         <Mini label="Pago hoy" value={money(client.paidToday)} tone={paid ? "green" : "neutral"} />
         <Mini label="Saldo" value={client.loan ? money(client.loan.balance) : "-"} />
       </View>
-      <Pressable style={[styles.collectButton, paid && styles.collectButtonSecondary]} onPress={onCollect} disabled={busy || !client.loan}>
-        <Text style={styles.collectButtonText}>{busy ? "Registrando..." : paid ? "Agregar otro pago" : "Cobrar cuota"}</Text>
-      </Pressable>
+      <View style={styles.clientActions}>
+        <Pressable style={[styles.collectButton, paid && styles.collectButtonSecondary]} onPress={onCollect} disabled={busy || !client.loan}>
+          <Text style={styles.collectButtonText}>{busy ? "..." : "Cuota"}</Text>
+        </Pressable>
+        <Pressable style={styles.moreButton} onPress={onOpen}><Text style={styles.moreButtonText}>Mas</Text></Pressable>
+      </View>
+    </View>
+  );
+}
+
+function PaymentModal({ client, money, onClose, onPay }: {
+  client: RouteClient | null;
+  money: (value: number) => string;
+  onClose: () => void;
+  onPay: (amount: number, type: "INSTALLMENT" | "ADVANCE" | "SETTLEMENT" | "MANUAL") => Promise<void>;
+}) {
+  const [amount, setAmount] = useState("");
+  if (!client?.loan) return null;
+  const quota = client.loan.dailyPayment;
+  const balance = client.loan.balance;
+  async function pay(value: number, type: "INSTALLMENT" | "ADVANCE" | "SETTLEMENT" | "MANUAL") {
+    await onPay(value, type);
+    setAmount("");
+    onClose();
+  }
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <ModalPanel title={client.name} onClose={onClose}>
+        <Text style={styles.modalMeta}>Cuota {money(quota)} · Saldo {money(balance)}</Text>
+        <View style={styles.modalGrid}>
+          <SmallAction label="Cuota" onPress={() => pay(quota, "INSTALLMENT")} />
+          <SmallAction label="Adelanto" onPress={() => pay(quota * 2, "ADVANCE")} />
+          <SmallAction label="Todo" onPress={() => pay(balance, "SETTLEMENT")} />
+        </View>
+        <Field value={amount} onChangeText={setAmount} placeholder="Monto manual" keyboardType="decimal-pad" />
+        <PrimaryButton label="Registrar manual" onPress={() => pay(Number(amount), "MANUAL")} disabled={!Number(amount)} />
+      </ModalPanel>
+    </Modal>
+  );
+}
+
+function MovementModal({ open, onClose, onSave }: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (payload: { movementKind: "EXPENSE" | "WITHDRAWAL" | "INCOME"; type: string; amount: number; paymentMethod: string; comment: string }) => Promise<void>;
+}) {
+  const [movementKind, setMovementKind] = useState<"EXPENSE" | "WITHDRAWAL" | "INCOME">("EXPENSE");
+  const [type, setType] = useState("Gastos: Varios");
+  const [amount, setAmount] = useState("");
+  const [comment, setComment] = useState("");
+  return (
+    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+      <ModalPanel title="Movimiento de caja" onClose={onClose}>
+        <View style={styles.segment}>
+          <SegmentButton active={movementKind === "EXPENSE"} label="Gasto" onPress={() => setMovementKind("EXPENSE")} />
+          <SegmentButton active={movementKind === "WITHDRAWAL"} label="Retiro" onPress={() => setMovementKind("WITHDRAWAL")} />
+          <SegmentButton active={movementKind === "INCOME"} label="Entrada" onPress={() => setMovementKind("INCOME")} />
+        </View>
+        <Field value={type} onChangeText={setType} placeholder="Tipo" />
+        <Field value={amount} onChangeText={setAmount} placeholder="Monto" keyboardType="decimal-pad" />
+        <Field value={comment} onChangeText={setComment} placeholder="Comentario" />
+        <PrimaryButton label="Guardar movimiento" onPress={() => onSave({ movementKind, type, amount: Number(amount), paymentMethod: "CASH_LOCAL", comment })} disabled={!Number(amount) || comment.length < 2} />
+      </ModalPanel>
+    </Modal>
+  );
+}
+
+function CloseCashboxModal({ open, cashbox, onClose, onSave }: {
+  open: boolean;
+  cashbox: RoutePayload["cashbox"];
+  onClose: () => void;
+  onSave: (payload: { reportedCash: number; reportedTransfer: number; reportedPix: number; observations?: string }) => Promise<void>;
+}) {
+  const [reportedCash, setReportedCash] = useState(String(cashbox?.expectedCash ?? 0));
+  const [reportedTransfer, setReportedTransfer] = useState(String(cashbox?.reportedTransfer ?? 0));
+  const [reportedPix, setReportedPix] = useState(String(cashbox?.reportedPix ?? 0));
+  const [observations, setObservations] = useState("");
+  return (
+    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+      <ModalPanel title="Cerrar caja" onClose={onClose}>
+        <Text style={styles.modalMeta}>Esperado: {cashbox?.expectedCash ?? 0}</Text>
+        <Field value={reportedCash} onChangeText={setReportedCash} placeholder="Efectivo reportado" keyboardType="decimal-pad" />
+        <Field value={reportedTransfer} onChangeText={setReportedTransfer} placeholder="Transferencia reportada" keyboardType="decimal-pad" />
+        <Field value={reportedPix} onChangeText={setReportedPix} placeholder="Digital reportado" keyboardType="decimal-pad" />
+        <Field value={observations} onChangeText={setObservations} placeholder="Observaciones" />
+        <PrimaryButton label="Cerrar caja" onPress={() => onSave({ reportedCash: Number(reportedCash), reportedTransfer: Number(reportedTransfer), reportedPix: Number(reportedPix), observations })} disabled={!cashbox || cashbox.status !== "OPEN"} />
+      </ModalPanel>
+    </Modal>
+  );
+}
+
+function ModalPanel({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+  return (
+    <View style={styles.modalBackdrop}>
+      <ScrollView contentContainerStyle={styles.modalPanel}>
+        <View style={styles.modalHeader}><Text style={styles.modalTitle}>{title}</Text><Pressable onPress={onClose}><Text style={styles.closeText}>Cerrar</Text></Pressable></View>
+        {children}
+      </ScrollView>
     </View>
   );
 }
@@ -236,6 +343,10 @@ function SegmentButton({ active, label, onPress }: { active: boolean; label: str
 
 function Metric({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "green" | "orange" }) {
   return <View style={styles.metric}><Text style={styles.metricLabel}>{label}</Text><Text style={[styles.metricValue, tone === "green" && styles.green, tone === "orange" && styles.orange]}>{value}</Text></View>;
+}
+
+function SmallAction({ label, onPress }: { label: string; onPress: () => void }) {
+  return <Pressable style={styles.smallAction} onPress={onPress}><Text style={styles.smallActionText}>{label}</Text></Pressable>;
 }
 
 function Mini({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "green" }) {
@@ -275,6 +386,9 @@ const styles = StyleSheet.create({
   cashboxStrip: { margin: 20, marginBottom: 8, borderRadius: 14, padding: 14, backgroundColor: "#24180f", borderWidth: 1, borderColor: "#4d2b13" },
   cashboxLabel: { color: "#ff8a2a", fontSize: 12, fontWeight: "900", textTransform: "uppercase" },
   cashboxValue: { color: "#fffaf3", fontSize: 16, fontWeight: "800", marginTop: 4 },
+  quickActions: { flexDirection: "row", gap: 8, marginTop: 12 },
+  smallAction: { flex: 1, minHeight: 40, alignItems: "center", justifyContent: "center", borderRadius: 10, backgroundColor: "#2a2723", borderWidth: 1, borderColor: "#403a34" },
+  smallActionText: { color: "#fffaf3", fontWeight: "900" },
   listContent: { padding: 20, paddingTop: 8, gap: 12 },
   clientCard: { borderRadius: 16, padding: 14, backgroundColor: "#171512", borderWidth: 1, borderColor: "#302b26" },
   clientPaid: { borderLeftWidth: 5, borderLeftColor: "#67e0ad" },
@@ -288,7 +402,17 @@ const styles = StyleSheet.create({
   mini: { width: "48%", borderRadius: 12, padding: 10, backgroundColor: "#0b0a09" },
   miniLabel: { color: "#7a746e", fontSize: 11, fontWeight: "800", textTransform: "uppercase" },
   miniValue: { color: "#fffaf3", fontSize: 16, fontWeight: "900", marginTop: 5 },
-  collectButton: { minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "#ff6a00", marginTop: 12 },
+  clientActions: { flexDirection: "row", gap: 10, marginTop: 12 },
+  collectButton: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "#ff6a00" },
   collectButtonSecondary: { backgroundColor: "#2a2723", borderWidth: 1, borderColor: "#403a34" },
-  collectButtonText: { color: "#110d09", fontWeight: "900" }
+  collectButtonText: { color: "#110d09", fontWeight: "900" },
+  moreButton: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "#0b0a09", borderWidth: 1, borderColor: "#403a34" },
+  moreButtonText: { color: "#fffaf3", fontWeight: "900" },
+  modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" },
+  modalPanel: { borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, backgroundColor: "#15120f", borderWidth: 1, borderColor: "#302b26", gap: 10 },
+  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  modalTitle: { color: "#fffaf3", fontSize: 22, fontWeight: "900" },
+  closeText: { color: "#ff8a2a", fontWeight: "900" },
+  modalMeta: { color: "#a8a19a", marginBottom: 10 },
+  modalGrid: { flexDirection: "row", gap: 8, marginBottom: 12 }
 });

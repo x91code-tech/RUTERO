@@ -144,3 +144,32 @@ export async function createCollection(token: string, input: {
   });
   return parseResponse<{ ok: true; collection: unknown }>(response);
 }
+
+export async function createExpense(token: string, input: {
+  movementKind: "EXPENSE" | "WITHDRAWAL" | "INCOME";
+  type: string;
+  amount: number;
+  paymentMethod: string;
+  comment: string;
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/mobile/expenses`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  return parseResponse<{ ok: true; expense: unknown }>(response);
+}
+
+export async function closeCashbox(token: string, input: {
+  reportedCash: number;
+  reportedTransfer: number;
+  reportedPix: number;
+  observations?: string;
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/mobile/cashbox/close`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  return parseResponse<{ ok: true; cashbox: unknown }>(response);
+}
