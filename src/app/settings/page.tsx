@@ -7,6 +7,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getClientsPageData } from "@/lib/clients-data";
 import { getCurrencyConfig, supportedCountries } from "@/lib/countries";
+import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/formatters";
 import { roleDescription, roleLabel, roleTone } from "@/lib/roles";
 
@@ -18,6 +19,18 @@ const errorMessages: Record<string, string> = {
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
   const { company, users } = await getClientsPageData();
+  const subscription = await prisma.subscriptionPlan.findUnique({ where: { companyId: company.id } });
+  const activeUserCount = users.length;
+  const activeSellerCount = users.filter((user) => user.role === "SELLER").length;
+  const userLimitReached = subscription ? activeUserCount >= subscription.maxUsers : true;
+  const sellerLimitReached = subscription ? activeSellerCount >= subscription.maxSellers : true;
+  const blockedReason = !subscription
+    ? "Esta empresa no tiene un plan asignado."
+    : !subscription.active
+      ? "La suscripcion de esta empresa esta inactiva."
+      : userLimitReached
+        ? "La empresa ya uso todos los usuarios activos permitidos por su plan."
+        : "";
 
   return (
     <AppShell title="Configuracion" subtitle="Empresa, cobradores, roles y permisos operativos.">
@@ -35,8 +48,31 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <CardHeader title="Usuarios y permisos" description="Crea administradores, supervisores y cobradores." />
           {error ? <p className="mb-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{errorMessages[error] ?? "No se pudo completar la accion."}</p> : null}
           <div className="mb-5 rounded-xl border border-white/10 bg-carbon-950 p-4">
+            <div className="mb-4 grid gap-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm sm:grid-cols-3">
+              <div>
+                <p className="text-xs uppercase text-zinc-500">Plan</p>
+                <p className="mt-1 font-semibold text-white">{subscription?.name ?? "Sin plan"}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-zinc-500">Usuarios activos</p>
+                <p className={userLimitReached ? "mt-1 font-semibold text-amber-200" : "mt-1 font-semibold text-white"}>
+                  {activeUserCount} / {subscription?.maxUsers ?? 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase text-zinc-500">Cobradores activos</p>
+                <p className={sellerLimitReached ? "mt-1 font-semibold text-amber-200" : "mt-1 font-semibold text-white"}>
+                  {activeSellerCount} / {subscription?.maxSellers ?? 0}
+                </p>
+              </div>
+            </div>
             <h3 className="mb-4 font-bold">Crear usuario</h3>
-            <UserForm countries={supportedCountries} defaultCountryCode={company.countryCode} />
+            <UserForm
+              countries={supportedCountries}
+              defaultCountryCode={company.countryCode}
+              disabledReason={blockedReason}
+              sellerLimitReached={sellerLimitReached}
+            />
           </div>
           <div className="space-y-3">
             {users.map((user) => (

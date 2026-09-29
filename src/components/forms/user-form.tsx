@@ -10,19 +10,35 @@ import { createUserFormAction, type UserFormState } from "@/server/actions/user-
 
 const initialState: UserFormState = { ok: false, message: "" };
 
-export function UserForm({ countries, defaultCountryCode }: { countries: CurrencyConfig[]; defaultCountryCode: string }) {
+export function UserForm({
+  countries,
+  defaultCountryCode,
+  disabledReason = "",
+  sellerLimitReached = false
+}: {
+  countries: CurrencyConfig[];
+  defaultCountryCode: string;
+  disabledReason?: string;
+  sellerLimitReached?: boolean;
+}) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, action, isPending] = useActionState(createUserFormAction, initialState);
   const [role, setRole] = useState("SELLER");
   const [countryCode, setCountryCode] = useState(defaultCountryCode);
   const country = getCurrencyConfig({ countryCode });
+  const roleBlockedReason = disabledReason || (role === "SELLER" && sellerLimitReached ? "El plan ya alcanzo el maximo de cobradores activos. Puedes crear supervisor o administrador si queda cupo de usuarios." : "");
 
   useEffect(() => {
     if (state.ok) formRef.current?.reset();
   }, [state.ok]);
 
+  useEffect(() => {
+    if (sellerLimitReached && role === "SELLER" && !disabledReason) setRole("SUPERVISOR");
+  }, [disabledReason, role, sellerLimitReached]);
+
   return (
     <form ref={formRef} action={action} className="grid gap-4">
+      {roleBlockedReason ? <p className="rounded-xl bg-amber-500/15 px-4 py-3 text-sm text-amber-100">{roleBlockedReason}</p> : null}
       {state.message ? (
         <p className={`rounded-xl px-4 py-3 text-sm ${state.ok ? "bg-emerald-500/15 text-emerald-200" : "bg-red-500/15 text-red-200"}`}>
           {state.message}
@@ -45,8 +61,8 @@ export function UserForm({ countries, defaultCountryCode }: { countries: Currenc
         <FieldError message={state.fieldErrors?.email?.[0]} />
       </Field>
       <Field label="Rol">
-        <Select name="role" value={role} onChange={(event) => setRole(event.target.value)}>
-          <option value="SELLER">Cobrador</option>
+        <Select name="role" value={role} onChange={(event) => setRole(event.target.value)} disabled={Boolean(disabledReason)}>
+          <option value="SELLER" disabled={sellerLimitReached}>Cobrador</option>
           <option value="SUPERVISOR">Supervisor</option>
           <option value="ADMIN">Administrador</option>
         </Select>
@@ -69,7 +85,7 @@ export function UserForm({ countries, defaultCountryCode }: { countries: Currenc
         <Input name="password" type="password" placeholder="Minimo 8, letras y numeros" required aria-invalid={Boolean(state.fieldErrors?.password)} />
         <FieldError message={state.fieldErrors?.password?.[0]} />
       </Field>
-      <Button type="submit" disabled={isPending}>
+      <Button type="submit" disabled={isPending || Boolean(roleBlockedReason)}>
         <UserPlus className="h-4 w-4" />
         {isPending ? "Creando..." : "Crear usuario"}
       </Button>

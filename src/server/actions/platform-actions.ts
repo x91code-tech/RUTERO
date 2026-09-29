@@ -231,8 +231,8 @@ export async function createCompanySubscriptionAction(formData: FormData): Promi
         throw new SubscriptionSetupError("plan-type");
       }
       const [userCount, sellerCount] = await Promise.all([
-        tx.user.count({ where: { companyId } }),
-        tx.user.count({ where: { companyId, role: "SELLER" } })
+        tx.user.count({ where: { companyId, active: true } }),
+        tx.user.count({ where: { companyId, role: "SELLER", active: true } })
       ]);
       if (userCount > plan.maxUsers || sellerCount > plan.maxSellers) throw new SubscriptionSetupError("limit");
       await tx.subscriptionPlan.create({
@@ -480,8 +480,8 @@ export async function updateCompanySubscriptionAction(formData: FormData): Promi
       redirect("/platform?error=invalid-contract");
     }
     const [userCount, sellerCount] = await Promise.all([
-      tx.user.count({ where: { companyId } }),
-      tx.user.count({ where: { companyId, role: "SELLER" } })
+      tx.user.count({ where: { companyId, active: true } }),
+      tx.user.count({ where: { companyId, role: "SELLER", active: true } })
     ]);
     if (userCount > plan.maxUsers || sellerCount > plan.maxSellers) redirect("/platform?error=contract-below-usage");
     await tx.subscriptionPlan.update({

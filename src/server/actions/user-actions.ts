@@ -58,7 +58,7 @@ async function buildCollectorMobileCredentials() {
   };
 }
 
-type UserCapacityErrorCode = "inactive-subscription" | "user-limit" | "seller-limit";
+type UserCapacityErrorCode = "missing-subscription" | "inactive-subscription" | "user-limit" | "seller-limit";
 
 class UserCapacityError extends Error {
   constructor(readonly code: UserCapacityErrorCode) {
@@ -82,10 +82,11 @@ async function createUserWithinPlan({
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${currentUser.companyId}, 0))`;
     const subscription = await tx.subscriptionPlan.findUnique({ where: { companyId: currentUser.companyId } });
-    if (!subscription?.active) throw new UserCapacityError("inactive-subscription");
+    if (!subscription) throw new UserCapacityError("missing-subscription");
+    if (!subscription.active) throw new UserCapacityError("inactive-subscription");
     const [userCount, sellerCount] = await Promise.all([
-      tx.user.count({ where: { companyId: currentUser.companyId } }),
-      tx.user.count({ where: { companyId: currentUser.companyId, role: "SELLER" } })
+      tx.user.count({ where: { companyId: currentUser.companyId, active: true } }),
+      tx.user.count({ where: { companyId: currentUser.companyId, role: "SELLER", active: true } })
     ]);
     if (userCount >= subscription.maxUsers) throw new UserCapacityError("user-limit");
     if (payload.role === "SELLER" && sellerCount >= subscription.maxSellers) throw new UserCapacityError("seller-limit");
@@ -119,9 +120,10 @@ async function createUserWithinPlan({
 
 function capacityErrorMessage(error: unknown) {
   if (!(error instanceof UserCapacityError)) return null;
-  if (error.code === "inactive-subscription") return "La suscripción de la empresa está inactiva. Contacta al propietario de RUTERO.";
-  if (error.code === "user-limit") return "La empresa alcanzó el máximo de usuarios de su plan.";
-  return "La empresa alcanzó el máximo de cobradores de su plan.";
+  if (error.code === "missing-subscription") return "La empresa no tiene un plan asignado. El propietario de RUTERO debe asignar un plan antes de crear usuarios.";
+  if (error.code === "inactive-subscription") return "La suscripcion de la empresa esta inactiva. Contacta al propietario de RUTERO.";
+  if (error.code === "user-limit") return "La empresa alcanzo el maximo de usuarios activos de su plan.";
+  return "La empresa alcanzo el maximo de cobradores activos de su plan.";
 }
 
 export async function createUserAction(formData: FormData) {
