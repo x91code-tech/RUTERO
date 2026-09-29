@@ -223,6 +223,9 @@ Funcionalidad implementada:
 - Pagos, movimientos y cierres mantienen el modal abierto cuando el API responde con error.
 - El boton de cierre desaparece cuando la caja ya no esta abierta.
 - `expo-asset` esta instalado; TypeScript y `expo export --platform android` pasan correctamente.
+- Se genero `rutero-mobile/android/` con `expo prebuild --platform android --clean --no-install`; es generado e ignorado por Git.
+- Se alinearon dependencias con Expo SDK 52 (`@expo/vector-icons 14.0.4`, `expo-secure-store 14.0.1`, `expo-status-bar 2.0.1`, `react-native 0.76.9`) en commit `11554ac`.
+- La primera compilacion debug fallo antes de esa alineacion por mezclar `expo-font 57` con Expo 52. Repetir `android\\gradlew.bat :app:assembleDebug --no-daemon --console=plain` para verificar el resultado final.
 
 Pendiente inmediato:
 
