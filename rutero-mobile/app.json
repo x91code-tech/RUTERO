@@ -11,7 +11,7 @@
       "resizeMode": "contain"
     },
     "android": {
-      "package": "com.rutero.native",
+      "package": "com.rutero.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#ff6a00"
       },
@@ -19,6 +19,9 @@
     },
     "extra": {
       "apiBaseUrl": "https://vps71519.publiccloud.com.br"
-    }
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }
