@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "RUTERO",
+    "slug": "rutero-mobile",
+    "scheme": "rutero",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0b0a09",
+      "resizeMode": "contain"
+    },
+    "android": {
+      "package": "com.rutero.native",
+      "adaptiveIcon": {
+        "backgroundColor": "#ff6a00"
+      },
+      "permissions": []
+    },
+    "extra": {
+      "apiBaseUrl": "https://vps71519.publiccloud.com.br"
+    }
+  }
+}
