@@ -30,6 +30,7 @@ export default function App() {
         await refresh(stored);
         setToken(stored);
       } catch {
+        await clearSessionToken();
         setToken(null);
       } finally {
         setLoading(false);
@@ -38,9 +39,9 @@ export default function App() {
   }, [refresh]);
 
   async function handleLoggedIn(sessionToken: string) {
+    await refresh(sessionToken);
     await setSessionToken(sessionToken);
     setToken(sessionToken);
-    await refresh(sessionToken);
   }
 
   async function logout() {
@@ -124,6 +125,7 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
   const [selectedClient, setSelectedClient] = useState<RouteClient | null>(null);
   const [movementOpen, setMovementOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const money = useMemo(() => moneyFormatter(route.company?.locale ?? "es-VE", route.company?.currencyCode ?? "VES"), [route.company]);
   const canCollect = route.cashbox?.status === "OPEN";
 
@@ -131,7 +133,7 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
     if (!client.loan) return;
     if (!canCollect) {
       Alert.alert("Caja cerrada", "La caja debe estar abierta para registrar pagos.");
-      return;
+      return false;
     }
     setBusyClientId(client.id);
     try {
@@ -144,10 +146,23 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
         paymentMethod: "CASH_LOCAL"
       });
       await onRefresh();
+      return true;
     } catch (error) {
       Alert.alert("No se registro", error instanceof Error ? error.message : "Revisa el pago.");
+      return false;
     } finally {
       setBusyClientId(null);
+    }
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (error) {
+      Alert.alert("No se pudo actualizar", error instanceof Error ? error.message : "Intenta nuevamente.");
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -157,7 +172,7 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
         <View>
           <Text style={styles.kicker}>{route.company?.name ?? "RUTERO"}</Text>
           <Text style={styles.title}>Ruta de cobro</Text>
-          <Text style={styles.subtitle}>{user.name} · {route.route?.name ?? "Sin ruta"}</Text>
+          <Text style={styles.subtitle}>{user.name} - {route.route?.name ?? "Sin ruta"}</Text>
         </View>
         <Pressable style={styles.iconButton} onPress={onLogout}><Ionicons name="log-out-outline" size={22} color="#f7f2eb" /></Pressable>
       </View>
@@ -171,10 +186,10 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
 
       <View style={styles.cashboxStrip}>
         <Text style={styles.cashboxLabel}>Caja</Text>
-        <Text style={styles.cashboxValue}>{route.cashbox ? `${route.cashbox.status} · ${money(route.cashbox.expectedCash)}` : "Sin abrir"}</Text>
+        <Text style={styles.cashboxValue}>{route.cashbox ? `${route.cashbox.status} - ${money(route.cashbox.expectedCash)}` : "Sin abrir"}</Text>
         <View style={styles.quickActions}>
-          <SmallAction label="Movimiento" onPress={() => setMovementOpen(true)} />
-          <SmallAction label="Cerrar caja" onPress={() => setCloseOpen(true)} />
+          <SmallAction label="Movimiento" onPress={() => setMovementOpen(true)} disabled={!canCollect} />
+          {canCollect ? <SmallAction label="Cerrar caja" onPress={() => setCloseOpen(true)} /> : null}
         </View>
       </View>
 
@@ -182,8 +197,8 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
         data={route.clients}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        refreshing={false}
-        onRefresh={onRefresh}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
         renderItem={({ item }) => (
           <ClientCard
             client={item}
@@ -194,7 +209,7 @@ function RouteScreen({ token, user, route, onRefresh, onLogout }: {
           />
         )}
       />
-      <PaymentModal client={selectedClient} money={money} onClose={() => setSelectedClient(null)} onPay={(amount, type) => selectedClient ? collect(selectedClient, amount, type) : Promise.resolve()} />
+      <PaymentModal client={selectedClient} money={money} onClose={() => setSelectedClient(null)} onPay={(amount, type) => selectedClient ? collect(selectedClient, amount, type) : Promise.resolve(false)} />
       <MovementModal open={movementOpen} onClose={() => setMovementOpen(false)} onSave={async (payload) => { await createExpense(token, payload); setMovementOpen(false); await onRefresh(); }} />
       <CloseCashboxModal open={closeOpen} cashbox={route.cashbox} onClose={() => setCloseOpen(false)} onSave={async (payload) => { await closeCashbox(token, payload); setCloseOpen(false); await onRefresh(); }} />
     </SafeAreaView>
@@ -226,7 +241,7 @@ function ClientCard({ client, money, busy, onCollect, onOpen }: {
       </View>
       <View style={styles.clientActions}>
         <Pressable style={[styles.collectButton, paid && styles.collectButtonSecondary]} onPress={onCollect} disabled={busy || !client.loan}>
-          <Text style={styles.collectButtonText}>{busy ? "..." : "Cuota"}</Text>
+          <Text style={[styles.collectButtonText, paid && styles.collectButtonTextSecondary]}>{busy ? "..." : "Cuota"}</Text>
         </Pressable>
         <Pressable style={styles.moreButton} onPress={onOpen}><Text style={styles.moreButtonText}>Mas</Text></Pressable>
       </View>
@@ -238,14 +253,15 @@ function PaymentModal({ client, money, onClose, onPay }: {
   client: RouteClient | null;
   money: (value: number) => string;
   onClose: () => void;
-  onPay: (amount: number, type: "INSTALLMENT" | "ADVANCE" | "SETTLEMENT" | "MANUAL") => Promise<void>;
+  onPay: (amount: number, type: "INSTALLMENT" | "ADVANCE" | "SETTLEMENT" | "MANUAL") => Promise<boolean | undefined>;
 }) {
   const [amount, setAmount] = useState("");
   if (!client?.loan) return null;
   const quota = client.loan.dailyPayment;
   const balance = client.loan.balance;
   async function pay(value: number, type: "INSTALLMENT" | "ADVANCE" | "SETTLEMENT" | "MANUAL") {
-    await onPay(value, type);
+    const recorded = await onPay(value, type);
+    if (!recorded) return;
     setAmount("");
     onClose();
   }
@@ -274,6 +290,19 @@ function MovementModal({ open, onClose, onSave }: {
   const [type, setType] = useState("Gastos: Varios");
   const [amount, setAmount] = useState("");
   const [comment, setComment] = useState("");
+  const [saving, setSaving] = useState(false);
+  async function save() {
+    setSaving(true);
+    try {
+      await onSave({ movementKind, type, amount: Number(amount), paymentMethod: "CASH_LOCAL", comment });
+      setAmount("");
+      setComment("");
+    } catch (error) {
+      Alert.alert("No se guardo el movimiento", error instanceof Error ? error.message : "Intenta nuevamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <ModalPanel title="Movimiento de caja" onClose={onClose}>
@@ -285,7 +314,7 @@ function MovementModal({ open, onClose, onSave }: {
         <Field value={type} onChangeText={setType} placeholder="Tipo" />
         <Field value={amount} onChangeText={setAmount} placeholder="Monto" keyboardType="decimal-pad" />
         <Field value={comment} onChangeText={setComment} placeholder="Comentario" />
-        <PrimaryButton label="Guardar movimiento" onPress={() => onSave({ movementKind, type, amount: Number(amount), paymentMethod: "CASH_LOCAL", comment })} disabled={!Number(amount) || comment.length < 2} />
+        <PrimaryButton label={saving ? "Guardando..." : "Guardar movimiento"} onPress={save} disabled={saving || !Number(amount) || comment.length < 2} />
       </ModalPanel>
     </Modal>
   );
@@ -301,6 +330,24 @@ function CloseCashboxModal({ open, cashbox, onClose, onSave }: {
   const [reportedTransfer, setReportedTransfer] = useState(String(cashbox?.reportedTransfer ?? 0));
   const [reportedPix, setReportedPix] = useState(String(cashbox?.reportedPix ?? 0));
   const [observations, setObservations] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setReportedCash(String(cashbox?.expectedCash ?? 0));
+    setReportedTransfer(String(cashbox?.reportedTransfer ?? 0));
+    setReportedPix(String(cashbox?.reportedPix ?? 0));
+    setObservations("");
+  }, [cashbox, open]);
+  async function save() {
+    setSaving(true);
+    try {
+      await onSave({ reportedCash: Number(reportedCash), reportedTransfer: Number(reportedTransfer), reportedPix: Number(reportedPix), observations });
+    } catch (error) {
+      Alert.alert("No se pudo cerrar la caja", error instanceof Error ? error.message : "Intenta nuevamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <ModalPanel title="Cerrar caja" onClose={onClose}>
@@ -309,7 +356,7 @@ function CloseCashboxModal({ open, cashbox, onClose, onSave }: {
         <Field value={reportedTransfer} onChangeText={setReportedTransfer} placeholder="Transferencia reportada" keyboardType="decimal-pad" />
         <Field value={reportedPix} onChangeText={setReportedPix} placeholder="Digital reportado" keyboardType="decimal-pad" />
         <Field value={observations} onChangeText={setObservations} placeholder="Observaciones" />
-        <PrimaryButton label="Cerrar caja" onPress={() => onSave({ reportedCash: Number(reportedCash), reportedTransfer: Number(reportedTransfer), reportedPix: Number(reportedPix), observations })} disabled={!cashbox || cashbox.status !== "OPEN"} />
+        <PrimaryButton label={saving ? "Cerrando..." : "Cerrar caja"} onPress={save} disabled={saving || !cashbox || cashbox.status !== "OPEN"} />
       </ModalPanel>
     </Modal>
   );
@@ -346,8 +393,8 @@ function Metric({ label, value, tone = "neutral" }: { label: string; value: stri
   return <View style={styles.metric}><Text style={styles.metricLabel}>{label}</Text><Text style={[styles.metricValue, tone === "green" && styles.green, tone === "orange" && styles.orange]}>{value}</Text></View>;
 }
 
-function SmallAction({ label, onPress }: { label: string; onPress: () => void }) {
-  return <Pressable style={styles.smallAction} onPress={onPress}><Text style={styles.smallActionText}>{label}</Text></Pressable>;
+function SmallAction({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
+  return <Pressable style={[styles.smallAction, disabled && styles.disabled]} onPress={onPress} disabled={disabled}><Text style={styles.smallActionText}>{label}</Text></Pressable>;
 }
 
 function Mini({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "green" }) {
@@ -407,6 +454,7 @@ const styles = StyleSheet.create({
   collectButton: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "#ff6a00" },
   collectButtonSecondary: { backgroundColor: "#2a2723", borderWidth: 1, borderColor: "#403a34" },
   collectButtonText: { color: "#110d09", fontWeight: "900" },
+  collectButtonTextSecondary: { color: "#fffaf3" },
   moreButton: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "#0b0a09", borderWidth: 1, borderColor: "#403a34" },
   moreButtonText: { color: "#fffaf3", fontWeight: "900" },
   modalBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" },
