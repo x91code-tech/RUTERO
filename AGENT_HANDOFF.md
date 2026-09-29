@@ -207,7 +207,7 @@ Configuracion actual:
 
 ```text
 apiBaseUrl: https://vps71519.publiccloud.com.br
-android package: com.rutero.native
+android package: com.rutero.mobile
 ```
 
 Funcionalidad implementada:
@@ -218,17 +218,21 @@ Funcionalidad implementada:
 - Identificador de dispositivo guardado en `expo-secure-store`.
 - Pantalla de ruta con resumen, caja y lista de clientes.
 - Acciones: cuota, adelanto, pago total, monto manual, gasto/retiro/entrada y cierre de caja.
+- La sesion se persiste solo despues de validar `/api/mobile/me` y `/api/mobile/route`.
+- Una sesion invalida se elimina del almacenamiento seguro.
+- Pagos, movimientos y cierres mantienen el modal abierto cuando el API responde con error.
+- El boton de cierre desaparece cuando la caja ya no esta abierta.
+- `expo-asset` esta instalado; TypeScript y `expo export --platform android` pasan correctamente.
 
 Pendiente inmediato:
 
 ```powershell
 cd C:\Users\Administrador\Downloads\rutero\rutero-mobile
-npm install
 npm run typecheck
-npm run start
+npx expo export --platform android --clear
 ```
 
-Luego corregir errores reales de Expo/TypeScript. Todavia no se instalo ni se probo `rutero-mobile`.
+El siguiente paso es probar el login y la ruta en un emulador o dispositivo Android con credenciales reales. El intento de `expo prebuild --platform android` en este entorno no llego a crear `android/`; no forzarlo ni asumir que hubo un build Gradle. La APK Capacitor legacy conserva `com.rutero.app`; no cambiar su firma ni su package ID.
 
 ## Comandos Locales Web
 
