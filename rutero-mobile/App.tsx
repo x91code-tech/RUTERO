@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, FlatList, Modal, Pressable, SafeAreaView, Scr
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { closeCashbox, createCollection, createExpense, getDeviceToken, getMe, getRoute, loginWithEmail, loginWithPin, type MobileUser, type RouteClient, type RoutePayload } from "./src";
+import { clearSessionToken, getSessionToken, setSessionToken } from "./src/session";
 
 type AuthMode = "email" | "pin";
 
@@ -19,7 +20,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    void import("./src/session").then(async ({ getSessionToken }) => {
+    void (async () => {
       const stored = await getSessionToken();
       if (!stored) {
         setLoading(false);
@@ -33,17 +34,17 @@ export default function App() {
       } finally {
         setLoading(false);
       }
-    });
+    })();
   }, [refresh]);
 
   async function handleLoggedIn(sessionToken: string) {
-    await import("./src/session").then(({ setSessionToken }) => setSessionToken(sessionToken));
+    await setSessionToken(sessionToken);
     setToken(sessionToken);
     await refresh(sessionToken);
   }
 
   async function logout() {
-    await import("./src/session").then(({ clearSessionToken }) => clearSessionToken());
+    await clearSessionToken();
     setToken(null);
     setUser(null);
     setRoute(null);
