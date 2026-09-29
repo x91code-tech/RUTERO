@@ -11,6 +11,44 @@ export function hashSessionToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+export async function createSessionToken(userId: string) {
+  const token = randomBytes(32).toString("base64url");
+  const tokenHash = hashSessionToken(token);
+  const expiresAt = new Date(Date.now() + sessionDurationDays * 24 * 60 * 60 * 1000);
+
+  await prisma.session.create({
+    data: {
+      userId,
+      tokenHash,
+      expiresAt
+    }
+  });
+
+  return { token, expiresAt };
+}
+
+export async function getUserFromSessionToken(token: string): Promise<User | null> {
+  const session = await prisma.session.findUnique({
+    where: { tokenHash: hashSessionToken(token) },
+    include: { user: true }
+  });
+
+  if (
+    !session ||
+    session.expiresAt < new Date() ||
+    !session.user.active ||
+    (session.user.role !== "SUPER_ADMIN" && await isCompanyBillingSuspended(session.user.companyId)) ||
+    (session.user.role === "PARTNER" && !await prisma.partnerProfile.findFirst({ where: { userId: session.user.id, active: true }, select: { id: true } }))
+  ) {
+    if (session) {
+      await prisma.session.deleteMany({ where: { id: session.id } });
+    }
+    return null;
+  }
+
+  return session.user;
+}
+
 async function shouldUseSecureCookies() {
   if (process.env.COOKIE_SECURE === "true") return true;
   if (process.env.COOKIE_SECURE === "false") return false;
@@ -26,17 +64,7 @@ async function shouldUseSecureCookies() {
 }
 
 export async function createUserSession(userId: string) {
-  const token = randomBytes(32).toString("base64url");
-  const tokenHash = hashSessionToken(token);
-  const expiresAt = new Date(Date.now() + sessionDurationDays * 24 * 60 * 60 * 1000);
-
-  await prisma.session.create({
-    data: {
-      userId,
-      tokenHash,
-      expiresAt
-    }
-  });
+  const { token, expiresAt } = await createSessionToken(userId);
 
   const cookieStore = await cookies();
   cookieStore.set(sessionCookieName, token, {
@@ -53,23 +81,14 @@ export async function getSessionUser(): Promise<User | null> {
   const token = cookieStore.get(sessionCookieName)?.value;
   if (!token) return null;
 
-  const session = await prisma.session.findUnique({
-    where: { tokenHash: hashSessionToken(token) },
-    include: { user: true }
-  });
+  const user = await getUserFromSessionToken(token);
 
-  if (
-    !session ||
-    session.expiresAt < new Date() ||
-    !session.user.active ||
-    (session.user.role !== "SUPER_ADMIN" && await isCompanyBillingSuspended(session.user.companyId)) ||
-    (session.user.role === "PARTNER" && !await prisma.partnerProfile.findFirst({ where: { userId: session.user.id, active: true }, select: { id: true } }))
-  ) {
+  if (!user) {
     await clearUserSession();
     return null;
   }
 
-  return session.user;
+  return user;
 }
 
 export async function clearUserSession() {
