@@ -21,7 +21,8 @@
       "apiBaseUrl": "https://vps71519.publiccloud.com.br"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-secure-store"
     ]
   }
 }
