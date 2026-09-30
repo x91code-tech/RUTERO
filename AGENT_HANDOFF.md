@@ -227,6 +227,7 @@ Funcionalidad implementada:
 - Se alinearon dependencias con Expo SDK 52 (`@expo/vector-icons 14.0.4`, `expo-secure-store 14.0.1`, `expo-status-bar 2.0.1`, `react-native 0.76.9`) en commit `11554ac`.
 - La primera compilacion debug fallo antes de esa alineacion por mezclar `expo-font 57` con Expo 52. Repetir `android\\gradlew.bat :app:assembleDebug --no-daemon --console=plain` para verificar el resultado final.
 - La ruta local del SDK Android se configuro en `android/local.properties` (ignorado por Git). Gradle ya instalo Platform 35, Build Tools 34, NDK 26.1.10909125 y CMake 3.22.1. La compilacion final requiere acceso de red al wrapper de Gradle; en el entorno restringido falla al descargar `gradle-8.10.2-all.zip`, no por codigo de RUTERO.
+- Se agrego `rutero-mobile/assets/rutero-logo.png` como icono Android, splash y marca de login. La APK release debe usarse, nunca el APK debug: debug requiere Metro. La release `arm64-v8a` se valido empaquetando `assets/index.android.bundle` y `lib/arm64-v8a/libexpo-modules-core.so`; una release `x86_64` tambien abrio correctamente en LDPlayer.
 
 Pendiente inmediato:
 

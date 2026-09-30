@@ -4,16 +4,19 @@
     "slug": "rutero-mobile",
     "scheme": "rutero",
     "version": "0.1.0",
+    "icon": "./assets/rutero-logo.png",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "splash": {
       "backgroundColor": "#0b0a09",
-      "resizeMode": "contain"
+      "resizeMode": "contain",
+      "image": "./assets/rutero-logo.png"
     },
     "android": {
       "package": "com.rutero.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#ff6a00"
+        "foregroundImage": "./assets/rutero-logo.png",
+        "backgroundColor": "#0b0a09"
       },
       "permissions": []
     },
@@ -22,7 +25,8 @@
     },
     "plugins": [
       "expo-asset",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ]
   }
 }

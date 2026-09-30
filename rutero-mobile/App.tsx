@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { closeCashbox, createCollection, createExpense, getDeviceToken, getMe, getRoute, loginWithEmail, loginWithPin, type MobileUser, type RouteClient, type RoutePayload } from "./src";
@@ -89,7 +89,7 @@ function LoginScreen({ onLoggedIn }: { onLoggedIn: (token: string) => Promise<vo
   return (
     <Screen>
       <View style={styles.loginCard}>
-        <View style={styles.brandMark}><Text style={styles.brandR}>R</Text></View>
+        <Image source={require("./assets/rutero-logo.png")} style={styles.brandLogo} resizeMode="contain" accessibilityLabel="RUTERO" />
         <Text style={styles.title}>RUTERO</Text>
         <Text style={styles.subtitle}>Operacion diaria de cobro</Text>
         <View style={styles.segment}>
@@ -414,8 +414,7 @@ const styles = StyleSheet.create({
   subtitle: { color: "#a8a19a", fontSize: 15, marginTop: 4 },
   iconButton: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#1b1916", borderWidth: 1, borderColor: "#302b26" },
   loginCard: { width: "100%", maxWidth: 420, borderRadius: 18, borderWidth: 1, borderColor: "#302b26", backgroundColor: "#15120f", padding: 22 },
-  brandMark: { width: 54, height: 54, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: "#ff6a00", marginBottom: 16 },
-  brandR: { color: "#fff", fontWeight: "900", fontSize: 28 },
+  brandLogo: { width: 76, height: 76, marginBottom: 14 },
   segment: { flexDirection: "row", backgroundColor: "#0c0b0a", borderRadius: 14, padding: 4, marginVertical: 18 },
   segmentButton: { flex: 1, paddingVertical: 12, alignItems: "center", borderRadius: 10 },
   segmentActive: { backgroundColor: "#ff6a00" },
